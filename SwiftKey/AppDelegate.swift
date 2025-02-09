@@ -44,7 +44,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, FacelessMe
         menuState.rootMenu = loadMenuConfig() ?? []
         menuState.reset()
         
-        let contentView = OverlayView(state: menuState)
+        let contentView = OverlayView(state: menuState).environmentObject(SettingsStore.shared)
         overlayWindow = OverlayWindow(
             contentRect: NSRect(x: 0, y: 0, width: 300, height: 200),
             styleMask: [.borderless],

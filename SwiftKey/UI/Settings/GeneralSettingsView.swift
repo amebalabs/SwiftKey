@@ -12,6 +12,10 @@ struct GeneralSettingsView: View {
         Form {
             LaunchAtLogin.Toggle()
             Toggle("Faceless Mode", isOn: settings.$facelessMode)
+            Toggle(
+                "Horizontal Layout",
+                isOn: settings.$useHorizontalOverlayLayout
+            )
             HStack {
                 Text("Menu Reset Delay")
                 Slider(value: settings.$menuStateResetDelay, in: 0...10, step: 0.5)
