@@ -6,13 +6,35 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		FA409DFC2D58166200FCFC04 /* Yams in Frameworks */ = {isa = PBXBuildFile; productRef = FA409DFB2D58166200FCFC04 /* Yams */; };
+		FA62DE542D44187600B1CC0C /* LaunchAtLogin in Frameworks */ = {isa = PBXBuildFile; productRef = FA62DE532D44187600B1CC0C /* LaunchAtLogin */; };
+		FA62DE5A2D4418A900B1CC0C /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = FA62DE592D4418A900B1CC0C /* KeyboardShortcuts */; };
+		FAF87AD52D4A8457008986C6 /* DynamicNotchKit in Frameworks */ = {isa = PBXBuildFile; productRef = FAF87AD42D4A8457008986C6 /* DynamicNotchKit */; };
+		FAF87ADB2D4A8D6E008986C6 /* Notch in Frameworks */ = {isa = PBXBuildFile; productRef = FAF87ADA2D4A8D6E008986C6 /* Notch */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		FA3044B12D43F59400BA98E2 /* SwiftKey.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SwiftKey.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		FAB7571F2D4A6A57008D0A25 /* Exceptions for "SwiftKey" folder in "SwiftKey" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Packages/Notch,
+				Resources/Info.plist,
+			);
+			target = FA3044B02D43F59400BA98E2 /* SwiftKey */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		FA3044B32D43F59400BA98E2 /* SwiftKey */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				FAB7571F2D4A6A57008D0A25 /* Exceptions for "SwiftKey" folder in "SwiftKey" target */,
+			);
 			path = SwiftKey;
 			sourceTree = "<group>";
 		};
@@ -23,6 +45,11 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				FAF87AD52D4A8457008986C6 /* DynamicNotchKit in Frameworks */,
+				FA409DFC2D58166200FCFC04 /* Yams in Frameworks */,
+				FAF87ADB2D4A8D6E008986C6 /* Notch in Frameworks */,
+				FA62DE542D44187600B1CC0C /* LaunchAtLogin in Frameworks */,
+				FA62DE5A2D4418A900B1CC0C /* KeyboardShortcuts in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -32,8 +59,9 @@
 		FA3044A82D43F59400BA98E2 = {
 			isa = PBXGroup;
 			children = (
-				FA3044B32D43F59400BA98E2 /* SwiftKey */,
+				FAF87AD92D4A8D6E008986C6 /* Frameworks */,
 				FA3044B22D43F59400BA98E2 /* Products */,
+				FA3044B32D43F59400BA98E2 /* SwiftKey */,
 			);
 			sourceTree = "<group>";
 		};
@@ -43,6 +71,13 @@
 				FA3044B12D43F59400BA98E2 /* SwiftKey.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		FAF87AD92D4A8D6E008986C6 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -65,6 +100,11 @@
 			);
 			name = SwiftKey;
 			packageProductDependencies = (
+				FA62DE532D44187600B1CC0C /* LaunchAtLogin */,
+				FA62DE592D4418A900B1CC0C /* KeyboardShortcuts */,
+				FAF87AD42D4A8457008986C6 /* DynamicNotchKit */,
+				FAF87ADA2D4A8D6E008986C6 /* Notch */,
+				FA409DFB2D58166200FCFC04 /* Yams */,
 			);
 			productName = SwiftKey;
 			productReference = FA3044B12D43F59400BA98E2 /* SwiftKey.app */;
@@ -78,7 +118,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1610;
-				LastUpgradeCheck = 1610;
+				LastUpgradeCheck = 1620;
 				TargetAttributes = {
 					FA3044B02D43F59400BA98E2 = {
 						CreatedOnToolsVersion = 16.1;
@@ -94,6 +134,12 @@
 			);
 			mainGroup = FA3044A82D43F59400BA98E2;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				FA62DE522D44187600B1CC0C /* XCRemoteSwiftPackageReference "LaunchAtLogin-Modern" */,
+				FA62DE582D4418A900B1CC0C /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */,
+				FAF87AD32D4A8457008986C6 /* XCRemoteSwiftPackageReference "DynamicNotchKit" */,
+				FA409DFA2D58166200FCFC04 /* XCRemoteSwiftPackageReference "Yams" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = FA3044B22D43F59400BA98E2 /* Products */;
 			projectDirPath = "";
@@ -159,6 +205,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -222,6 +269,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -248,15 +296,17 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = SwiftKey/SwiftKey.entitlements;
+				CODE_SIGN_ENTITLEMENTS = SwiftKey/Resources/SwiftKey.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"SwiftKey/Preview Content\"";
 				DEVELOPMENT_TEAM = X93LWC49WV;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = SwiftKey/Resources/Info.plist;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -275,15 +325,17 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = SwiftKey/SwiftKey.entitlements;
+				CODE_SIGN_ENTITLEMENTS = SwiftKey/Resources/SwiftKey.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"SwiftKey/Preview Content\"";
 				DEVELOPMENT_TEAM = X93LWC49WV;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = SwiftKey/Resources/Info.plist;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -319,6 +371,68 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		FA409DFA2D58166200FCFC04 /* XCRemoteSwiftPackageReference "Yams" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/jpsim/Yams.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.1.3;
+			};
+		};
+		FA62DE522D44187600B1CC0C /* XCRemoteSwiftPackageReference "LaunchAtLogin-Modern" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sindresorhus/LaunchAtLogin-Modern";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
+		FA62DE582D4418A900B1CC0C /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sindresorhus/KeyboardShortcuts";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.2.4;
+			};
+		};
+		FAF87AD32D4A8457008986C6 /* XCRemoteSwiftPackageReference "DynamicNotchKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/MrKai77/DynamicNotchKit";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		FA409DFB2D58166200FCFC04 /* Yams */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FA409DFA2D58166200FCFC04 /* XCRemoteSwiftPackageReference "Yams" */;
+			productName = Yams;
+		};
+		FA62DE532D44187600B1CC0C /* LaunchAtLogin */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FA62DE522D44187600B1CC0C /* XCRemoteSwiftPackageReference "LaunchAtLogin-Modern" */;
+			productName = LaunchAtLogin;
+		};
+		FA62DE592D4418A900B1CC0C /* KeyboardShortcuts */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FA62DE582D4418A900B1CC0C /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */;
+			productName = KeyboardShortcuts;
+		};
+		FAF87AD42D4A8457008986C6 /* DynamicNotchKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FAF87AD32D4A8457008986C6 /* XCRemoteSwiftPackageReference "DynamicNotchKit" */;
+			productName = DynamicNotchKit;
+		};
+		FAF87ADA2D4A8D6E008986C6 /* Notch */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Notch;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = FA3044A92D43F59400BA98E2 /* Project object */;
 }
