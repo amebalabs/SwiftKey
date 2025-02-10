@@ -21,10 +21,15 @@ struct MinimalHUDView: View {
                             .font(.caption)
                             .foregroundColor(.gray)
                     }
-                    Text(lastKey)
-                        .font(.largeTitle)
-                        .foregroundColor(error ? .red : .white)
-                        .transition(.scale)
+                    HStack(spacing: 4) {
+                        Spacer()
+                        Text(lastKey)
+                            .font(.largeTitle)
+                            .foregroundColor(error ? .red : .white)
+                            .transition(.scale)
+                        Spacer()
+                        BlinkingIndicator()
+                    }
                 }
                 .padding(8)
                 .background(Color.black.opacity(0.7))
@@ -66,6 +71,7 @@ struct MinimalHUDView: View {
                 withAnimation(.easeInOut(duration: 0.1)) {
                     state.breadcrumbs.append(item.title)
                     state.menuStack.append(submenu)
+                    lastKey = ""
                 }
             } else if let action = item.actionClosure {
                 // For actions: animate the key press, trigger the action, and dismiss quickly.

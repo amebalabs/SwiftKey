@@ -23,3 +23,19 @@ struct ToggleView: View {
         }
     }
 }
+
+struct BlinkingIndicator: View {
+    @State private var opacity: Double = 1.0
+    
+    var body: some View {
+        Circle()
+            .frame(width: 8, height: 8)
+            .foregroundColor(.white)
+            .opacity(opacity)
+            .onAppear {
+                withAnimation(Animation.easeInOut(duration: 0.5).repeatForever(autoreverses: true)) {
+                    opacity = 0
+                }
+            }
+    }
+}
