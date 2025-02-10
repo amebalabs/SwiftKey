@@ -62,7 +62,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, FacelessMe
         if settings.facelessMode {
             statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
             if let button = statusItem?.button {
-                button.title = "Menu"
                 button.action = #selector(statusItemClicked)
                 button.target = self
             }
@@ -91,7 +90,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, FacelessMe
             if statusItem == nil {
                 statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
                 if let button = statusItem?.button {
-                    button.title = "Menu"
                     button.action = #selector(statusItemClicked)
                     button.target = self
                 }

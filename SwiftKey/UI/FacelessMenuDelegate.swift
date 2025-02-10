@@ -31,19 +31,27 @@ class FacelessMenuController {
     }
 
     func updateStatusItem() {
+        let imageConfig = NSImage.SymbolConfiguration(
+            pointSize: 20,
+            weight: .medium,
+            scale: .small
+        )
         if sessionActive {
             statusItem.button?.title = ""
             let imageName = indicatorState ? "circle.fill" : "circle"
-            statusItem.button?.image = NSImage(systemSymbolName: imageName, accessibilityDescription: "Active session")
+            statusItem.button?.image = NSImage(systemSymbolName: imageName, accessibilityDescription: "Active session")?.withSymbolConfiguration(imageConfig)
         } else {
-            statusItem.button?.title = "Menu"
-            statusItem.button?.image = nil
+            statusItem.button?.image = NSImage(
+                systemSymbolName: "k.circle",
+                accessibilityDescription: "Active session"
+            )?
+                .withSymbolConfiguration(imageConfig)
         }
     }
 
     func startAnimationTimer() {
         animationTimer?.invalidate()
-        animationTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+        animationTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
             self?.toggleIndicator()
         }
     }
