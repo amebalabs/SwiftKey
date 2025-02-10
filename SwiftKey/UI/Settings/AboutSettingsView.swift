@@ -37,7 +37,6 @@ struct AboutSettingsView: View {
     }
 }
 
-
 #Preview {
     AboutSettingsView()
 }

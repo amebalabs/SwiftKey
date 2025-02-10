@@ -1,5 +1,5 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 
 @main
 struct OverlayApp: App {
@@ -11,5 +11,3 @@ struct OverlayApp: App {
         }
     }
 }
-
-

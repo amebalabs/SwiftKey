@@ -3,11 +3,11 @@ import SwiftUI
 struct MinimalHUDView: View {
     @ObservedObject var state: MenuState
     @EnvironmentObject var settings: SettingsStore
-    
+
     @State private var lastKey: String = ""
     @State private var error: Bool = false
     @State private var showFullOverlay: Bool = false
-    
+
     var body: some View {
         VStack {
             if showFullOverlay {
@@ -42,11 +42,11 @@ struct MinimalHUDView: View {
             KeyHandlingView { key in
                 handleKeyPress(key)
             }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color.clear)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color.clear)
         )
     }
-    
+
     func handleKeyPress(_ key: String) {
         // Dismiss on escape.
         if key == "escape" {

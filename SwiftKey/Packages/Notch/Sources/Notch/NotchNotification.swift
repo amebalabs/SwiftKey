@@ -29,6 +29,7 @@ public enum NotchNotification {
             interval: interval
         )
     }
+
     @MainActor
     public static func present(
         leadingView: some View = Image(systemName: "bell.fill"),

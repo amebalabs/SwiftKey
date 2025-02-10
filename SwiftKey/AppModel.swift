@@ -1,18 +1,15 @@
 import AppKit
 import Yams
 
-import AppKit
-import Yams
-
 // Unified model for both configuration and runtime usage.
 struct MenuItem: Identifiable, Decodable {
-    let id: UUID = UUID()
-    var key: String           // e.g. "a", "B", "!", etc.
-    var systemImage: String   // Default SF Symbol name
-    var title: String         // Descriptive title
-    var action: String?       // Raw action string from YAML
-    var submenu: [MenuItem]?  // Optional nested submenu
-    
+    let id: UUID = .init()
+    var key: String // e.g. "a", "B", "!", etc.
+    var systemImage: String // Default SF Symbol name
+    var title: String // Descriptive title
+    var action: String? // Raw action string from YAML
+    var submenu: [MenuItem]? // Optional nested submenu
+
     /// Computed property to return a closure based on the raw action string.
     var actionClosure: (() -> Void)? {
         guard let action = action else { return nil }
@@ -21,19 +18,22 @@ struct MenuItem: Identifiable, Decodable {
             return {
                 NSWorkspace.shared.launchApplication(appName)
             }
-        } else if action.hasPrefix("open://") {
+        }
+        if action.hasPrefix("open://") {
             let urlString = String(action.dropFirst("open://".count))
             return {
                 if let url = URL(string: urlString) {
                     NSWorkspace.shared.open(url)
                 }
             }
-        } else if action.hasPrefix("print://") {
+        }
+        if action.hasPrefix("print://") {
             let message = String(action.dropFirst("print://".count))
             return {
                 print(message)
             }
-        } else if action.hasPrefix("shortcut://") {
+        }
+        if action.hasPrefix("shortcut://") {
             let shortcutName = String(action.dropFirst("shortcut://".count))
             return {
                 let process = Process()
@@ -41,7 +41,8 @@ struct MenuItem: Identifiable, Decodable {
                 process.arguments = ["run", shortcutName]
                 process.launch()
             }
-        } else if action.hasPrefix("shell://") {
+        }
+        if action.hasPrefix("shell://") {
             let command = String(action.dropFirst("shell://".count))
             return {
                 let process = Process()
@@ -63,12 +64,12 @@ func loadMenuConfig() -> [MenuItem]? {
         // Fallback to bundled resource.
         configURL = Bundle.main.url(forResource: "menu", withExtension: "yaml")
     }
-    
+
     guard let url = configURL, FileManager.default.fileExists(atPath: url.path) else {
         print("menu.yaml not found.")
         return nil
     }
-    
+
     do {
         let yamlString = try String(contentsOf: url, encoding: .utf8)
         let decoder = YAMLDecoder()

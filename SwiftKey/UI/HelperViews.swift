@@ -5,12 +5,12 @@ struct ToggleView: View {
     let secondLabel: String
     @Binding var state: Bool
     let width: CGFloat
-    
+
     var mainLabel: String {
         guard !label.isEmpty else { return "" }
         return "\(label):"
     }
-    
+
     var body: some View {
         HStack {
             HStack {
@@ -26,7 +26,7 @@ struct ToggleView: View {
 
 struct BlinkingIndicator: View {
     @State private var opacity: Double = 1.0
-    
+
     var body: some View {
         Circle()
             .frame(width: 8, height: 8)

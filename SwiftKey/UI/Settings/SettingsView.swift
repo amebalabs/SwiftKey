@@ -4,6 +4,7 @@ struct SettingsView: View {
     private enum Tabs: Hashable {
         case general, about
     }
+
     @ObservedObject var menuState = MenuState.shared
 
     var body: some View {

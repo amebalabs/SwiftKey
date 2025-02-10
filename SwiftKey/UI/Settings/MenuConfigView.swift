@@ -16,7 +16,7 @@ extension MenuItem {
                         title: "Open Website",
                         action: "open://https://www.example.com",
                         submenu: nil
-                    )
+                    ),
                 ]
             ),
             MenuItem(
@@ -25,7 +25,7 @@ extension MenuItem {
                 title: "Print Message",
                 action: "print://Hello, World!",
                 submenu: nil
-            )
+            ),
         ]
     }
 }
@@ -37,7 +37,7 @@ extension MenuItem {
 /// and buttons to add or remove items. Submenu items are rendered recursively.
 struct MenuConfigView: View {
     @Binding var config: [MenuItem]
-    
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading) {
@@ -72,18 +72,18 @@ struct MenuItemEditorRow: View {
     @Binding var item: MenuItem
     var level: Int
     var onDelete: (() -> Void)? = nil
-    
+
     @State private var isExpanded: Bool = true
-    
+
     // Example options for SF Symbols.
     let systemImageOptions = ["star.fill", "questionmark", "safari", "printer", "folder"]
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
                 // Indentation spacer based on nesting level.
                 Spacer().frame(width: CGFloat(level) * 20)
-                
+
                 // Disclosure button if the item has submenu items.
                 if let submenu = item.submenu, !submenu.isEmpty {
                     Button(action: { isExpanded.toggle() }) {
@@ -94,16 +94,16 @@ struct MenuItemEditorRow: View {
                 } else {
                     Spacer().frame(width: 20)
                 }
-                
+
                 // Editable fields for key, title, system image, and action.
                 TextField("Key", text: $item.key)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .frame(width: 50)
-                
+
                 TextField("Title", text: $item.title)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .frame(width: 150)
-                
+
                 Picker(selection: $item.systemImage, label: Text("")) {
                     ForEach(systemImageOptions, id: \.self) { image in
                         HStack {
@@ -115,14 +115,14 @@ struct MenuItemEditorRow: View {
                 }
                 .pickerStyle(MenuPickerStyle())
                 .frame(width: 150)
-                
+
                 TextField("Action", text: Binding(
                     get: { item.action ?? "" },
                     set: { item.action = $0.isEmpty ? nil : $0 }
                 ))
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .frame(width: 200)
-                
+
                 if let onDelete = onDelete {
                     Button(action: onDelete) {
                         Image(systemName: "trash")
@@ -132,7 +132,7 @@ struct MenuItemEditorRow: View {
                 }
             }
             .padding(.vertical, 4)
-            
+
             // Render submenu items recursively if present.
             if let _ = item.submenu, isExpanded {
                 ForEach(Array((item.submenu ?? []).enumerated()), id: \.element.id) { index, _ in
@@ -175,7 +175,7 @@ struct MenuItemEditorRow: View {
 
 struct FullConfigEditorView_Previews: PreviewProvider {
     @State static var sampleConfig = MenuItem.sampleData()
-    
+
     static var previews: some View {
         MenuConfigView(config: $sampleConfig)
             .frame(width: 800, height: 400)

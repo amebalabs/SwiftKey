@@ -12,24 +12,24 @@ class FacelessMenuController {
     var statusItem: NSStatusItem
     var localMonitor: Any?
     var sessionTimer: Timer?
-    
+
     var animationTimer: Timer?
     var indicatorState: Bool = false
     var sessionActive: Bool = false
-    
+
     weak var delegate: FacelessMenuDelegate?
-    
+
     init(rootMenu: [MenuItem], statusItem: NSStatusItem, resetDelay: TimeInterval) {
         self.rootMenu = rootMenu
         self.statusItem = statusItem
         self.resetDelay = resetDelay
         updateStatusItem()
     }
-    
+
     var currentMenu: [MenuItem] {
         menuStack.last ?? rootMenu
     }
-    
+
     func updateStatusItem() {
         if sessionActive {
             statusItem.button?.title = ""
@@ -40,19 +40,19 @@ class FacelessMenuController {
             statusItem.button?.image = nil
         }
     }
-    
+
     func startAnimationTimer() {
         animationTimer?.invalidate()
         animationTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             self?.toggleIndicator()
         }
     }
-    
+
     func toggleIndicator() {
         indicatorState.toggle()
         updateStatusItem()
     }
-    
+
     func blinkIndicator(success: Bool) {
         animationTimer?.invalidate()
         animationTimer = nil
@@ -64,14 +64,14 @@ class FacelessMenuController {
             }
         }
     }
-    
+
     func resetSessionTimer() {
         sessionTimer?.invalidate()
         sessionTimer = Timer.scheduledTimer(withTimeInterval: resetDelay, repeats: false) { [weak self] _ in
             self?.endSession()
         }
     }
-    
+
     func startSession() {
         guard !sessionActive else { return }
         sessionActive = true
@@ -83,7 +83,7 @@ class FacelessMenuController {
         resetSessionTimer()
         NSApp.activate(ignoringOtherApps: true)
     }
-    
+
     func endSession() {
         sessionActive = false
         if let monitor = localMonitor {
@@ -98,13 +98,13 @@ class FacelessMenuController {
         breadcrumbs = []
         updateStatusItem()
     }
-    
+
     func handleKeyEvent(event: NSEvent) -> NSEvent? {
         if event.keyCode == 53 { // Escape
             endSession()
             return nil
         }
-        if event.keyCode == 126 && event.modifierFlags.contains(.command) {
+        if event.keyCode == 126, event.modifierFlags.contains(.command) {
             if !menuStack.isEmpty { menuStack.removeLast() }
             if !breadcrumbs.isEmpty { breadcrumbs.removeLast() }
             updateStatusItem()
@@ -120,7 +120,7 @@ class FacelessMenuController {
         resetSessionTimer()
         return nil
     }
-    
+
     func processKey(keyString: String) {
         guard let pressedKey = keyString.first else { return }
         if let action = currentMenu.first(where: { $0.key.caseInsensitiveCompare(String(pressedKey)) == .orderedSame }) {

@@ -44,11 +44,12 @@ class NotchWindow: NSWindow {
     override var canBecomeMain: Bool {
         true
     }
-    
+
     override func resignMain() {
         super.resignMain()
         if let controller = windowController as? NotchWindowController,
-           !controller.persistUntilExplicitDismiss {
+           !controller.persistUntilExplicitDismiss
+        {
             controller.dismissNotch()
         }
     }

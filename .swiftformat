@@ -1,0 +1,14 @@
+--binarygrouping none
+--decimalgrouping none
+--hexgrouping none
+--octalgrouping none
+--wrapparameters before-first
+--allman false
+--indent 4
+--semicolons never
+--stripunusedargs closure-only
+--self remove
+--disable redundantSelf
+--header strip
+--trimwhitespace always
+--maxwidth 120
