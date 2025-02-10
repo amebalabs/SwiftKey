@@ -54,11 +54,6 @@ struct MenuItem: Identifiable, Decodable {
     }
 }
 
-/// Top-level container for YAML decoding.
-struct MenuConfig: Decodable {
-    let menu: [MenuItem]
-}
-
 func loadMenuConfig() -> [MenuItem]? {
     let configURL: URL?
     if let customPath = SettingsStore.shared.configDirectoryResolvedPath {
@@ -77,8 +72,8 @@ func loadMenuConfig() -> [MenuItem]? {
     do {
         let yamlString = try String(contentsOf: url, encoding: .utf8)
         let decoder = YAMLDecoder()
-        let config = try decoder.decode(MenuConfig.self, from: yamlString)
-        return config.menu
+        let config = try decoder.decode([MenuItem].self, from: yamlString)
+        return config
     } catch {
         print("Error loading YAML config: \(error)")
         return nil
