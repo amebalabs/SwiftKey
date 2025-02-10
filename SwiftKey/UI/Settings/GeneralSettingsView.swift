@@ -11,11 +11,19 @@ struct GeneralSettingsView: View {
     var body: some View {
         Form {
             LaunchAtLogin.Toggle()
-            Toggle("Faceless Mode", isOn: settings.$facelessMode)
-            Toggle(
-                "Horizontal Layout",
-                isOn: settings.$useHorizontalOverlayLayout
-            )
+            Picker("Overlay Style", selection: settings.$overlayStyle) {
+                ForEach(SettingsStore.OverlayStyle.allCases, id: \.self) { style in
+                    Text(style.rawValue).tag(style)
+                }
+            }
+            
+            if settings.overlayStyle == .panel {
+                Toggle(
+                    "Horizontal Layout",
+                    isOn: settings.$useHorizontalOverlayLayout
+                )
+            }
+            
             HStack {
                 Text("Menu Reset Delay")
                 Slider(value: settings.$menuStateResetDelay, in: 0...10, step: 0.5)

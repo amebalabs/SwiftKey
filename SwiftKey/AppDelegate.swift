@@ -1,18 +1,18 @@
 import AppKit
 import Carbon.HIToolbox
 import Combine
+import DynamicNotchKit
 import SwiftUI
-
 
 class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, FacelessMenuDelegate {
     static var shared: AppDelegate!
+    var settings = SettingsStore.shared
     
     var overlayWindow: NSWindow?
+    var hudNotch: DynamicNotch<AnyView>?
+    
     var hotKeyRef: EventHotKeyRef?
     
-    var facelessModeEnabled: Bool {
-        UserDefaults.standard.bool(forKey: "facelessMode")
-    }
     var menuStateResetDelay: TimeInterval {
         let delay = UserDefaults.standard.double(forKey: "menuStateResetDelay")
         return delay == 0 ? 3 : delay
@@ -58,7 +58,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, FacelessMe
         overlayWindow?.delegate = self
         overlayWindow?.orderOut(nil)
         
-        if facelessModeEnabled {
+        if settings.facelessMode {
             statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
             if let button = statusItem?.button {
                 button.title = "Menu"
@@ -78,31 +78,36 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, FacelessMe
             .sink { [weak self] _ in self?.applySettings() }
         
         NotificationCenter.default.addObserver(self, selector: #selector(hideWindow), name: .hideOverlay, object: nil)
+        NotificationCenter.default.addObserver(self,
+                                               selector: #selector(applicationDidResignActive(_:)),
+                                               name: NSApplication.didResignActiveNotification,
+                                               object: nil)
     }
     
     func applySettings() {
-        if self.facelessModeEnabled {
-            if self.statusItem == nil {
-                self.statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-                if let button = self.statusItem?.button {
+        NotificationCenter.default.post(name: .hideOverlay, object: nil)
+        if settings.facelessMode {
+            if statusItem == nil {
+                statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+                if let button = statusItem?.button {
                     button.title = "Menu"
                     button.action = #selector(statusItemClicked)
                     button.target = self
                 }
             }
-            if self.facelessMenuController == nil, let statusItem = self.statusItem {
+            if facelessMenuController == nil, let statusItem = statusItem {
                 let controller = FacelessMenuController(rootMenu: menuState.rootMenu, statusItem: statusItem, resetDelay: menuStateResetDelay)
                 controller.delegate = self
                 facelessMenuController = controller
             } else {
-                facelessMenuController?.resetDelay = self.menuStateResetDelay
+                facelessMenuController?.resetDelay = menuStateResetDelay
             }
         } else {
             facelessMenuController?.endSession()
             facelessMenuController = nil
-            if let item = self.statusItem {
+            if let item = statusItem {
                 NSStatusBar.system.removeStatusItem(item)
-                self.statusItem = nil
+                statusItem = nil
             }
         }
     }
@@ -118,31 +123,51 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, FacelessMe
     }
     
     func toggleSession() {
-        if facelessModeEnabled {
-            facelessMenuController?.startSession()
-        } else {
-            guard let window = overlayWindow else { return }
-            if window.isVisible {
-                window.orderOut(nil)
-            } else {
-                if menuStateResetDelay == 0 {
-                    NotificationCenter.default.post(name: .resetMenuState, object: nil)
-                } else if let lastHide = lastHideTime, Date().timeIntervalSince(lastHide) >= menuStateResetDelay {
-                    NotificationCenter.default.post(name: .resetMenuState, object: nil)
+        switch settings.overlayStyle {
+            case .faceless:
+                facelessMenuController?.startSession()
+            case .hud:
+                guard hudNotch == nil else { return }
+                hudNotch = DynamicNotch<AnyView> { [unowned self] in
+                    AnyView(
+                        OverlayView(state: self.menuState)
+                            .environmentObject(self.settings)
+                    )
                 }
-                window.center()
-                window.makeKeyAndOrderFront(nil)
+                hudNotch?.show(for: 0)
                 NSApp.activate(ignoringOtherApps: true)
-            }
+            case .panel:
+                guard let window = overlayWindow else { return }
+                if window.isVisible {
+                    window.orderOut(nil)
+                } else {
+                    if menuStateResetDelay == 0 {
+                        NotificationCenter.default.post(name: .resetMenuState, object: nil)
+                    } else if let lastHide = lastHideTime, Date().timeIntervalSince(lastHide) >= menuStateResetDelay {
+                        NotificationCenter.default.post(name: .resetMenuState, object: nil)
+                    }
+                    window.center()
+                    window.makeKeyAndOrderFront(nil)
+                    NSApp.activate(ignoringOtherApps: true)
+                }
         }
     }
     
     @objc func hideWindow() {
-        overlayWindow?.orderOut(nil)
-        lastHideTime = Date()
+        if settings.overlayStyle == .hud {
+            hudNotch?.hide()
+            hudNotch = nil
+        } else {
+            overlayWindow?.orderOut(nil)
+            lastHideTime = Date()
+        }
     }
     
     func windowDidResignKey(_ notification: Notification) {
+        hideWindow()
+    }
+    
+    @objc func applicationDidResignActive(_ notification: Notification) {
         hideWindow()
     }
     
