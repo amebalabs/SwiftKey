@@ -130,7 +130,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, FacelessMe
                 guard hudNotch == nil else { return }
                 hudNotch = DynamicNotch<AnyView> { [unowned self] in
                     AnyView(
-                        OverlayView(state: self.menuState)
+                        MinimalHUDView(state: self.menuState)
                             .environmentObject(self.settings)
                     )
                 }
