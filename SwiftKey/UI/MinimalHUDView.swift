@@ -64,24 +64,17 @@ struct MinimalHUDView: View {
         // Look up the pressed key in the current menu.
         if let item = state.currentMenu.first(where: { $0.key.caseInsensitiveCompare(String(pressedChar)) == .orderedSame }) {
             if let submenu = item.submenu {
-                // For group keys: animate key press and reveal breadcrumbs.
-                withAnimation(.easeInOut(duration: 0.1)) {
-                    lastKey = key
-                }
-                withAnimation(.easeInOut(duration: 0.1)) {
+                lastKey = key
+                withAnimation(.easeInOut(duration: 0.2)) {
                     state.breadcrumbs.append(item.title)
                     state.menuStack.append(submenu)
                     lastKey = ""
                 }
             } else if let action = item.actionClosure {
-                // For actions: animate the key press, trigger the action, and dismiss quickly.
-                withAnimation(.easeInOut(duration: 0.05)) {
-                    lastKey = key
-                }
-                action()
-                withAnimation(.easeInOut(duration: 0.05)) {
-                }
+                lastKey = key
+                showFullOverlay = false
                 NotificationCenter.default.post(name: .hideOverlay, object: nil)
+                action()
             }
         } else {
             // Key not registered: indicate error.

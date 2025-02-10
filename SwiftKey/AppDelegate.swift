@@ -155,7 +155,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, FacelessMe
     
     @objc func hideWindow() {
         if settings.overlayStyle == .hud {
-            hudNotch?.hide()
+            hudNotch?.hide(ignoreMouse: true)
             hudNotch = nil
         } else {
             overlayWindow?.orderOut(nil)
