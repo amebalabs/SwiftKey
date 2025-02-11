@@ -3,6 +3,7 @@ import Carbon.HIToolbox
 import Combine
 import DynamicNotchKit
 import SwiftUI
+import KeyboardShortcuts
 
 class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, FacelessMenuDelegate {
     static var shared: AppDelegate!
@@ -62,7 +63,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, FacelessMe
             }
         }
 
-        hotKeyRef = registerHotKey()
+//        hotKeyRef = registerHotKey()
+        KeyboardShortcuts.onKeyUp(for: .toggleApp) { [self] in
+            toggleSession()
+        }
 
         defaultsObserver = NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)
             .sink { [weak self] _ in self?.applySettings() }
