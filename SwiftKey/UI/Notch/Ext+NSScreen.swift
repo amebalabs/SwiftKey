@@ -1,10 +1,3 @@
-//
-//  Ext+NSScreen.swift
-//  NotchNotification
-//
-//  Created by 秋星桥 on 2024/9/19.
-//
-
 import Cocoa
 
 extension NSScreen {

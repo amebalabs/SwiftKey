@@ -1,10 +1,3 @@
-//
-//  NotchWindow.swift
-//  NotchDrop
-//
-//  Created by 秋星桥 on 2024/7/7.
-//
-
 import Cocoa
 
 class NotchWindow: NSWindow {
@@ -33,7 +26,7 @@ class NotchWindow: NSWindow {
             .canJoinAllSpaces,
             .ignoresCycle,
         ]
-        level = .statusBar + 8 // kills ibar lol
+        level = .statusBar + 8
         hasShadow = false
     }
 

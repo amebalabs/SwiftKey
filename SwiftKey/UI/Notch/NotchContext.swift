@@ -1,21 +1,17 @@
-//
-//  NotificationContext.swift
-//  NotchNotification
-//
-//  Created by 秋星桥 on 2024/9/19.
-//
-
 import Cocoa
 import Foundation
 import SwiftUI
 
-@MainActor
-struct NotificationContext {
+struct NotchContext {
     let screen: NSScreen
     let headerLeadingView: AnyView
     let headerTrailingView: AnyView
     let bodyView: AnyView
     let animated: Bool
+    private var viewModel: NotchViewModel?
+    var presented: Bool {
+        viewModel?.status == .opened
+    }
 
     init(screen: NSScreen, headerLeadingView: AnyView, headerTrailingView: AnyView, bodyView: AnyView, animated: Bool) {
         self.screen = screen
@@ -56,17 +52,18 @@ struct NotificationContext {
         )
     }
 
-    func open(forInterval interval: TimeInterval = 0) {
+    mutating func open(forInterval interval: TimeInterval = 0) {
         let window = NotchWindowController(screen: screen)
         window.window?.setFrameOrigin(.zero)
 
-        let viewModel = NotchViewModel(
+        viewModel = NotchViewModel(
             screen: screen,
             headerLeadingView: headerLeadingView,
             headerTrailingView: headerTrailingView,
             bodyView: bodyView,
             animated: animated
         )
+        guard let viewModel = viewModel else { return }
         let view = NotchView(vm: viewModel)
         let viewController = NotchViewController(view)
         window.contentViewController = viewController
@@ -92,5 +89,9 @@ struct NotificationContext {
 
         guard interval > 0 else { return }
         viewModel.scheduleClose(after: interval)
+    }
+    
+    func close() {
+        viewModel?.close()
     }
 }

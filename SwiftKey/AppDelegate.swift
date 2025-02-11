@@ -8,8 +8,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, FacelessMe
     static var shared: AppDelegate!
     var settings = SettingsStore.shared
 
-    var overlayWindow: NSWindow?
-    var hudNotch: DynamicNotch<AnyView>?
+    var overlayWindow: OverlayWindow?
+    var notchHUD: DynamicNotch<AnyView>?
+    var notchContext: NotchContext?
 
     var hotKeyRef: EventHotKeyRef?
 
@@ -45,19 +46,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, FacelessMe
         menuState.reset()
 
         let contentView = OverlayView(state: menuState).environmentObject(SettingsStore.shared)
-        overlayWindow = OverlayWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 300, height: 200),
-            styleMask: [.borderless],
-            backing: .buffered,
-            defer: false
-        )
-        overlayWindow?.isOpaque = false
-        overlayWindow?.backgroundColor = NSColor.clear
-        overlayWindow?.center()
-        overlayWindow?.level = .floating
-        overlayWindow?.contentView = CustomHostingView(rootView: contentView)
+        overlayWindow = OverlayWindow.makeWindow(view: contentView)
         overlayWindow?.delegate = self
-        overlayWindow?.orderOut(nil)
 
         if settings.facelessMode {
             statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -126,14 +116,32 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, FacelessMe
         case .faceless:
             facelessMenuController?.startSession()
         case .hud:
-            guard hudNotch == nil else { return }
-            hudNotch = DynamicNotch<AnyView> { [unowned self] in
-                AnyView(
-                    MinimalHUDView(state: self.menuState)
-                        .environmentObject(self.settings)
+            if notchContext == nil {
+                notchContext = NotchContext(
+                    headerLeadingView: EmptyView(),
+                    headerTrailingView: EmptyView(),
+                    bodyView: AnyView(
+                        MinimalHUDView(state: self.menuState)
+                            .environmentObject(SettingsStore.shared)
+                    ),
+                    animated: true
                 )
             }
-            hudNotch?.show(for: 0)
+            if notchContext?.presented == true {
+                notchContext?.close()
+                return
+            }
+//                if notchHUD == nil {
+//                    notchHUD = DynamicNotch<AnyView> {
+//                        AnyView(
+//                            MinimalHUDView(state: self.menuState)
+//                                .environmentObject(SettingsStore.shared)
+//                        )
+//                    }
+//                }
+                            
+            notchHUD?.show(for: 0)
+            notchContext?.open()
             NSApp.activate(ignoringOtherApps: true)
         case .panel:
             guard let window = overlayWindow else { return }
@@ -153,9 +161,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, FacelessMe
     }
 
     @objc func hideWindow() {
+        print("hideWindow triggered")
         if settings.overlayStyle == .hud {
-            hudNotch?.hide(ignoreMouse: true)
-            hudNotch = nil
+            notchHUD?.hide()
+            menuState.reset()
+            notchContext?.close()
         } else {
             overlayWindow?.orderOut(nil)
             lastHideTime = Date()
@@ -167,7 +177,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, FacelessMe
     }
 
     @objc func applicationDidResignActive(_: Notification) {
-        hideWindow()
+//        hideWindow()
     }
 
     // MARK: - FacelessMenuDelegate

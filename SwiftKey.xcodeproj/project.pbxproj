@@ -11,7 +11,6 @@
 		FA62DE542D44187600B1CC0C /* LaunchAtLogin in Frameworks */ = {isa = PBXBuildFile; productRef = FA62DE532D44187600B1CC0C /* LaunchAtLogin */; };
 		FA62DE5A2D4418A900B1CC0C /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = FA62DE592D4418A900B1CC0C /* KeyboardShortcuts */; };
 		FAF87AD52D4A8457008986C6 /* DynamicNotchKit in Frameworks */ = {isa = PBXBuildFile; productRef = FAF87AD42D4A8457008986C6 /* DynamicNotchKit */; };
-		FAF87ADB2D4A8D6E008986C6 /* Notch in Frameworks */ = {isa = PBXBuildFile; productRef = FAF87ADA2D4A8D6E008986C6 /* Notch */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -22,7 +21,6 @@
 		FAB7571F2D4A6A57008D0A25 /* Exceptions for "SwiftKey" folder in "SwiftKey" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				Packages/Notch,
 				Resources/Info.plist,
 			);
 			target = FA3044B02D43F59400BA98E2 /* SwiftKey */;
@@ -47,7 +45,6 @@
 			files = (
 				FAF87AD52D4A8457008986C6 /* DynamicNotchKit in Frameworks */,
 				FA409DFC2D58166200FCFC04 /* Yams in Frameworks */,
-				FAF87ADB2D4A8D6E008986C6 /* Notch in Frameworks */,
 				FA62DE542D44187600B1CC0C /* LaunchAtLogin in Frameworks */,
 				FA62DE5A2D4418A900B1CC0C /* KeyboardShortcuts in Frameworks */,
 			);
@@ -103,7 +100,6 @@
 				FA62DE532D44187600B1CC0C /* LaunchAtLogin */,
 				FA62DE592D4418A900B1CC0C /* KeyboardShortcuts */,
 				FAF87AD42D4A8457008986C6 /* DynamicNotchKit */,
-				FAF87ADA2D4A8D6E008986C6 /* Notch */,
 				FA409DFB2D58166200FCFC04 /* Yams */,
 			);
 			productName = SwiftKey;
@@ -427,10 +423,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = FAF87AD32D4A8457008986C6 /* XCRemoteSwiftPackageReference "DynamicNotchKit" */;
 			productName = DynamicNotchKit;
-		};
-		FAF87ADA2D4A8D6E008986C6 /* Notch */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = Notch;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

@@ -3,7 +3,7 @@ import Combine
 import Foundation
 import SwiftUI
 
-@MainActor
+
 class NotchViewModel: NSObject, ObservableObject {
     let notchOpenedSize: CGSize
     let headerView: AnyView
@@ -25,7 +25,7 @@ class NotchViewModel: NSObject, ObservableObject {
 
         let originalBodyFittingSize = NSHostingView(rootView: bodyView).fittingSize
         if originalBodyFittingSize.height < 1, originalBodyFittingSize.width < 1 {
-            self.bodyView = AnyView(bodyView) // should be empty, omit bodyView
+            self.bodyView = AnyView(bodyView)
         } else {
             self.bodyView = AnyView(bodyView.padding(.bottom, 16).padding(.horizontal, 16))
         }
@@ -63,7 +63,7 @@ class NotchViewModel: NSObject, ObservableObject {
     var animation: Animation? {
         if animated {
             .interactiveSpring(
-                duration: 0.5,
+                duration: 0.3,
                 extraBounce: 0.25,
                 blendDuration: 0.125
             )
