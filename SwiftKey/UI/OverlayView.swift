@@ -5,22 +5,23 @@ struct OverlayView: View {
     @EnvironmentObject var settings: SettingsStore
     @ObservedObject var state: MenuState
     @State private var errorMessage: String = ""
-
+    
     var currentMenu: [MenuItem] {
         state.menuStack.last ?? state.rootMenu
     }
-
+    
     var body: some View {
         ZStack {
-            Color.black.opacity(0.3)
+            VisualEffectView()
                 .cornerRadius(10)
-
+                .opacity(0.9)
+            
             VStack(spacing: 20) {
                 Text(state.breadcrumbText)
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .padding(.top, 10)
-
+                
                 ScrollView(.vertical) {
                     if settings.useHorizontalOverlayLayout {
                         LazyHGrid(rows: [GridItem(.adaptive(minimum: 44))], spacing: 8) {
@@ -33,7 +34,8 @@ struct OverlayView: View {
                         }
                     }
                 }
-
+                .frame(maxHeight: min(CGFloat(currentMenu.count) * 50, 400)) // Dynamic height
+                
                 if !errorMessage.isEmpty {
                     Text(errorMessage)
                         .foregroundColor(.red)
@@ -43,30 +45,32 @@ struct OverlayView: View {
                 KeyHandlingView { key in
                     handleKey(key: key)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color.clear)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color.clear)
             )
+            .padding()
         }
         .frame(
             width: settings.useHorizontalOverlayLayout ? 500 : 300,
-            height: settings.useHorizontalOverlayLayout ? 100 : 300
+            height: 400
         )
+        .frame(maxHeight: 400)
         .padding()
         .onReceive(NotificationCenter.default.publisher(for: .resetMenuState)) { _ in
             state.reset()
         }
     }
-
+    
     private var menuItems: some View {
         ForEach(currentMenu) { item in
             menuItemView(for: item)
         }
     }
-
+    
     private func menuItemView(for item: MenuItem) -> some View {
         HStack {
             itemIcon(for: item)
-
+            
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.title)
                     .font(.subheadline)
@@ -75,14 +79,14 @@ struct OverlayView: View {
                     .fontWeight(.bold)
                     .foregroundColor(.secondary)
             }
-
+            
             Spacer()
         }
         .padding(.horizontal, 8)
         .frame(minWidth: settings.useHorizontalOverlayLayout ? 180 : nil)
         .background(Color.clear)
     }
-
+    
     private func itemIcon(for item: MenuItem) -> some View {
         Group {
             if let actionString = item.action, actionString.hasPrefix("launch://") {
@@ -91,17 +95,19 @@ struct OverlayView: View {
                     Image(nsImage: icon)
                         .resizable()
                         .frame(width: 24, height: 24)
+                } else {
+                    Image(systemName: item.systemImage)
+                        .resizable()
+                        .frame(width: 24, height: 24)
                 }
             } else {
                 Image(systemName: item.systemImage)
                     .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .fontWeight(.light)
                     .frame(width: 24, height: 20)
             }
         }
     }
-
+    
     private func handleKey(key: String) {
         if key == "escape" {
             NotificationCenter.default.post(name: .resetMenuState, object: nil)
@@ -114,7 +120,7 @@ struct OverlayView: View {
             return
         }
         guard let pressedKey = key.first else { return }
-
+        
         if let item = currentMenu.first(where: { $0.key == String(pressedKey) }) {
             if let submenu = item.submenu {
                 state.breadcrumbs.append(item.title)
@@ -132,6 +138,19 @@ struct OverlayView: View {
     }
 }
 
+// VisualEffectView to create a semi-transparent glass effect
+struct VisualEffectView: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSVisualEffectView {
+        let view = NSVisualEffectView()
+        view.material = .hudWindow
+        view.blendingMode = .behindWindow
+        view.state = .active
+        return view
+    }
+    
+    func updateNSView(_ nsView: NSVisualEffectView, context: Context) {}
+}
+
 #Preview {
-    OverlayView(state:MenuState.shared).environmentObject(SettingsStore.shared)
+    OverlayView(state: MenuState.shared).environmentObject(SettingsStore.shared)
 }
