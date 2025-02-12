@@ -12,13 +12,13 @@ struct OverlayView: View {
 
     var body: some View {
         ZStack {
-            Color.white.opacity(0.95)
+            Color.black.opacity(0.3)
                 .cornerRadius(10)
 
             VStack(spacing: 20) {
                 Text(state.breadcrumbText)
                     .font(.caption)
-                    .foregroundColor(.gray)
+                    .foregroundColor(.secondary)
                     .padding(.top, 10)
 
                 ScrollView(.vertical) {
@@ -91,14 +91,12 @@ struct OverlayView: View {
                     Image(nsImage: icon)
                         .resizable()
                         .frame(width: 24, height: 24)
-                } else {
-                    Image(systemName: item.systemImage)
-                        .resizable()
-                        .frame(width: 24, height: 24)
                 }
             } else {
                 Image(systemName: item.systemImage)
                     .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .fontWeight(.light)
                     .frame(width: 24, height: 20)
             }
         }
@@ -132,4 +130,8 @@ struct OverlayView: View {
             }
         }
     }
+}
+
+#Preview {
+    OverlayView(state:MenuState.shared).environmentObject(SettingsStore.shared)
 }
