@@ -36,10 +36,7 @@ struct MenuItem: Identifiable, Decodable {
         if action.hasPrefix("shortcut://") {
             let shortcutName = String(action.dropFirst("shortcut://".count))
             return {
-                let process = Process()
-                process.launchPath = "/usr/bin/shortcuts"
-                process.arguments = ["run", shortcutName]
-                process.launch()
+                ShortcutsManager.shared.runShortcut(shortcut: shortcutName)
             }
         }
         if action.hasPrefix("shell://") {
