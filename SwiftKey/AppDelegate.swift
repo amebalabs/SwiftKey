@@ -64,7 +64,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, FacelessMe
         }
 
 //        hotKeyRef = registerHotKey()
-        KeyboardShortcuts.onKeyUp(for: .toggleApp) { [self] in
+        KeyboardShortcuts.onKeyDown(for: .toggleApp) { [self] in
             toggleSession()
         }
 
@@ -177,11 +177,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, FacelessMe
     }
 
     func windowDidResignKey(_: Notification) {
-        hideWindow()
+//        hideWindow()
     }
 
     @objc func applicationDidResignActive(_: Notification) {
-//        hideWindow()
+        print("Resign active")
+        hideWindow()
     }
 
     // MARK: - FacelessMenuDelegate

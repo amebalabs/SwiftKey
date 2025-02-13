@@ -26,6 +26,8 @@ struct OverlayView: View {
     var verticalContentHeight: CGFloat {
         min(CGFloat(currentMenu.count) * verticalItemHeight, verticalMaxHeight)
     }
+    var verticalContentFixedWidth: CGFloat { 300 }
+    
     
     // Horizontal mode: fixed height; width computed dynamically.
     var horizontalFixedHeight: CGFloat { 100 }
@@ -43,16 +45,16 @@ struct OverlayView: View {
     
     var body: some View {
         ZStack {
-            VisualEffectView()
-                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            Rectangle()
+                .fill(.thinMaterial)
+                .shadow(radius: 10)
+                .clipShape(
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                )
                 .opacity(0.9)
             
-            VStack(spacing: 20) {
-                Text(state.breadcrumbText)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .padding(.top, 10)
-                
+            VStack(spacing: 10) {
+                Spacer()
                 if settings.useHorizontalOverlayLayout {
                     HStack {
                         Spacer()
@@ -79,26 +81,33 @@ struct OverlayView: View {
                         }
                         .padding(.bottom, 0)
                     }
-                    .frame(width: 300, height: verticalContentHeight, alignment: .top)
+                    .padding()
+                    .frame(width: verticalContentFixedWidth, height: verticalContentHeight, alignment: .top)
                 }
                 
                 if !errorMessage.isEmpty {
                     Text(errorMessage)
                         .foregroundColor(.red)
+                        .padding(.bottom, 8)
+                } else {
+                    Text(state.breadcrumbText)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .padding(.bottom, 8)
+
                 }
             }
-            .background(
-                KeyHandlingView { key in
-                    handleKey(key: key)
-                }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Color.clear)
-            )
-            .padding()
         }
+        .background(
+            KeyHandlingView { key in
+                handleKey(key: key)
+            }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color.clear)
+        )
         // Set overall frame based on the current layout.
         .frame(
-            width: settings.useHorizontalOverlayLayout ? horizontalContentWidth : 300,
+            width: settings.useHorizontalOverlayLayout ? horizontalContentWidth : verticalContentFixedWidth,
             height: settings.useHorizontalOverlayLayout ? horizontalFixedHeight : verticalContentHeight
         )
         // Center the overlay in its container.
@@ -224,19 +233,6 @@ struct HorizontalMenuItemView: View {
         .frame(width: 180)
         .background(Color.clear)
     }
-}
-
-// VisualEffectView for a semi-transparent glass effect.
-struct VisualEffectView: NSViewRepresentable {
-    func makeNSView(context: Context) -> NSVisualEffectView {
-        let view = NSVisualEffectView()
-        view.material = .hudWindow
-        view.blendingMode = .behindWindow
-        view.state = .active
-        return view
-    }
-    
-    func updateNSView(_ nsView: NSVisualEffectView, context: Context) {}
 }
 
 #Preview {
