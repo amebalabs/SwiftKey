@@ -10,10 +10,41 @@ struct OverlayView: View {
         state.menuStack.last ?? state.rootMenu
     }
     
+    // MARK: - Screen-based size computations
+    
+    var screenSize: CGSize {
+        NSScreen.main?.frame.size ?? CGSize(width: 800, height: 600)
+    }
+    
+    // Vertical mode: maximum allowed height is 2/3 of screen height.
+    var verticalMaxHeight: CGFloat {
+        screenSize.height * 2 / 3
+    }
+    // Fixed height per vertical menu item.
+    var verticalItemHeight: CGFloat { 50 }
+    // Actual vertical height: total item height capped at verticalMaxHeight.
+    var verticalContentHeight: CGFloat {
+        min(CGFloat(currentMenu.count) * verticalItemHeight, verticalMaxHeight)
+    }
+    
+    // Horizontal mode: fixed height; width computed dynamically.
+    var horizontalFixedHeight: CGFloat { 100 }
+    var horizontalItemWidth: CGFloat { 180 }
+    var horizontalItemSpacing: CGFloat { 8 }
+    var horizontalMaxWidth: CGFloat {
+        screenSize.width * 4 / 5
+    }
+    var horizontalContentWidth: CGFloat {
+        let totalWidth = (CGFloat(currentMenu.count) * horizontalItemWidth) +
+        (CGFloat(max(currentMenu.count - 1, 0)) * horizontalItemSpacing) +
+        20
+        return min(totalWidth, horizontalMaxWidth)
+    }
+    
     var body: some View {
         ZStack {
             VisualEffectView()
-                .cornerRadius(10)
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                 .opacity(0.9)
             
             VStack(spacing: 20) {
@@ -22,19 +53,34 @@ struct OverlayView: View {
                     .foregroundColor(.secondary)
                     .padding(.top, 10)
                 
-                ScrollView(.vertical) {
-                    if settings.useHorizontalOverlayLayout {
-                        LazyHGrid(rows: [GridItem(.adaptive(minimum: 44))], spacing: 8) {
-                            menuItems
+                if settings.useHorizontalOverlayLayout {
+                    HStack {
+                        Spacer()
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            LazyHGrid(
+                                rows: [GridItem(.flexible())],
+                                spacing: horizontalItemSpacing
+                            ) {
+                                ForEach(currentMenu) { item in
+                                    HorizontalMenuItemView(item: item)
+                                }
+                            }
+                            .padding(.horizontal)
                         }
-                        .padding(.horizontal)
-                    } else {
-                        LazyVStack(spacing: 8) {
-                            menuItems
-                        }
+                        .frame(width: horizontalContentWidth, height: horizontalFixedHeight)
+                        Spacer()
                     }
+                } else {
+                    ScrollView(.vertical, showsIndicators: false) {
+                        LazyVStack(spacing: 8) {
+                            ForEach(currentMenu) { item in
+                                menuItemView(for: item)
+                            }
+                        }
+                        .padding(.bottom, 0)
+                    }
+                    .frame(width: 300, height: verticalContentHeight, alignment: .top)
                 }
-                .frame(maxHeight: min(CGFloat(currentMenu.count) * 50, 400)) // Dynamic height
                 
                 if !errorMessage.isEmpty {
                     Text(errorMessage)
@@ -50,20 +96,16 @@ struct OverlayView: View {
             )
             .padding()
         }
+        // Set overall frame based on the current layout.
         .frame(
-            width: settings.useHorizontalOverlayLayout ? 500 : 300,
-            height: 400
+            width: settings.useHorizontalOverlayLayout ? horizontalContentWidth : 300,
+            height: settings.useHorizontalOverlayLayout ? horizontalFixedHeight : verticalContentHeight
         )
-        .frame(maxHeight: 400)
+        // Center the overlay in its container.
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
         .padding()
         .onReceive(NotificationCenter.default.publisher(for: .resetMenuState)) { _ in
             state.reset()
-        }
-    }
-    
-    private var menuItems: some View {
-        ForEach(currentMenu) { item in
-            menuItemView(for: item)
         }
     }
     
@@ -83,7 +125,6 @@ struct OverlayView: View {
             Spacer()
         }
         .padding(.horizontal, 8)
-        .frame(minWidth: settings.useHorizontalOverlayLayout ? 180 : nil)
         .background(Color.clear)
     }
     
@@ -98,12 +139,14 @@ struct OverlayView: View {
                 } else {
                     Image(systemName: item.systemImage)
                         .resizable()
+                        .aspectRatio(contentMode: .fit)
                         .frame(width: 24, height: 24)
                 }
             } else {
                 Image(systemName: item.systemImage)
                     .resizable()
-                    .frame(width: 24, height: 20)
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 24, height: 24)
             }
         }
     }
@@ -138,7 +181,52 @@ struct OverlayView: View {
     }
 }
 
-// VisualEffectView to create a semi-transparent glass effect
+struct HorizontalMenuItemView: View {
+    let item: MenuItem
+    
+    var body: some View {
+        VStack(spacing: 4) {
+            ZStack(alignment: .topTrailing) {
+                Group {
+                    if let actionString = item.action, actionString.hasPrefix("launch://") {
+                        let appName = String(actionString.dropFirst("launch://".count))
+                        if let icon = getAppIcon(appName: appName) {
+                            Image(nsImage: icon)
+                                .resizable()
+                                .scaledToFit()
+                        } else {
+                            Image(systemName: item.systemImage)
+                                .resizable()
+                                .scaledToFit()
+                        }
+                    } else {
+                        Image(systemName: item.systemImage)
+                            .resizable()
+                            .scaledToFit()
+                    }
+                }
+                .frame(width: 60, height: 60)
+                .opacity(0.7)
+                
+                Text(item.key)
+                    .font(.caption)
+                    .padding(6)
+                    .background(Color.black.opacity(0.7))
+                    .foregroundColor(.white)
+                    .cornerRadius(4)
+                    .padding(-10)
+            }
+            Text(item.title)
+                .font(.subheadline)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 4)
+        }
+        .frame(width: 180)
+        .background(Color.clear)
+    }
+}
+
+// VisualEffectView for a semi-transparent glass effect.
 struct VisualEffectView: NSViewRepresentable {
     func makeNSView(context: Context) -> NSVisualEffectView {
         let view = NSVisualEffectView()
