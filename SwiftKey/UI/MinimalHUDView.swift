@@ -49,33 +49,30 @@ struct MinimalHUDView: View {
 
     func handleKeyPress(_ key: String) {
         let keyController = KeyPressController(menuState: state)
-        let result = keyController.handleKey(key)
-        switch result {
-        case .escape:
-            NotificationCenter.default.post(name: .hideOverlay, object: nil)
-        case .help:
-            withAnimation(.easeInOut(duration: 0.1)) {
-                showFullOverlay = true
-            }
-        case .up:
-            break
-        case .submenuPushed:
-            lastKey = ""
-        case .actionExecuted:
-            showFullOverlay = false
-            NotificationCenter.default.post(name: .hideOverlay, object: nil)
-        case let .error(errorKey):
-            withAnimation(.easeInOut(duration: 0.1)) {
-                lastKey = errorKey
-            }
-            error = true
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                withAnimation {
-                    error = false
+        keyController.handleKeyAsync(key) { result in
+            switch result {
+            case .escape:
+                NotificationCenter.default.post(name: .hideOverlay, object: nil)
+            case .help:
+                withAnimation(.easeInOut(duration: 0.1)) { showFullOverlay = true }
+            case .up:
+                break
+            case .submenuPushed:
+                lastKey = ""
+            case .actionExecuted:
+                showFullOverlay = false
+                NotificationCenter.default.post(name: .hideOverlay, object: nil)
+            case .dynamicLoading:
+                lastKey = "Loading..."
+            case let .error(errorKey):
+                withAnimation(.easeInOut(duration: 0.1)) { lastKey = errorKey }
+                error = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    withAnimation { error = false }
                 }
+            case .none:
+                break
             }
-        case .none:
-            break
         }
     }
 }

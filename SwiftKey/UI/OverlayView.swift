@@ -163,27 +163,30 @@ struct OverlayView: View {
 
     private func handleKey(key: String) {
         let keyController = KeyPressController(menuState: state)
-        let result = keyController.handleKey(key)
-        switch result {
-        case .escape:
-            NotificationCenter.default.post(name: .resetMenuState, object: nil)
-            NotificationCenter.default.post(name: .hideOverlay, object: nil)
-        case .help:
-            NotificationCenter.default.post(name: .resetMenuState, object: nil)
-            NotificationCenter.default.post(name: .hideOverlay, object: nil)
-        case .up:
-            break
-        case .submenuPushed:
-            break
-        case .actionExecuted:
-            NotificationCenter.default.post(name: .hideOverlay, object: nil)
-        case .error:
-            errorMessage = "No action for key \(key)"
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                errorMessage = ""
+        keyController.handleKeyAsync(key) { result in
+            switch result {
+            case .escape:
+                NotificationCenter.default.post(name: .resetMenuState, object: nil)
+                NotificationCenter.default.post(name: .hideOverlay, object: nil)
+            case .help:
+                NotificationCenter.default.post(name: .resetMenuState, object: nil)
+                NotificationCenter.default.post(name: .hideOverlay, object: nil)
+            case .up:
+                break
+            case .submenuPushed:
+                self.errorMessage = ""
+            case .actionExecuted:
+                NotificationCenter.default.post(name: .hideOverlay, object: nil)
+            case .dynamicLoading:
+                self.errorMessage = "Loading dynamic menu..."
+            case let .error(errorKey):
+                self.errorMessage = "No action for key \(errorKey)"
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    self.errorMessage = ""
+                }
+            case .none:
+                break
             }
-        case .none:
-            break
         }
     }
 }

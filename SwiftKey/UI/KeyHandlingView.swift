@@ -39,9 +39,7 @@ struct KeyHandlingView: NSViewRepresentable {
                 return
             default: break
             }
-            if event.modifierFlags.contains(.shift) || event.modifierFlags.contains(.option) {
-                return
-            }
+            if event.modifierFlags.contains(.shift) || event.modifierFlags.contains(.option) { return }
             if let key = englishCharactersForKeyEvent(event: event), !key.isEmpty {
                 onKeyDown(key.lowercased())
             } else if let fallback = event.charactersIgnoringModifiers, !fallback.isEmpty {
@@ -51,7 +49,7 @@ struct KeyHandlingView: NSViewRepresentable {
     }
 
     func makeNSView(context: Context) -> NSView {
-        return KeyView(onKeyDown: onKeyDown)
+        KeyView(onKeyDown: onKeyDown)
     }
 
     func updateNSView(_ nsView: NSView, context: Context) {}
