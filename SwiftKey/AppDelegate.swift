@@ -5,7 +5,7 @@ import DynamicNotchKit
 import KeyboardShortcuts
 import SwiftUI
 
-class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, FacelessMenuDelegate {
+class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     static var shared: AppDelegate!
     var settings = SettingsStore.shared
 
@@ -62,8 +62,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, FacelessMe
                     statusItem: statusItem,
                     resetDelay: menuStateResetDelay
                 )
-                controller.delegate = self
-                facelessMenuController = controller
             }
         }
 
@@ -104,7 +102,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, FacelessMe
                     statusItem: statusItem,
                     resetDelay: menuStateResetDelay
                 )
-                controller.delegate = self
                 facelessMenuController = controller
             } else {
                 facelessMenuController?.resetDelay = menuStateResetDelay
@@ -160,7 +157,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, FacelessMe
 
             notchHUD?.show(for: 0)
             notchContext?.open()
-            NSApp.activate(ignoringOtherApps: true)
+//            NSApp.activate(ignoringOtherApps: true)
         case .panel:
             guard let window = overlayWindow else { return }
             if window.isVisible {
@@ -173,7 +170,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, FacelessMe
                 }
                 window.center()
                 window.makeKeyAndOrderFront(nil)
-                NSApp.activate(ignoringOtherApps: true)
+//                NSApp.activate(ignoringOtherApps: true)
             }
         }
     }
@@ -191,7 +188,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, FacelessMe
     }
 
     func windowDidResignKey(_: Notification) {
-//        hideWindow()
+        hideWindow()
     }
 
     @objc func applicationDidResignActive(_: Notification) {
@@ -199,18 +196,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, FacelessMe
         hideWindow()
     }
 
-    // MARK: - FacelessMenuDelegate
-
-    func facelessMenuControllerDidRequestOverlayCheatsheet(_ controller: FacelessMenuController) {
-        menuState.menuStack = controller.menuStack
-        menuState.breadcrumbs = controller.breadcrumbs
-        controller.endSession()
-        overlayWindow?.center()
-        overlayWindow?.makeKeyAndOrderFront(nil)
+    func presentOverlay() {
+        guard let window = overlayWindow else { return }
+        window.center()
+        window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
-        // Slight delay to ensure the overlay's content becomes first responder.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            self.overlayWindow?.makeFirstResponder(self.overlayWindow?.contentView)
+            window.makeFirstResponder(window.contentView)
         }
     }
 }

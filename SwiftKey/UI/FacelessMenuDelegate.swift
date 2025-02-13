@@ -1,51 +1,38 @@
 import AppKit
 
-protocol FacelessMenuDelegate: AnyObject {
-    func facelessMenuControllerDidRequestOverlayCheatsheet(_ controller: FacelessMenuController)
-}
-
 class FacelessMenuController {
     let rootMenu: [MenuItem]
-    var menuStack: [[MenuItem]] = []
-    var breadcrumbs: [String] = []
     var resetDelay: TimeInterval
     var statusItem: NSStatusItem
     var localMonitor: Any?
     var sessionTimer: Timer?
-
     var animationTimer: Timer?
     var indicatorState: Bool = false
     var sessionActive: Bool = false
-
-    weak var delegate: FacelessMenuDelegate?
+    var keyPressController: KeyPressController
 
     init(rootMenu: [MenuItem], statusItem: NSStatusItem, resetDelay: TimeInterval) {
         self.rootMenu = rootMenu
         self.statusItem = statusItem
         self.resetDelay = resetDelay
+        self.keyPressController = KeyPressController(menuState: MenuState.shared)
         updateStatusItem()
     }
 
     var currentMenu: [MenuItem] {
-        menuStack.last ?? rootMenu
+        MenuState.shared.menuStack.last ?? rootMenu
     }
 
     func updateStatusItem() {
-        let imageConfig = NSImage.SymbolConfiguration(
-            pointSize: 20,
-            weight: .medium,
-            scale: .small
-        )
+        let imageConfig = NSImage.SymbolConfiguration(pointSize: 20, weight: .medium, scale: .small)
         if sessionActive {
             statusItem.button?.title = ""
             let imageName = indicatorState ? "circle.fill" : "circle"
             statusItem.button?.image = NSImage(systemSymbolName: imageName, accessibilityDescription: "Active session")?
                 .withSymbolConfiguration(imageConfig)
         } else {
-            statusItem.button?.image = NSImage(
-                systemSymbolName: "k.circle",
-                accessibilityDescription: "Active session"
-            )?
+            statusItem.button?
+                .image = NSImage(systemSymbolName: "k.circle", accessibilityDescription: "Active session")?
                 .withSymbolConfiguration(imageConfig)
         }
     }
@@ -84,13 +71,39 @@ class FacelessMenuController {
     func startSession() {
         guard !sessionActive else { return }
         sessionActive = true
-        localMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            return self?.handleKeyEvent(event: event)
-        }
+        NSApp.activate(ignoringOtherApps: true)
         startAnimationTimer()
         updateStatusItem()
         resetSessionTimer()
-        NSApp.activate(ignoringOtherApps: true)
+        localMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard let self = self,
+                  let key = englishCharactersForKeyEvent(event: event),
+                  !key.isEmpty else { return event }
+            self.keyPressController.handleKeyAsync(key) { result in
+                switch result {
+                case .escape:
+                    self.endSession()
+                case .help:
+                    self.endSession()
+                    AppDelegate.shared.presentOverlay()
+                case .up:
+                    break
+                case .submenuPushed:
+                    self.blinkIndicator(success: true)
+                    self.updateStatusItem()
+                case .actionExecuted:
+                    self.endSession()
+                case .dynamicLoading:
+                    break
+                case .error:
+                    self.blinkIndicator(success: false)
+                case .none:
+                    break
+                }
+                self.resetSessionTimer()
+            }
+            return nil
+        }
     }
 
     func endSession() {
@@ -103,50 +116,8 @@ class FacelessMenuController {
         animationTimer = nil
         sessionTimer?.invalidate()
         sessionTimer = nil
-        menuStack = []
-        breadcrumbs = []
+        MenuState.shared.menuStack = []
+        MenuState.shared.breadcrumbs = []
         updateStatusItem()
-    }
-
-    func handleKeyEvent(event: NSEvent) -> NSEvent? {
-        if event.keyCode == 53 { // Escape
-            endSession()
-            return nil
-        }
-        if event.keyCode == 126, event.modifierFlags.contains(.command) {
-            if !menuStack.isEmpty { menuStack.removeLast() }
-            if !breadcrumbs.isEmpty { breadcrumbs.removeLast() }
-            updateStatusItem()
-            resetSessionTimer()
-            return nil
-        }
-        guard let key = englishCharactersForKeyEvent(event: event), !key.isEmpty else { return nil }
-        if key == "?" {
-            delegate?.facelessMenuControllerDidRequestOverlayCheatsheet(self)
-            return nil
-        }
-        processKey(keyString: key)
-        resetSessionTimer()
-        return nil
-    }
-
-    func processKey(keyString: String) {
-        guard let pressedKey = keyString.first else { return }
-        if let action = currentMenu
-            .first(where: { $0.key.caseInsensitiveCompare(String(pressedKey)) == .orderedSame })
-        {
-            blinkIndicator(success: true)
-            if let submenu = action.submenu {
-                breadcrumbs.append(action.title)
-                menuStack.append(submenu)
-                updateStatusItem()
-            } else if let act = action.actionClosure {
-                act()
-                endSession()
-            }
-        } else {
-            blinkIndicator(success: false)
-            NSSound.beep()
-        }
     }
 }

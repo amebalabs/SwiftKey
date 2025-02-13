@@ -21,6 +21,7 @@ class KeyPressController {
     }
 
     func handleKeyAsync(_ key: String, completion: @escaping (KeyPressResult) -> Void) {
+        print("Key pressed: \(key)")
         let normalizedKey = key
         if normalizedKey == "escape" {
             completion(.escape)

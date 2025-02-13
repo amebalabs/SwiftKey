@@ -4,9 +4,9 @@ class SettingsStore: ObservableObject {
     public static let shared = SettingsStore()
 
     public enum OverlayStyle: String, CaseIterable {
-        case hud = "HUD"
-        case panel = "Panel"
-        case faceless = "Faceless"
+        case panel = "Default"
+        case hud = "Compact: HUD"
+        case faceless = "Compact: Menu Bar"
     }
 
     @AppStorage("IsShowingMenuBar") public var isShowingMenuBar: Bool = true
