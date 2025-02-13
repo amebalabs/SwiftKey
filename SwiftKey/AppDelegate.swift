@@ -82,6 +82,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, FacelessMe
                                                object: nil)
     }
 
+    func application(_ application: NSApplication, open urls: [URL]) {
+        for url in urls {
+            DeepLinkHandler.shared.handle(url: url)
+        }
+    }
+
     func applySettings() {
         NotificationCenter.default.post(name: .hideOverlay, object: nil)
         if settings.facelessMode {
