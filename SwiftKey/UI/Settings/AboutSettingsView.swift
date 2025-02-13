@@ -13,11 +13,15 @@ struct AboutSettingsView: View {
                     Text("SwiftKey")
                         .font(.title3)
                         .bold()
-                    Text("Version \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "") (\(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? ""))")
-                        .font(.subheadline)
-                    Text("Copyright ©\(NumberFormatter.localizedString(from: NSNumber(value: Calendar.current.component(.year, from: Date())), number: .none)) Ameba Labs. All rights reserved.")
-                        .font(.footnote)
-                        .padding(.top, 10)
+                    Text(
+                        "Version \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "") (\(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? ""))"
+                    )
+                    .font(.subheadline)
+                    Text(
+                        "Copyright ©\(NumberFormatter.localizedString(from: NSNumber(value: Calendar.current.component(.year, from: Date())), number: .none)) Ameba Labs. All rights reserved."
+                    )
+                    .font(.footnote)
+                    .padding(.top, 10)
                 }
             }
             Spacer()

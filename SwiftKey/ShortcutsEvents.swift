@@ -52,7 +52,7 @@ public class ShortcutsManager: ObservableObject {
         guard !shortcut.isEmpty else { return }
         task = Process()
         task?.executableURL = shortcutsURL
-        
+
         if inputText.isEmpty {
             task?.arguments = ["run", "\(shortcut)"]
         } else {

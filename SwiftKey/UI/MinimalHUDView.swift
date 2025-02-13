@@ -48,38 +48,25 @@ struct MinimalHUDView: View {
     }
 
     func handleKeyPress(_ key: String) {
-        // Dismiss on escape.
-        if key == "escape" {
+        let keyController = KeyPressController(menuState: state)
+        let result = keyController.handleKey(key)
+        switch result {
+        case .escape:
             NotificationCenter.default.post(name: .hideOverlay, object: nil)
-            return
-        }
-        // On "?" show the full overlay.
-        if key == "?" {
+        case .help:
             withAnimation(.easeInOut(duration: 0.1)) {
                 showFullOverlay = true
             }
-            return
-        }
-        guard let pressedChar = key.first else { return }
-        // Look up the pressed key in the current menu.
-        if let item = state.currentMenu.first(where: { $0.key.caseInsensitiveCompare(String(pressedChar)) == .orderedSame }) {
-            if let submenu = item.submenu {
-                lastKey = key
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    state.breadcrumbs.append(item.title)
-                    state.menuStack.append(submenu)
-                    lastKey = ""
-                }
-            } else if let action = item.actionClosure {
-                lastKey = key
-                showFullOverlay = false
-                NotificationCenter.default.post(name: .hideOverlay, object: nil)
-                action()
-            }
-        } else {
-            // Key not registered: indicate error.
+        case .up:
+            break
+        case .submenuPushed:
+            lastKey = ""
+        case .actionExecuted:
+            showFullOverlay = false
+            NotificationCenter.default.post(name: .hideOverlay, object: nil)
+        case let .error(errorKey):
             withAnimation(.easeInOut(duration: 0.1)) {
-                lastKey = key
+                lastKey = errorKey
             }
             error = true
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
@@ -87,6 +74,8 @@ struct MinimalHUDView: View {
                     error = false
                 }
             }
+        case .none:
+            break
         }
     }
 }

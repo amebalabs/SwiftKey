@@ -90,7 +90,7 @@ struct NotchContext {
         guard interval > 0 else { return }
         viewModel.scheduleClose(after: interval)
     }
-    
+
     func close() {
         viewModel?.close()
     }

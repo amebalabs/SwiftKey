@@ -12,7 +12,7 @@ struct KeyHandlingView: NSViewRepresentable {
         }
 
         @available(*, unavailable)
-        required init?(coder _: NSCoder) { fatalError("init(coder:) not implemented") }
+        required init?(coder: NSCoder) { fatalError() }
 
         override var acceptsFirstResponder: Bool { true }
 
@@ -24,19 +24,35 @@ struct KeyHandlingView: NSViewRepresentable {
         }
 
         override func keyDown(with event: NSEvent) {
-            if event.keyCode == 53 { onKeyDown("escape"); return }
-            if event.keyCode == 126 && event.modifierFlags.contains(.command) { onKeyDown("cmd+up"); return }
+            if event.keyCode == 53 { onKeyDown("escape")
+                return
+            }
+            if event.keyCode == 126 && event.modifierFlags.contains(.command) { onKeyDown("cmd+up")
+                return
+            }
+            switch event.keyCode {
+            case 36: onKeyDown("return")
+                return
+            case 48: onKeyDown("tab")
+                return
+            case 59, 62: onKeyDown("control")
+                return
+            default: break
+            }
+            if event.modifierFlags.contains(.shift) || event.modifierFlags.contains(.option) {
+                return
+            }
             if let key = englishCharactersForKeyEvent(event: event), !key.isEmpty {
-                onKeyDown(key)
+                onKeyDown(key.lowercased())
             } else if let fallback = event.charactersIgnoringModifiers, !fallback.isEmpty {
-                onKeyDown(fallback)
+                onKeyDown(fallback.lowercased())
             }
         }
     }
 
-    func makeNSView(context _: Context) -> NSView {
+    func makeNSView(context: Context) -> NSView {
         return KeyView(onKeyDown: onKeyDown)
     }
 
-    func updateNSView(_: NSView, context _: Context) {}
+    func updateNSView(_ nsView: NSView, context: Context) {}
 }

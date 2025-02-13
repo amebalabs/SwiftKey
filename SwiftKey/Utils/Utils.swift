@@ -14,7 +14,11 @@ func FOUR_CHAR_CODE(_ string: String) -> UInt32 {
 
 // MARK: - Carbon Hotkey Callback and registerHotKey()
 
-func hotKeyHandler(nextHandler _: EventHandlerCallRef?, theEvent: EventRef?, userData: UnsafeMutableRawPointer?) -> OSStatus {
+func hotKeyHandler(
+    nextHandler _: EventHandlerCallRef?,
+    theEvent: EventRef?,
+    userData: UnsafeMutableRawPointer?
+) -> OSStatus {
     var hotKeyID = EventHotKeyID()
     let status = GetEventParameter(theEvent,
                                    EventParamName(kEventParamDirectObject),
@@ -43,7 +47,10 @@ func registerHotKey() -> EventHotKeyRef? {
     InstallEventHandler(GetApplicationEventTarget(),
                         hotKeyHandler,
                         1,
-                        [EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))],
+                        [EventTypeSpec(
+                            eventClass: OSType(kEventClassKeyboard),
+                            eventKind: UInt32(kEventHotKeyPressed)
+                        )],
                         UnsafeMutableRawPointer(Unmanaged.passUnretained(AppDelegate.shared).toOpaque()),
                         nil)
     return hotKeyRef
@@ -60,7 +67,8 @@ func englishCharactersForKeyEvent(event: NSEvent) -> String? {
     guard let keyLayoutDataPtr = CFDataGetBytePtr(keyboardLayoutData) else { return nil }
     let keyLayoutPtr = UnsafeRawPointer(keyLayoutDataPtr).assumingMemoryBound(to: UCKeyboardLayout.self)
 
-    let modifierFlagsForUC = UInt32((event.modifierFlags.rawValue & NSEvent.ModifierFlags.deviceIndependentFlagsMask.rawValue) >> 16)
+    let modifierFlagsForUC =
+        UInt32((event.modifierFlags.rawValue & NSEvent.ModifierFlags.deviceIndependentFlagsMask.rawValue) >> 16)
     var deadKeyState: UInt32 = 0
     let maxStringLength = 4
     var unicodeString = [UniChar](repeating: 0, count: maxStringLength)

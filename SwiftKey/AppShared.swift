@@ -25,8 +25,18 @@ class AppShared: NSObject {
         else { return }
 
         var restrictedPaths =
-            [FileManager.SearchPathDirectory.allApplicationsDirectory, .documentDirectory, .downloadsDirectory, .desktopDirectory, .libraryDirectory, .developerDirectory, .userDirectory, .musicDirectory, .moviesDirectory,
-             .picturesDirectory]
+            [
+                FileManager.SearchPathDirectory.allApplicationsDirectory,
+                .documentDirectory,
+                .downloadsDirectory,
+                .desktopDirectory,
+                .libraryDirectory,
+                .developerDirectory,
+                .userDirectory,
+                .musicDirectory,
+                .moviesDirectory,
+                .picturesDirectory,
+            ]
             .map { FileManager.default.urls(for: $0, in: .allDomainsMask) }
             .flatMap { $0 }
 
@@ -60,7 +70,8 @@ class AppShared: NSObject {
     }
 
     public static var isDarkStatusBar: Bool {
-        let currentAppearance = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength).button?.effectiveAppearance
+        let currentAppearance = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength).button?
+            .effectiveAppearance
         return currentAppearance?.bestMatch(from: [.aqua, .darkAqua]) == .aqua
     }
 

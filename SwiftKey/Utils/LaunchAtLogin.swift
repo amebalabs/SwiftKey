@@ -1,5 +1,3 @@
-// Copied from https://github.com/sindresorhus/LaunchAtLogin-Modern
-
 import os.log
 import ServiceManagement
 import SwiftUI
@@ -27,7 +25,10 @@ public enum LaunchAtLogin {
                     try SMAppService.mainApp.unregister()
                 }
             } catch {
-                logger.error("Failed to \(newValue ? "enable" : "disable") launch at login: \(error.localizedDescription)")
+                logger
+                    .error(
+                        "Failed to \(newValue ? "enable" : "disable") launch at login: \(error.localizedDescription)"
+                    )
             }
         }
     }

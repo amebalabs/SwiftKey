@@ -3,7 +3,7 @@ import SwiftUI
 class OverlayWindow: NSWindow {
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { true }
-    
+
     static func makeWindow(view: some View) -> OverlayWindow {
         let overlayWindow = OverlayWindow(
             contentRect: NSRect(x: 0, y: 0, width: 300, height: 200),

@@ -2,8 +2,8 @@ import AppKit
 import Carbon.HIToolbox
 import Combine
 import DynamicNotchKit
-import SwiftUI
 import KeyboardShortcuts
+import SwiftUI
 
 class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, FacelessMenuDelegate {
     static var shared: AppDelegate!
@@ -57,7 +57,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, FacelessMe
                 button.target = self
             }
             if let statusItem = statusItem {
-                let controller = FacelessMenuController(rootMenu: menuState.rootMenu, statusItem: statusItem, resetDelay: menuStateResetDelay)
+                let controller = FacelessMenuController(
+                    rootMenu: menuState.rootMenu,
+                    statusItem: statusItem,
+                    resetDelay: menuStateResetDelay
+                )
                 controller.delegate = self
                 facelessMenuController = controller
             }
@@ -89,7 +93,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, FacelessMe
                 }
             }
             if facelessMenuController == nil, let statusItem = statusItem {
-                let controller = FacelessMenuController(rootMenu: menuState.rootMenu, statusItem: statusItem, resetDelay: menuStateResetDelay)
+                let controller = FacelessMenuController(
+                    rootMenu: menuState.rootMenu,
+                    statusItem: statusItem,
+                    resetDelay: menuStateResetDelay
+                )
                 controller.delegate = self
                 facelessMenuController = controller
             } else {
@@ -143,7 +151,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, FacelessMe
 //                        )
 //                    }
 //                }
-                            
+
             notchHUD?.show(for: 0)
             notchContext?.open()
             NSApp.activate(ignoringOtherApps: true)

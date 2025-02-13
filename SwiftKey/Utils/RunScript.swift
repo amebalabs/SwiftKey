@@ -9,17 +9,26 @@ func getEnvExportString(env: [String: String]) -> String {
     return "export \(dict.map { "\($0.key)='\($0.value)'" }.joined(separator: " "))"
 }
 
-@discardableResult func runScript(to command: String,
-                                  args: [String] = [],
-                                  process: Process = Process(),
-                                  env: [String: String] = [:],
-                                  runInBash: Bool = true,
-                                  streamOutput: Bool = false,
-                                  onOutputUpdate: @escaping (String?) -> Void = { _ in }) throws -> (out: String, err: String?)
+@discardableResult func runScript(
+    to command: String,
+    args: [String] = [],
+    process: Process = Process(),
+    env: [String: String] = [:],
+    runInBash: Bool = true,
+    streamOutput: Bool = false,
+    onOutputUpdate: @escaping (String?) -> Void = { _ in }
+) throws
+    -> (out: String, err: String?)
 {
     let swiftbarEnv = sharedEnv.systemEnvStr.merging(env) { current, _ in current }
     process.environment = swiftbarEnv.merging(ProcessInfo.processInfo.environment) { current, _ in current }
-    return try process.launchScript(with: command, args: args, runInBash: runInBash, streamOutput: streamOutput, onOutputUpdate: onOutputUpdate)
+    return try process.launchScript(
+        with: command,
+        args: args,
+        runInBash: runInBash,
+        streamOutput: streamOutput,
+        onOutputUpdate: onOutputUpdate
+    )
 }
 
 // Code below is adopted from https://github.com/JohnSundell/ShellOut
@@ -41,12 +50,16 @@ public struct ShellOutError: Swift.Error {
 // MARK: - Private
 
 private extension Process {
-    @discardableResult func launchScript(with script: String, args: [String], runInBash: Bool = true, streamOutput: Bool, onOutputUpdate: @escaping (String?) -> Void) throws -> (out: String, err: String?) {
-
+    @discardableResult func launchScript(
+        with script: String,
+        args: [String],
+        runInBash: Bool = true,
+        streamOutput: Bool,
+        onOutputUpdate: @escaping (String?) -> Void
+    ) throws -> (out: String, err: String?) {
         let shell = "/bin/zsh"
         executableURL = URL(fileURLWithPath: shell)
         arguments = ["-l", "-c", "\(script.escaped()) \(args.joined(separator: " "))"]
-
 
         guard let executableURL = executableURL, FileManager.default.fileExists(atPath: executableURL.path) else {
             return (out: "", err: nil)
@@ -61,7 +74,8 @@ private extension Process {
         let errorPipe = Pipe()
         standardError = errorPipe
 
-        guard streamOutput else { // horrible hack, code below this guard doesn't work reliably and I can't fugire out why.
+        guard streamOutput
+        else { // horrible hack, code below this guard doesn't work reliably and I can't fugire out why.
             do {
                 try run()
             } catch {

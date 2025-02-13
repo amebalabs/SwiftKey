@@ -3,7 +3,6 @@ import Combine
 import Foundation
 import SwiftUI
 
-
 class NotchViewModel: NSObject, ObservableObject {
     let notchOpenedSize: CGSize
     let headerView: AnyView

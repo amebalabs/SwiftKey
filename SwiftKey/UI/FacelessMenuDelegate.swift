@@ -39,7 +39,8 @@ class FacelessMenuController {
         if sessionActive {
             statusItem.button?.title = ""
             let imageName = indicatorState ? "circle.fill" : "circle"
-            statusItem.button?.image = NSImage(systemSymbolName: imageName, accessibilityDescription: "Active session")?.withSymbolConfiguration(imageConfig)
+            statusItem.button?.image = NSImage(systemSymbolName: imageName, accessibilityDescription: "Active session")?
+                .withSymbolConfiguration(imageConfig)
         } else {
             statusItem.button?.image = NSImage(
                 systemSymbolName: "k.circle",
@@ -131,7 +132,9 @@ class FacelessMenuController {
 
     func processKey(keyString: String) {
         guard let pressedKey = keyString.first else { return }
-        if let action = currentMenu.first(where: { $0.key.caseInsensitiveCompare(String(pressedKey)) == .orderedSame }) {
+        if let action = currentMenu
+            .first(where: { $0.key.caseInsensitiveCompare(String(pressedKey)) == .orderedSame })
+        {
             blinkIndicator(success: true)
             if let submenu = action.submenu {
                 breadcrumbs.append(action.title)
