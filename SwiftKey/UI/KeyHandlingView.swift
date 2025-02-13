@@ -39,11 +39,11 @@ struct KeyHandlingView: NSViewRepresentable {
                 return
             default: break
             }
-            if event.modifierFlags.contains(.shift) || event.modifierFlags.contains(.option) { return }
+//            if event.modifierFlags.contains(.shift) || event.modifierFlags.contains(.option) { return }
             if let key = englishCharactersForKeyEvent(event: event), !key.isEmpty {
-                onKeyDown(key.lowercased())
+                onKeyDown(key)
             } else if let fallback = event.charactersIgnoringModifiers, !fallback.isEmpty {
-                onKeyDown(fallback.lowercased())
+                onKeyDown(fallback)
             }
         }
     }

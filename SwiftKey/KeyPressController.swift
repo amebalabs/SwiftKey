@@ -21,7 +21,7 @@ class KeyPressController {
     }
 
     func handleKeyAsync(_ key: String, completion: @escaping (KeyPressResult) -> Void) {
-        let normalizedKey = key.lowercased()
+        let normalizedKey = key
         if normalizedKey == "escape" {
             completion(.escape)
             return
@@ -36,7 +36,7 @@ class KeyPressController {
             completion(.help)
             return
         }
-        guard let item = menuState.currentMenu.first(where: { $0.key.lowercased() == normalizedKey }) else {
+        guard let item = menuState.currentMenu.first(where: { $0.key == normalizedKey }) else {
             completion(.error(key: key))
             return
         }
