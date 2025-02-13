@@ -121,7 +121,7 @@ struct OverlayView: View {
 
     private func menuItemView(for item: MenuItem) -> some View {
         HStack {
-            itemIcon(for: item)
+            item.icon
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.title)
@@ -136,29 +136,6 @@ struct OverlayView: View {
         }
         .padding(.horizontal, 8)
         .background(Color.clear)
-    }
-
-    private func itemIcon(for item: MenuItem) -> some View {
-        Group {
-            if let actionString = item.action, actionString.hasPrefix("launch://") {
-                let appName = String(actionString.dropFirst("launch://".count))
-                if let icon = getAppIcon(appName: appName) {
-                    Image(nsImage: icon)
-                        .resizable()
-                        .frame(width: 24, height: 24)
-                } else {
-                    Image(systemName: item.systemImage)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 24, height: 24)
-                }
-            } else {
-                Image(systemName: item.systemImage)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 24, height: 24)
-            }
-        }
     }
 
     private func handleKey(key: String) {
@@ -197,26 +174,11 @@ struct HorizontalMenuItemView: View {
     var body: some View {
         VStack(spacing: 4) {
             ZStack(alignment: .topTrailing) {
-                Group {
-                    if let actionString = item.action, actionString.hasPrefix("launch://") {
-                        let appName = String(actionString.dropFirst("launch://".count))
-                        if let icon = getAppIcon(appName: appName) {
-                            Image(nsImage: icon)
-                                .resizable()
-                                .scaledToFit()
-                        } else {
-                            Image(systemName: item.systemImage)
-                                .resizable()
-                                .scaledToFit()
-                        }
-                    } else {
-                        Image(systemName: item.systemImage)
-                            .resizable()
-                            .scaledToFit()
-                    }
-                }
-                .frame(width: 60, height: 60)
-                .opacity(0.7)
+                item.icon
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 60, height: 60)
+                    .opacity(0.7)
 
                 Text(item.key)
                     .font(.caption)
