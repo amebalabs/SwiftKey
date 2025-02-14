@@ -146,31 +146,20 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 notchContext?.close()
                 return
             }
-//                if notchHUD == nil {
-//                    notchHUD = DynamicNotch<AnyView> {
-//                        AnyView(
-//                            MinimalHUDView(state: self.menuState)
-//                                .environmentObject(SettingsStore.shared)
-//                        )
-//                    }
-//                }
-
-            notchHUD?.show(for: 0)
             notchContext?.open()
-//            NSApp.activate(ignoringOtherApps: true)
         case .panel:
             guard let window = overlayWindow else { return }
             if window.isVisible {
                 window.orderOut(nil)
             } else {
                 if menuStateResetDelay == 0 {
+                    menuState.reset()
                     NotificationCenter.default.post(name: .resetMenuState, object: nil)
                 } else if let lastHide = lastHideTime, Date().timeIntervalSince(lastHide) >= menuStateResetDelay {
-                    NotificationCenter.default.post(name: .resetMenuState, object: nil)
+                    menuState.reset()
                 }
                 window.center()
                 window.makeKeyAndOrderFront(nil)
-//                NSApp.activate(ignoringOtherApps: true)
             }
         }
     }
@@ -178,7 +167,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     @objc func hideWindow() {
         print("hideWindow triggered")
         if settings.overlayStyle == .hud {
-            notchHUD?.hide()
             menuState.reset()
             notchContext?.close()
         } else {
@@ -197,12 +185,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     func presentOverlay() {
+        notchContext?.close()
         guard let window = overlayWindow else { return }
         window.center()
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            window.makeFirstResponder(window.contentView)
-        }
+        window.makeFirstResponder(window.contentView)
     }
+
 }

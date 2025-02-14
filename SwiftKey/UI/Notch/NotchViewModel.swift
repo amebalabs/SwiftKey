@@ -82,7 +82,9 @@ class NotchViewModel: NSObject, ObservableObject {
         status = .opened
     }
 
-    func close() { status = .closed }
+    func close() {
+        status = .closed
+    }
 
     func scheduleClose(after interval: TimeInterval) {
         NSObject.cancelPreviousPerformRequests(withTarget: self)

@@ -2,7 +2,7 @@ import Cocoa
 import Foundation
 import SwiftUI
 
-struct NotchContext {
+class NotchContext {
     let screen: NSScreen
     let headerLeadingView: AnyView
     let headerTrailingView: AnyView
@@ -21,7 +21,12 @@ struct NotchContext {
         self.animated = animated
     }
 
-    init?(headerLeadingView: AnyView, headerTrailingView: AnyView, bodyView: AnyView, animated: Bool) {
+    convenience init?(
+        headerLeadingView: AnyView,
+        headerTrailingView: AnyView,
+        bodyView: AnyView,
+        animated: Bool
+    ) {
         let mouseLocation = NSEvent.mouseLocation
         let screens = NSScreen.screens
         let screenWithMouse = screens.first { NSMouseInRect(mouseLocation, $0.frame, false) }
@@ -38,7 +43,7 @@ struct NotchContext {
         )
     }
 
-    init?(
+    convenience init?(
         headerLeadingView: some View,
         headerTrailingView: some View,
         bodyView: some View,
@@ -52,7 +57,7 @@ struct NotchContext {
         )
     }
 
-    mutating func open(forInterval interval: TimeInterval = 0) {
+    func open(forInterval interval: TimeInterval = 0) {
         let window = NotchWindowController(screen: screen)
         window.window?.setFrameOrigin(.zero)
 
@@ -74,14 +79,16 @@ struct NotchContext {
             x: screen.frame.origin.x,
             y: screen.frame.origin.y + screen.frame.height - viewModel.notchOpenedSize.height - shadowInset,
             width: screen.frame.width,
-            height: viewModel.notchOpenedSize.height + shadowInset // for shadow
+            height: viewModel.notchOpenedSize.height + shadowInset
         )
         window.window?.setFrameOrigin(topRect.origin)
         window.window?.setContentSize(topRect.size)
 
         window.window?.orderFront(nil)
-
+        window.window?.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            window.window?.makeFirstResponder(window.window?.contentView)
             viewModel.open()
         }
 
@@ -92,6 +99,6 @@ struct NotchContext {
     }
 
     func close() {
-        viewModel?.close()
+        viewModel?.destroy()
     }
 }

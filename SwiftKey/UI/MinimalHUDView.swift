@@ -47,7 +47,6 @@ struct MinimalHUDView: View {
             case .escape:
                 NotificationCenter.default.post(name: .hideOverlay, object: nil)
             case .help:
-                NotificationCenter.default.post(name: .hideOverlay, object: nil)
                 AppDelegate.shared.presentOverlay()
             case .up:
                 break
