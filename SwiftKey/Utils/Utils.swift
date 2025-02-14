@@ -67,8 +67,11 @@ func englishCharactersForKeyEvent(event: NSEvent) -> String? {
     guard let keyLayoutDataPtr = CFDataGetBytePtr(keyboardLayoutData) else { return nil }
     let keyLayoutPtr = UnsafeRawPointer(keyLayoutDataPtr).assumingMemoryBound(to: UCKeyboardLayout.self)
 
-    let modifierFlagsForUC =
-        UInt32((event.modifierFlags.rawValue & NSEvent.ModifierFlags.deviceIndependentFlagsMask.rawValue) >> 16)
+    let modifierFlagsForUC: UInt32 = {
+        guard !event.modifierFlags.isOption else { return 0 }
+        return UInt32((event.modifierFlags.rawValue & NSEvent.ModifierFlags.deviceIndependentFlagsMask.rawValue) >> 16)
+    }()
+
     var deadKeyState: UInt32 = 0
     let maxStringLength = 4
     var unicodeString = [UniChar](repeating: 0, count: maxStringLength)
@@ -95,4 +98,10 @@ func getAppIcon(appName: String) -> NSImage? {
         return NSWorkspace.shared.icon(forFile: path)
     }
     return nil
+}
+
+extension NSEvent.ModifierFlags {
+    var isOption: Bool {
+        rawValue == 524576
+    }
 }

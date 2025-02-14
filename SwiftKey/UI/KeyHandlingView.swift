@@ -1,12 +1,12 @@
 import SwiftUI
 
 struct KeyHandlingView: NSViewRepresentable {
-    var onKeyDown: (String) -> Void
+    var onKeyDown: (String, NSEvent.ModifierFlags?) -> Void
 
     class KeyView: NSView {
-        var onKeyDown: (String) -> Void
+        var onKeyDown: (String, NSEvent.ModifierFlags?) -> Void
 
-        init(onKeyDown: @escaping (String) -> Void) {
+        init(onKeyDown: @escaping (String, NSEvent.ModifierFlags?) -> Void) {
             self.onKeyDown = onKeyDown
             super.init(frame: .zero)
         }
@@ -24,26 +24,28 @@ struct KeyHandlingView: NSViewRepresentable {
         }
 
         override func keyDown(with event: NSEvent) {
-            if event.keyCode == 53 { onKeyDown("escape")
-                return
-            }
-            if event.keyCode == 126 && event.modifierFlags.contains(.command) { onKeyDown("cmd+up")
-                return
-            }
             switch event.keyCode {
-            case 36: onKeyDown("return")
+            case 36: onKeyDown("return", event.modifierFlags)
                 return
-            case 48: onKeyDown("tab")
+            case 48: onKeyDown("tab", event.modifierFlags)
                 return
-            case 59, 62: onKeyDown("control")
+            case 53: onKeyDown("escape", event.modifierFlags)
+                return
+            case 59, 62: onKeyDown("control", event.modifierFlags)
+                return
+//            case 58, 61: onKeyDown("option")
+//                return
+            case 126:
+                guard event.modifierFlags.contains(.command) else { break }
+                onKeyDown("cmd+up", event.modifierFlags)
                 return
             default: break
             }
-//            if event.modifierFlags.contains(.shift) || event.modifierFlags.contains(.option) { return }
+
             if let key = englishCharactersForKeyEvent(event: event), !key.isEmpty {
-                onKeyDown(key)
+                onKeyDown(key, event.modifierFlags)
             } else if let fallback = event.charactersIgnoringModifiers, !fallback.isEmpty {
-                onKeyDown(fallback)
+                onKeyDown(fallback, event.modifierFlags)
             }
         }
     }

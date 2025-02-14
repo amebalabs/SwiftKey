@@ -192,5 +192,4 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         NSApp.activate(ignoringOtherApps: true)
         window.makeFirstResponder(window.contentView)
     }
-
 }

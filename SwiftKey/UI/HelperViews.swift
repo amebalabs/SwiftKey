@@ -39,3 +39,26 @@ struct BlinkingIndicator: View {
             }
     }
 }
+
+struct OptionKeyModifier: ViewModifier {
+    @Binding var isOptionKeyPressed: Bool
+
+    func body(content: Content) -> some View {
+        content
+            .onAppear {
+                NSEvent.addLocalMonitorForEvents(matching: [.flagsChanged]) { event in
+                    isOptionKeyPressed = event.modifierFlags.contains(.option)
+                    return event
+                }
+            }
+            .onDisappear {
+                NSEvent.removeMonitor(self)
+            }
+    }
+}
+
+extension View {
+    func detectOptionKey(isPressed: Binding<Bool>) -> some View {
+        modifier(OptionKeyModifier(isOptionKeyPressed: isPressed))
+    }
+}

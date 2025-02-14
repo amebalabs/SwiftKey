@@ -5,6 +5,7 @@ struct OverlayView: View {
     @EnvironmentObject var settings: SettingsStore
     @ObservedObject var state: MenuState
     @State private var errorMessage: String = ""
+    @State private var altMode: Bool = false
 
     var currentMenu: [MenuItem] {
         state.menuStack.last ?? state.rootMenu
@@ -66,7 +67,7 @@ struct OverlayView: View {
                                 spacing: horizontalItemSpacing
                             ) {
                                 ForEach(currentMenu) { item in
-                                    HorizontalMenuItemView(item: item)
+                                    HorizontalMenuItemView(item: item, altMode: $altMode)
                                 }
                             }
                             .padding(.horizontal)
@@ -78,7 +79,7 @@ struct OverlayView: View {
                     ScrollView(.vertical, showsIndicators: false) {
                         LazyVStack(spacing: 8) {
                             ForEach(currentMenu) { item in
-                                menuItemView(for: item)
+                                VerticalMenuItemView(item: item, altMode: $altMode)
                             }
                         }
                         .padding(.bottom, 0)
@@ -86,7 +87,6 @@ struct OverlayView: View {
                     .padding()
                     .frame(width: verticalContentFixedWidth, height: verticalContentHeight, alignment: .top)
                 }
-
                 if !errorMessage.isEmpty {
                     Text(errorMessage)
                         .foregroundColor(.red)
@@ -100,12 +100,13 @@ struct OverlayView: View {
             }
         }
         .background(
-            KeyHandlingView { key in
-                handleKey(key: key)
+            KeyHandlingView { key, modifierFlags in
+                handleKey(key: key, modifierFlags: modifierFlags)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color.clear)
         )
+        .detectOptionKey(isPressed: $altMode)
         // Set overall frame based on the current layout.
         .frame(
             width: settings.useHorizontalOverlayLayout ? horizontalContentWidth : verticalContentFixedWidth,
@@ -119,28 +120,9 @@ struct OverlayView: View {
         }
     }
 
-    private func menuItemView(for item: MenuItem) -> some View {
-        HStack {
-            item.icon
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(item.title)
-                    .font(.subheadline)
-                Text(item.key)
-                    .font(.caption)
-                    .fontWeight(.bold)
-                    .foregroundColor(.secondary)
-            }
-
-            Spacer()
-        }
-        .padding(.horizontal, 8)
-        .background(Color.clear)
-    }
-
-    private func handleKey(key: String) {
+    private func handleKey(key: String, modifierFlags: NSEvent.ModifierFlags?) {
         let keyController = KeyPressController(menuState: state)
-        keyController.handleKeyAsync(key) { result in
+        keyController.handleKeyAsync(key, modifierFlags: modifierFlags) { result in
             switch result {
             case .escape:
                 NotificationCenter.default.post(name: .resetMenuState, object: nil)
@@ -168,8 +150,33 @@ struct OverlayView: View {
     }
 }
 
+struct VerticalMenuItemView: View {
+    let item: MenuItem
+    @Binding var altMode: Bool
+
+    var body: some View {
+        HStack {
+            item.icon
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(item.title)
+                    .font(.subheadline)
+                Text(item.key)
+                    .font(.caption)
+                    .fontWeight(.bold)
+                    .foregroundColor(.secondary)
+            }
+
+            Spacer()
+        }
+        .padding(.horizontal, 8)
+        .background(altMode && item.submenu != nil ? Color.red.opacity(0.7) : Color.clear)
+    }
+}
+
 struct HorizontalMenuItemView: View {
     let item: MenuItem
+    @Binding var altMode: Bool
 
     var body: some View {
         VStack(spacing: 4) {
@@ -183,7 +190,7 @@ struct HorizontalMenuItemView: View {
                 Text(item.key)
                     .font(.caption)
                     .padding(6)
-                    .background(Color.black.opacity(0.7))
+                    .background(altMode && item.submenu != nil ? Color.red.opacity(0.7) : Color.black.opacity(0.7))
                     .foregroundColor(.white)
                     .cornerRadius(4)
                     .padding(-10)

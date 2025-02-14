@@ -29,7 +29,7 @@ struct MinimalHUDView: View {
         .shadow(radius: 4)
         .frame(width: 200)
         .background(
-            KeyHandlingView { key in
+            KeyHandlingView { key, _ in
                 handleKeyPress(key)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)

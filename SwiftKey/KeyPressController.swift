@@ -20,7 +20,11 @@ class KeyPressController {
         self.menuState = menuState
     }
 
-    func handleKeyAsync(_ key: String, completion: @escaping (KeyPressResult) -> Void) {
+    func handleKeyAsync(
+        _ key: String,
+        modifierFlags: NSEvent.ModifierFlags? = nil,
+        completion: @escaping (KeyPressResult) -> Void
+    ) {
         print("Key pressed: \(key)")
         let normalizedKey = key
         if normalizedKey == "escape" {
@@ -37,10 +41,12 @@ class KeyPressController {
             completion(.help)
             return
         }
+
         guard let item = menuState.currentMenu.first(where: { $0.key == normalizedKey }) else {
             completion(.error(key: key))
             return
         }
+
         if let actionString = item.action, actionString.hasPrefix("dynamic://") {
             completion(.dynamicLoading)
             let command = String(actionString.dropFirst("dynamic://".count))
@@ -57,16 +63,30 @@ class KeyPressController {
                     }
                 }
             }
-        } else if let submenu = item.submenu {
+            return
+        }
+        if let submenu = item.submenu {
+            if modifierFlags?.isOption == true {
+                DispatchQueue.global(qos: .userInitiated).async {
+                    for menu in submenu where menu.actionClosure != nil {
+                        guard menu.action?.hasPrefix("dynamic://") == false else { continue }
+                        menu.actionClosure!()
+                    }
+                }
+                completion(.actionExecuted)
+                return
+            }
             menuState.breadcrumbs.append(item.title)
             menuState.menuStack.append(submenu)
             completion(.submenuPushed(title: item.title))
-        } else if let action = item.actionClosure {
+            return
+        }
+        if let action = item.actionClosure {
             action()
             completion(.actionExecuted)
-        } else {
-            completion(.none)
+            return
         }
+        completion(.none)
     }
 
     private func runDynamicMenu(command: String) -> [MenuItem]? {
