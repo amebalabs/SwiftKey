@@ -51,21 +51,25 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         overlayWindow?.delegate = self
 
         if settings.facelessMode {
-            statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-            if let button = statusItem?.button {
-                button.action = #selector(statusItemClicked)
-                button.target = self
+            if statusItem == nil {
+                statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+                if let button = statusItem?.button {
+                    button.action = #selector(statusItemClicked)
+                    button.target = self
+                }
             }
-            if let statusItem = statusItem {
-                let controller = FacelessMenuController(
+            if facelessMenuController == nil, let statusItem = statusItem {
+                facelessMenuController = FacelessMenuController(
                     rootMenu: menuState.rootMenu,
                     statusItem: statusItem,
                     resetDelay: menuStateResetDelay
                 )
+            } else {
+                facelessMenuController?.resetDelay = menuStateResetDelay
             }
         }
 
-//        hotKeyRef = registerHotKey()
+        hotKeyRef = registerHotKey()
         KeyboardShortcuts.onKeyDown(for: .toggleApp) { [self] in
             toggleSession()
         }
@@ -165,6 +169,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     @objc func hideWindow() {
+        guard menuState.isCurrentMenuSticky == false else {return}
         print("hideWindow triggered")
         if settings.overlayStyle == .hud {
             menuState.reset()

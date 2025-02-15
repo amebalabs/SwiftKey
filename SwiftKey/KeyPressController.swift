@@ -27,6 +27,8 @@ class KeyPressController {
     ) {
         print("Key pressed: \(key)")
         let normalizedKey = key
+        menuState.currentKey = normalizedKey
+
         if normalizedKey == "escape" {
             completion(.escape)
             return
@@ -82,8 +84,15 @@ class KeyPressController {
             return
         }
         if let action = item.actionClosure {
-            action()
-            completion(.actionExecuted)
+            DispatchQueue.global(qos: .userInitiated).async {
+                action()
+            }
+            //sticky menus are only for full panel mode for now
+            if item.sticky == false && SettingsStore.shared.overlayStyle == .panel {
+                completion(.none)
+            } else {
+                completion(.actionExecuted)
+            }
             return
         }
         completion(.none)

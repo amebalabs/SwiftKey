@@ -9,6 +9,7 @@ struct MenuItem: Identifiable, Decodable {
     var systemImage: String // Default SF Symbol name
     var title: String // Descriptive title
     var action: String? // Raw action string from YAML
+    var sticky: Bool? // Sticky actions don't close window after execution
     var submenu: [MenuItem]? // Optional nested submenu
 
     /// Computed property to return a closure based on the raw action string.
