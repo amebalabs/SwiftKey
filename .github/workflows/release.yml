@@ -40,7 +40,13 @@ jobs:
           xcodebuild -scheme "${{ env.APP_NAME }}" \
             -configuration Release \
             -derivedDataPath build \
-            BUILD_NUMBER="${{ github.run_number }}"
+            BUILD_NUMBER="${{ github.run_number }}" \
+            CODE_SIGN_STYLE="Manual" \
+            CODE_SIGN_IDENTITY="-" \
+            DEVELOPMENT_TEAM="${{ env.TEAM_ID }}" \
+            PROVISIONING_PROFILE_SPECIFIER="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
 
       - name: Run Tests
         run: |
