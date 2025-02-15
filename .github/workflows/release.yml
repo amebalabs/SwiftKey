@@ -47,7 +47,10 @@ jobs:
             PROVISIONING_PROFILE_SPECIFIER="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
-
+      - name: Prepare App Bundle
+        run: |
+          mkdir -p artifact
+          cp -R "build/Build/Products/Release/${{ env.APP_NAME }}.app" artifact/
       # - name: Run Tests
       #   run: |
       #     xcodebuild test \
@@ -59,10 +62,10 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.APP_NAME }}-Build
-          path: build/Build/Products/Release/${{ env.APP_NAME }}.app
+          name: ${{ env.APP_NAME }}
+          path: artifact/${{ env.APP_NAME }}.app
           retention-days: 5
-          compression-level: 6
+          compression-level: 0
 
   release:
     needs: build
