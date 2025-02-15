@@ -97,7 +97,7 @@ jobs:
             --deep \
             --sign "${{ env.DEVELOPER_ID }}" \
             --timestamp \
-            --entitlements "./SwiftKey/Resourcese/SwiftKey.entitlements" \
+            --entitlements "./SwiftKey/Resources/SwiftKey.entitlements" \
             "build/Build/Products/Release/${{ env.APP_NAME }}.app"
 
           # Verify signing
