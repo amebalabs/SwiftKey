@@ -1,9 +1,8 @@
 name: Build and Release
-
 on:
   push:
-    branches:
-      - "**"
+    branches-ignore:
+      - main # Ignore main branch when tag is pushed
     tags:
       - "v*.*.*" # Production releases: v1.0.0
       - "v*.*.*-beta.*" # Beta releases: v1.0.0-beta.1
@@ -28,11 +27,9 @@ jobs:
       release_notes: ${{ steps.read_notes.outputs.content }}
     steps:
       - uses: actions/checkout@v3
-
       - name: Get version
         id: get_version
         run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-
       - name: Check release notes exist
         id: check_notes
         run: |
@@ -43,7 +40,6 @@ jobs:
             echo "Expected path: ${NOTES_PATH}"
             exit 1
           fi
-
       - name: Read release notes
         id: read_notes
         run: |
@@ -51,9 +47,10 @@ jobs:
           NOTES_PATH="docs/release-notes/${VERSION}.md"
           CONTENT=$(cat "$NOTES_PATH" | perl -p -e 's/%/%25/g' | perl -p -e 's/\n/%0A/g' | perl -p -e 's/\r/%0D/g')
           echo "content=$CONTENT" >> $GITHUB_OUTPUT
+
   build:
     runs-on: macos-latest
-
+    timeout-minutes: 30
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -65,6 +62,12 @@ jobs:
         with:
           xcode-version: ${{ env.XCODE_VERSION }}
 
+      - name: Import Certificates
+        uses: apple-actions/import-codesign-certs@v1
+        with:
+          p12-file-base64: ${{ secrets.CERTIFICATES_P12 }}
+          p12-password: ${{ secrets.CERTIFICATES_P12_PASSWORD }}
+
       - name: Build Application
         run: |
           xcodebuild -scheme "${{ env.APP_NAME }}" \
@@ -74,34 +77,27 @@ jobs:
             ONLY_ACTIVE_ARCH=NO \
             BUILD_NUMBER="${{ github.run_number }}" \
             CODE_SIGN_STYLE="Manual" \
-            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGN_IDENTITY="${{ env.DEVELOPER_ID }}" \
             DEVELOPMENT_TEAM="${{ env.TEAM_ID }}" \
-            PROVISIONING_PROFILE_SPECIFIER="" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO
+            CODE_SIGNING_REQUIRED=YES \
+            CODE_SIGNING_ALLOWED=YES
 
       - name: Verify Universal Binary
         run: |
           echo "Checking binary architectures..."
           lipo -archs "build/Build/Products/Release/${{ env.APP_NAME }}.app/Contents/MacOS/${{ env.APP_NAME }}"
 
-      - name: Prepare App Bundle
+      - name: Verify Signature
         run: |
-          mkdir -p artifact
-          cp -R "build/Build/Products/Release/${{ env.APP_NAME }}.app" artifact/
-      # - name: Run Tests
-      #   run: |
-      #     xcodebuild test \
-      #       -scheme "${{ env.APP_NAME }}" \
-      #       -configuration Debug \
-      #       -derivedDataPath build
+          codesign --verify --deep --strict "build/Build/Products/Release/${{ env.APP_NAME }}.app"
+          spctl --assess --type exec "build/Build/Products/Release/${{ env.APP_NAME }}.app"
 
       - name: Upload Build Artifacts
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.APP_NAME }}
-          path: artifact/${{ env.APP_NAME }}.app
+          name: ${{ env.APP_NAME }}-Build
+          path: build/Build/Products/Release/${{ env.APP_NAME }}.app
           retention-days: 5
           compression-level: 0
 
@@ -109,7 +105,7 @@ jobs:
     needs: [build, verify-release-notes]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: macos-latest
-
+    timeout-minutes: 30
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -125,7 +121,12 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: ${{ env.APP_NAME }}-Build
-          path: build/Build/Products/Release/
+          path: artifact
+
+      - name: Prepare for Signing
+        run: |
+          mkdir -p build/Build/Products/Release/
+          mv artifact/${{ env.APP_NAME }}.app build/Build/Products/Release/
 
       - name: Import Certificates
         uses: apple-actions/import-codesign-certs@v1
@@ -148,13 +149,18 @@ jobs:
           codesign --force --sign "${{ env.DEVELOPER_ID }}" \
             --options runtime \
             --entitlements "path/to/your/entitlements.plist" \
+            --deep \
             "build/Build/Products/Release/${{ env.APP_NAME }}.app"
+
+      - name: Verify Signature
+        run: |
+          codesign --verify --deep --strict "build/Build/Products/Release/${{ env.APP_NAME }}.app"
+          spctl --assess --type exec "build/Build/Products/Release/${{ env.APP_NAME }}.app"
 
       - name: Create DMG
         run: |
           APP_PATH="build/Build/Products/Release/${{ env.APP_NAME }}.app"
           DMG_PATH="${{ env.APP_NAME }}-${{ env.VERSION }}.dmg"
-
           create-dmg \
             --volname "${{ env.APP_NAME }}" \
             --window-pos 200 120 \
@@ -186,11 +192,9 @@ jobs:
 
       - name: Update Appcast
         run: |
-          # Determine which appcast to update
           APPCAST_FILE="${{ env.IS_BETA == 'true' && 'docs/appcast_beta.xml' || 'docs/appcast.xml' }}"
           FEED_URL="${{ env.IS_BETA == 'true' && env.BETA_FEED_URL || env.PROD_FEED_URL }}"
 
-          # Create appcast entry
           cat > entry.xml << EOF
           <item>
             <title>${{ env.APP_NAME }} ${{ env.VERSION }}</title>
@@ -210,7 +214,6 @@ jobs:
           </item>
           EOF
 
-          # Create appcast if it doesn't exist
           if [ ! -f "$APPCAST_FILE" ]; then
             cat > "$APPCAST_FILE" << EOF
           <?xml version="1.0" encoding="utf-8"?>
@@ -225,7 +228,6 @@ jobs:
           EOF
           fi
 
-          # Insert new entry
           xmlstarlet ed --inplace \
             -s "/rss/channel" -t elem -n "item_temp" -v "" \
             --var item_temp '$prev' \
@@ -237,20 +239,14 @@ jobs:
           VERSION=${GITHUB_REF#refs/tags/}
           NOTES_PATH="docs/release-notes/${VERSION}.md"
           TEMP_FILE=$(mktemp)
-
-          # Create new CHANGELOG content with date
           echo "# ${VERSION} ($(date +'%Y-%m-%d'))" > "$TEMP_FILE"
           echo "" >> "$TEMP_FILE"
           cat "$NOTES_PATH" >> "$TEMP_FILE"
           echo "" >> "$TEMP_FILE"
           echo "" >> "$TEMP_FILE"
-
-          # Append existing CHANGELOG if it exists
           if [ -f "CHANGELOG.md" ]; then
             cat "CHANGELOG.md" >> "$TEMP_FILE"
           fi
-
-          # Replace CHANGELOG
           mv "$TEMP_FILE" "CHANGELOG.md"
 
       - name: Commit CHANGELOG
@@ -286,7 +282,6 @@ jobs:
         if: success()
         run: |
           echo "Build succeeded!"
-
       - name: Notify Failure
         if: failure()
         run: |
