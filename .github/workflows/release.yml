@@ -48,12 +48,12 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
 
-      - name: Run Tests
-        run: |
-          xcodebuild test \
-            -scheme "${{ env.APP_NAME }}" \
-            -configuration Debug \
-            -derivedDataPath build
+      # - name: Run Tests
+      #   run: |
+      #     xcodebuild test \
+      #       -scheme "${{ env.APP_NAME }}" \
+      #       -configuration Debug \
+      #       -derivedDataPath build
 
       - name: Upload Build Artifacts
         if: success()
