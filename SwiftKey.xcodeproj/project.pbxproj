@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		FA409DFC2D58166200FCFC04 /* Yams in Frameworks */ = {isa = PBXBuildFile; productRef = FA409DFB2D58166200FCFC04 /* Yams */; };
+		FA409EA82D614C5400FCFC04 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = FA409EA72D614C5400FCFC04 /* Sparkle */; };
 		FA62DE542D44187600B1CC0C /* LaunchAtLogin in Frameworks */ = {isa = PBXBuildFile; productRef = FA62DE532D44187600B1CC0C /* LaunchAtLogin */; };
 		FA62DE5A2D4418A900B1CC0C /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = FA62DE592D4418A900B1CC0C /* KeyboardShortcuts */; };
 		FAF87AD52D4A8457008986C6 /* DynamicNotchKit in Frameworks */ = {isa = PBXBuildFile; productRef = FAF87AD42D4A8457008986C6 /* DynamicNotchKit */; };
@@ -62,6 +63,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				FA409EA82D614C5400FCFC04 /* Sparkle in Frameworks */,
 				FAF87AD52D4A8457008986C6 /* DynamicNotchKit in Frameworks */,
 				FA409DFC2D58166200FCFC04 /* Yams in Frameworks */,
 				FA62DE542D44187600B1CC0C /* LaunchAtLogin in Frameworks */,
@@ -132,6 +134,7 @@
 				FA62DE592D4418A900B1CC0C /* KeyboardShortcuts */,
 				FAF87AD42D4A8457008986C6 /* DynamicNotchKit */,
 				FA409DFB2D58166200FCFC04 /* Yams */,
+				FA409EA72D614C5400FCFC04 /* Sparkle */,
 			);
 			productName = SwiftKey;
 			productReference = FA3044B12D43F59400BA98E2 /* SwiftKey.app */;
@@ -193,6 +196,7 @@
 				FA62DE582D4418A900B1CC0C /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */,
 				FAF87AD32D4A8457008986C6 /* XCRemoteSwiftPackageReference "DynamicNotchKit" */,
 				FA409DFA2D58166200FCFC04 /* XCRemoteSwiftPackageReference "Yams" */,
+				FA409EA62D614C5400FCFC04 /* XCRemoteSwiftPackageReference "Sparkle" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = FA3044B22D43F59400BA98E2 /* Products */;
@@ -515,6 +519,14 @@
 				minimumVersion = 5.1.3;
 			};
 		};
+		FA409EA62D614C5400FCFC04 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.6.4;
+			};
+		};
 		FA62DE522D44187600B1CC0C /* XCRemoteSwiftPackageReference "LaunchAtLogin-Modern" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/sindresorhus/LaunchAtLogin-Modern";
@@ -546,6 +558,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = FA409DFA2D58166200FCFC04 /* XCRemoteSwiftPackageReference "Yams" */;
 			productName = Yams;
+		};
+		FA409EA72D614C5400FCFC04 /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FA409EA62D614C5400FCFC04 /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
 		};
 		FA62DE532D44187600B1CC0C /* LaunchAtLogin */ = {
 			isa = XCSwiftPackageProductDependency;

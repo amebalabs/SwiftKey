@@ -14,7 +14,27 @@ class SettingsStore: ObservableObject {
     @AppStorage("menuStateResetDelay") public var menuStateResetDelay: Double = 3.0
     @AppStorage("useHorizontalOverlayLayout") public var useHorizontalOverlayLayout: Bool = false
     @AppStorage("overlayStyle") public var overlayStyle: OverlayStyle = .hud
-
+    
+    @AppStorage("AutomaticallyCheckForUpdates")
+    public var automaticallyCheckForUpdates: Bool = true {
+        didSet {
+            SparkleUpdater.shared.automaticallyChecksForUpdates = automaticallyCheckForUpdates
+        }
+    }
+    
+    @AppStorage("AutomaticallyDownloadUpdates")
+    public var automaticallyDownloadUpdates: Bool = false {
+        didSet {
+            SparkleUpdater.shared.automaticallyDownloadsUpdates = automaticallyDownloadUpdates
+        }
+    }
+    
+    @AppStorage("EnableBetaUpdates")
+    public var enableBetaUpdates: Bool = false {
+        didSet {
+            SparkleUpdater.shared.configureFeedURLs()
+        }
+    }
     var facelessMode: Bool {
         overlayStyle == .faceless
     }

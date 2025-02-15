@@ -13,9 +13,9 @@ on:
 
 env:
   XCODE_VERSION: "16.1.0"
-  DEVELOPER_ID: "Your Developer ID Application Certificate Name"
+  DEVELOPER_ID: "Developer ID Application: Ameba Labs, LLC (X93LWC49WV)"
   TEAM_ID: ${{ secrets.TEAM_ID }}
-  BUNDLE_ID: "com.ameba.swiftkey"
+  BUNDLE_ID: "com.ameba.SwiftKey"
   APP_NAME: "SwiftKey"
   BETA_FEED_URL: "https://amebalabs.github.io/swiftkey/appcast_beta.xml"
   PROD_FEED_URL: "https://amebalabs.github.io/swiftkey/appcast.xml"

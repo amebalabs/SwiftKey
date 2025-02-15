@@ -28,9 +28,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     var menuState = MenuState.shared
 
     var defaultsObserver: AnyCancellable?
+    
+    private var sparkle: SparkleUpdater?
 
     func applicationDidFinishLaunching(_: Notification) {
         AppDelegate.shared = self
+        sparkle = SparkleUpdater.shared
 
         if let customPath = SettingsStore.shared.configDirectoryResolvedPath {
             let configURL = URL(fileURLWithPath: customPath).appendingPathComponent("menu.yaml")
