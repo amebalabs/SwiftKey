@@ -1,0 +1,214 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+      - "**"
+    tags:
+      - "v*.*.*" # Production releases: v1.0.0
+      - "v*.*.*-beta.*" # Beta releases: v1.0.0-beta.1
+  pull_request:
+    branches:
+      - main
+
+env:
+  XCODE_VERSION: "16.1.0"
+  DEVELOPER_ID: "Your Developer ID Application Certificate Name"
+  TEAM_ID: ${{ secrets.TEAM_ID }}
+  BUNDLE_ID: "com.ameba.swiftkey"
+  APP_NAME: "SwiftKey"
+  BETA_FEED_URL: "https://amebalabs.github.io/swiftkey/appcast_beta.xml"
+  PROD_FEED_URL: "https://amebalabs.github.io/swiftkey/appcast.xml"
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: ${{ env.XCODE_VERSION }}
+
+      - name: Build Application
+        run: |
+          xcodebuild -scheme "${{ env.APP_NAME }}" \
+            -configuration Release \
+            -derivedDataPath build \
+            BUILD_NUMBER="${{ github.run_number }}"
+
+      - name: Run Tests
+        run: |
+          xcodebuild test \
+            -scheme "${{ env.APP_NAME }}" \
+            -configuration Debug \
+            -derivedDataPath build
+
+      - name: Upload Build Artifacts
+        if: success()
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ env.APP_NAME }}-Build
+          path: build/Build/Products/Release/${{ env.APP_NAME }}.app
+          retention-days: 5
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: ${{ env.XCODE_VERSION }}
+
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ env.APP_NAME }}-Build
+          path: build/Build/Products/Release/
+
+      - name: Import Certificates
+        uses: apple-actions/import-codesign-certs@v1
+        with:
+          p12-file-base64: ${{ secrets.CERTIFICATES_P12 }}
+          p12-password: ${{ secrets.CERTIFICATES_P12_PASSWORD }}
+
+      - name: Install Dependencies
+        run: |
+          brew install create-dmg
+          brew install xmlstarlet
+
+      - name: Set version variables
+        run: |
+          echo "VERSION=$(echo ${{ github.ref_name }} | sed 's/v//')" >> $GITHUB_ENV
+          echo "IS_BETA=$(echo ${{ github.ref_name }} | grep -q 'beta' && echo 'true' || echo 'false')" >> $GITHUB_ENV
+
+      - name: Sign Application
+        run: |
+          codesign --force --sign "${{ env.DEVELOPER_ID }}" \
+            --options runtime \
+            --entitlements "path/to/your/entitlements.plist" \
+            "build/Build/Products/Release/${{ env.APP_NAME }}.app"
+
+      - name: Create DMG
+        run: |
+          APP_PATH="build/Build/Products/Release/${{ env.APP_NAME }}.app"
+          DMG_PATH="${{ env.APP_NAME }}-${{ env.VERSION }}.dmg"
+
+          create-dmg \
+            --volname "${{ env.APP_NAME }}" \
+            --window-pos 200 120 \
+            --window-size 800 400 \
+            --icon-size 100 \
+            --icon "${{ env.APP_NAME }}.app" 200 190 \
+            --hide-extension "${{ env.APP_NAME }}.app" \
+            --app-drop-link 600 185 \
+            "${DMG_PATH}" \
+            "${APP_PATH}"
+
+      - name: Notarize DMG
+        run: |
+          xcrun notarytool submit "${{ env.APP_NAME }}-${{ env.VERSION }}.dmg" \
+            --apple-id "${{ secrets.APPLE_ID }}" \
+            --password "${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}" \
+            --team-id "${{ env.TEAM_ID }}" \
+            --wait
+
+      - name: Generate release notes
+        run: |
+          git log $(git describe --tags --abbrev=0 HEAD^)..HEAD --pretty=format:"- %s" > release_notes.md
+
+      - name: Calculate SHA256
+        run: |
+          echo "DMG_SHA=$(shasum -a 256 ${{ env.APP_NAME }}-${{ env.VERSION }}.dmg | cut -d' ' -f1)" >> $GITHUB_ENV
+
+      - name: Update Appcast
+        run: |
+          # Determine which appcast to update
+          APPCAST_FILE="${{ env.IS_BETA == 'true' && 'docs/appcast_beta.xml' || 'docs/appcast.xml' }}"
+          FEED_URL="${{ env.IS_BETA == 'true' && env.BETA_FEED_URL || env.PROD_FEED_URL }}"
+
+          # Create appcast entry
+          cat > entry.xml << EOF
+          <item>
+            <title>${{ env.APP_NAME }} ${{ env.VERSION }}</title>
+            <pubDate>$(date -R)</pubDate>
+            <sparkle:version>${{ env.VERSION }}</sparkle:version>
+            <sparkle:shortVersionString>${{ env.VERSION }}</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>12.0</sparkle:minimumSystemVersion>
+            <enclosure
+              url="https://github.com/${{ github.repository }}/releases/download/v${{ env.VERSION }}/${{ env.APP_NAME }}-${{ env.VERSION }}.dmg"
+              sparkle:version="${{ env.VERSION }}"
+              sparkle:shortVersionString="${{ env.VERSION }}"
+              length="$(stat -f%z ${{ env.APP_NAME }}-${{ env.VERSION }}.dmg)"
+              type="application/octet-stream"
+              sparkle:edSignature="${{ env.DMG_SHA }}"
+            />
+            <description><![CDATA[$(cat release_notes.md)]]></description>
+          </item>
+          EOF
+
+          # Create appcast if it doesn't exist
+          if [ ! -f "$APPCAST_FILE" ]; then
+            cat > "$APPCAST_FILE" << EOF
+          <?xml version="1.0" encoding="utf-8"?>
+          <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
+            <channel>
+              <title>${{ env.APP_NAME }} Updates</title>
+              <link>${FEED_URL}</link>
+              <description>Most recent changes with links to updates.</description>
+              <language>en</language>
+            </channel>
+          </rss>
+          EOF
+          fi
+
+          # Insert new entry
+          xmlstarlet ed --inplace \
+            -s "/rss/channel" -t elem -n "item_temp" -v "" \
+            --var item_temp '$prev' \
+            -m '$item_temp' -v "$(cat entry.xml)" \
+            "$APPCAST_FILE"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ${{ env.APP_NAME }}-${{ env.VERSION }}.dmg
+          body_path: release_notes.md
+          prerelease: ${{ env.IS_BETA == 'true' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs
+          keep_files: true
+
+  notify:
+    needs: [build]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Notify Success
+        if: success()
+        run: |
+          echo "Build succeeded!"
+
+      - name: Notify Failure
+        if: failure()
+        run: |
+          echo "Build failed!"

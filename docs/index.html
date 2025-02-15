@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>SwiftKey - Keyboard-driven Application Launcher</title>
+        <style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell,
+                    "Helvetica Neue", sans-serif;
+                line-height: 1.6;
+                max-width: 800px;
+                margin: 0 auto;
+                padding: 20px;
+                color: #333;
+            }
+            .container {
+                background: #fff;
+                border-radius: 8px;
+                padding: 20px;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            }
+            .download-button {
+                display: inline-block;
+                background: #007aff;
+                color: white;
+                padding: 12px 24px;
+                border-radius: 6px;
+                text-decoration: none;
+                margin: 10px 0;
+            }
+            .download-button:hover {
+                background: #0056b3;
+            }
+            .beta-note {
+                background: #fff3cd;
+                border: 1px solid #ffeeba;
+                padding: 10px;
+                border-radius: 4px;
+                margin: 10px 0;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>SwiftKey</h1>
+            <p>A powerful keyboard-driven application launcher and menu system for macOS.</p>
+
+            <h2>Download</h2>
+            <a
+                href="https://github.com/yourusername/swiftkey/releases/latest/download/SwiftKey.dmg"
+                class="download-button"
+            >
+                Download Latest Version
+            </a>
+
+            <div class="beta-note">
+                <h3>Beta Channel</h3>
+                <p>Want to try the latest features? Join our beta program:</p>
+                <a href="https://github.com/yourusername/swiftkey/releases" class="download-button">
+                    Get Beta Version
+                </a>
+            </div>
+
+            <h2>Features</h2>
+            <ul>
+                <li>Multiple overlay styles (Panel, HUD, Menu bar)</li>
+                <li>Keyboard-driven navigation</li>
+                <li>Dynamic menu configuration via YAML</li>
+                <li>Hot reload of configuration changes</li>
+                <li>Various action types support</li>
+            </ul>
+        </div>
+    </body>
+</html>
