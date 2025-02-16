@@ -111,7 +111,6 @@ runs:
 
           echo "Signature details..."
           codesign --display --verbose=4 "$app_path" || return 1
-          cat "${{ inputs.entitlements-path }}"
         }
 
         while IFS= read -r path || [[ -n "$path" ]]; do
@@ -152,7 +151,6 @@ runs:
             --apple-id "${{ inputs.username }}" \
             --password "${{ inputs.password }}" \
             --team-id "${{ inputs.apple-team-id }}" \
-            --verbose \
             --output-format json \
           | tee "$TMP/out.json"
         grep -q "Accepted" "$TMP/out.json"
