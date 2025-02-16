@@ -19,7 +19,7 @@ env:
 
 jobs:
   verify-release-notes:
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     outputs:
       release_notes: ${{ steps.read_notes.outputs.content }}

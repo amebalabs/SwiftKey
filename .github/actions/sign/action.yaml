@@ -91,18 +91,27 @@ runs:
         security find-identity -v signing_temp.keychain | grep "${{ inputs.apple-team-id }}" | grep "Developer ID Application"
 
         echo "Debug: Processing app paths..."
-        PATHS=$(cat << APP-PATH-DELIMITER-95654260
+        while IFS= read -r path || [ -n "$path" ]; do
+          if [ -n "$path" ]; then
+            echo "Debug: Signing path: $path"
+            echo "Debug: Executing codesign command..."
+            codesign --keychain signing_temp.keychain \
+                     --force \
+                     --deep \
+                     --sign "${{ inputs.apple-team-id }}" \
+                     ${{ env.entitlements_arg }} \
+                     --options=runtime \
+                     --verbose \
+                     "$path"
+
+            echo "Debug: Verifying signature..."
+            codesign -vvv --deep --strict "$path"
+
+            echo "Debug: Signature verification completed for: $path"
+          fi
+        done << APP-PATH-DELIMITER-95654260
         ${{ inputs.app-path }}
         APP-PATH-DELIMITER-95654260
-        )
-
-        echo "Debug: Starting codesign process..."
-        echo "$PATHS" | tr '\n' '\0' | xargs -0 -r -I{} sh -c '
-          echo "Signing: {}"
-          codesign --keychain signing_temp.keychain --force --deep --sign "${{ inputs.apple-team-id }}" ${{ env.entitlements_arg }} --options=runtime --verbose "{}"
-          echo "Verification after signing:"
-          codesign -vvv --deep --strict "{}"
-        '
 
     - name: Create a ZIP
       id: zip
@@ -111,15 +120,20 @@ runs:
         echo "Debug: Creating ZIP at ${{ steps.tmp.outputs.path }}"
         TMP=${{ steps.tmp.outputs.path }}
         ZIP_PATH="$TMP/app.zip"
-        PATHS=$(cat << APP-PATH-DELIMITER-95654260
+
+        echo "Debug: Creating ZIP file..."
+        cd $(dirname "$ZIP_PATH")
+
+        while IFS= read -r path || [ -n "$path" ]; do
+          if [ -n "$path" ]; then
+            echo "Debug: Adding to ZIP: $path"
+            zip -rv "$(basename "$ZIP_PATH")" "$path"
+          fi
+        done << APP-PATH-DELIMITER-95654260
         ${{ inputs.app-path }}
         APP-PATH-DELIMITER-95654260
-        )
-        echo "Debug: Files to be zipped:"
-        echo "$PATHS"
-        echo "$PATHS" | tr '\n' '\0' | xargs -0 -r \
-          zip -v "$ZIP_PATH"
-        echo "Debug: ZIP file created at: $ZIP_PATH"
+
+        echo "Debug: ZIP created at: $ZIP_PATH"
         echo "Debug: ZIP contents:"
         unzip -l "$ZIP_PATH"
         echo "zip_path=$ZIP_PATH" >> $GITHUB_OUTPUT
@@ -169,17 +183,17 @@ runs:
       shell: bash
       run: |
         echo "Debug: Verifying notarization status..."
-        PATHS=$(cat << APP-PATH-DELIMITER-95654260
+        while IFS= read -r path || [ -n "$path" ]; do
+          if [ -n "$path" ]; then
+            echo "Debug: Checking notarization for: $path"
+            if ! codesign -vvvv -R="notarized" --check-notarization "$path"; then
+              echo "Error: Notarization verification failed for: $path"
+              exit 1
+            fi
+          fi
+        done << APP-PATH-DELIMITER-95654260
         ${{ inputs.app-path }}
         APP-PATH-DELIMITER-95654260
-        )
-        echo "$PATHS" | tr '\n' '\0' | xargs -0 -r sh -c '
-          echo "Debug: Checking notarization for: {}"
-          codesign -vvvv -R="notarized" --check-notarization "{}" || {
-            echo "Error: Notarization verification failed for: {}"
-            exit 1
-          }
-        '
 
     - name: Cleanup keychain
       if: always() # Always run this step to ensure the keychain is properly disposed of.
