@@ -68,7 +68,7 @@ jobs:
             BUILD_NUMBER="${{ github.run_number }}"
 
       - name: Sign and Notarize
-        uses: .github/workflows/actions/sign.yaml
+        uses: ./.github/workflows/actions/sign.yaml
         with:
           certificate: ${{ secrets.CERTIFICATES_P12 }}
           certificate-password: ${{ secrets.CERTIFICATES_P12_PASSWORD }}
