@@ -70,12 +70,13 @@ jobs:
       - name: Sign and Notarize
         uses: toitlang/action-macos-sign-notarize@v1.2.0
         with:
-          certificate: ${{ secrets.CERTIFICATE }}
-          certificate-password: ${{ secrets.CERTIFICATE_PASSWORD }}
-          username: ${{ secrets.APPLE_ID_USERNAME }}
-          password: ${{ secrets.APPLE_ID_PASSWORD }}
-          apple-team-id: ${{ secrets.APPLE_TEAM_ID }}
+          certificate: ${{ secrets.CERTIFICATES_P12 }}
+          certificate-password: ${{ secrets.CERTIFICATES_P12_PASSWORD }}
+          username: ${{ secrets.APPLE_ID }}
+          password: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          apple-team-id: ${{ secrets.TEAM_ID }}
           app-path: "build/Build/Products/Release/${{ env.APP_NAME }}.app"
+          entitlements-path: "SwiftKeyResources/SwiftKey.entitlements"
 
       - name: Verify Universal Binary
         run: |
