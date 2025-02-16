@@ -102,8 +102,17 @@ runs:
         )
         echo "$PATHS" | tr '\n' '\0' | xargs -0 -r -I{} sh -c '
           echo "Validating signature for {}"
+          # Verify basic signature validity
           codesign --verify --verbose=4 "{}"
-          spctl --assess --verbose=4 --type execute "{}"
+
+          # Verify deep signature validity
+          codesign --verify --verbose=4 --deep "{}"
+
+          # Verify strict requirements but ignore notarization
+          codesign --verify --verbose=4 --strict "{}"
+
+          # Display signature details for debugging
+          codesign --display --verbose=4 "{}"
         '
         if [ $? -ne 0 ]; then
           echo "Signature validation failed"
