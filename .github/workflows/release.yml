@@ -100,7 +100,7 @@ jobs:
             --deep \
             --sign "${{ env.DEVELOPER_ID }}" \
             --timestamp \
-            --entitlements "path/to/your/entitlements.plist" \
+            --entitlements "./SwiftKey/Resources/SwiftKey.entitlements" \
             --verbose \
             "build/Build/Products/Release/${{ env.APP_NAME }}.app"
 
