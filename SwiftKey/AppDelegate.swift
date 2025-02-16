@@ -75,6 +75,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             toggleSession()
         }
 
+        if settings.needsOnboarding {
+            showOnboardingWindow()
+        }
+        
         defaultsObserver = NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)
             .sink { [weak self] _ in self?.applySettings() }
 
@@ -197,5 +201,22 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
         window.makeFirstResponder(window.contentView)
+    }
+    
+    func showOnboardingWindow() {
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 400, height: 300),
+            styleMask: [.titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+        window.center()
+        window.title = "Welcome to SwiftKey"
+        let onboardingView = OnboardingView(onFinish: {[weak window, self] in
+            window?.orderOut(nil)
+            self.toggleSession()
+        })
+        window.contentView = NSHostingView(rootView: onboardingView)
+        window.makeKeyAndOrderFront(nil)
     }
 }
