@@ -1,5 +1,6 @@
-name: "Codesign"
-description: "A GitHub Action to codesign macOS applications."
+name: "Codesign and Notarize"
+description: "A GitHub Action to codesign and notarize macOS applications."
+
 inputs:
   certificate:
     description: "The certificate for signing."
@@ -7,11 +8,17 @@ inputs:
   certificate-password:
     description: "The password for the certificate."
     required: true
+  username:
+    description: "The Apple ID username to use for notarization."
+    required: true
+  password:
+    description: "The Apple ID password to use for notarization."
+    required: true
   apple-team-id:
-    description: "The Apple Team ID to use for signing."
+    description: "The Apple Team ID to use for signing and notarization."
     required: true
   app-path:
-    description: "The path to the application to sign."
+    description: "The paths to the application to sign and notarize. One on each line."
     required: true
   entitlements-path:
     description: "The path to the entitlements file to use for signing."
@@ -28,6 +35,40 @@ runs:
         echo "This action only works on macOS."
         exit 1
 
+    - name: Check that all inputs are given and non-empty
+      shell: bash
+      run: |
+        set -e
+        if [[ -z "${{ inputs.certificate }}" ]]; then
+          echo "Input certificate is missing."
+          exit 1
+        fi
+        if [[ -z "${{ inputs.certificate-password }}" ]]; then
+          echo "Input certificate-password is missing."
+          exit 1
+        fi
+        if [[ -z "${{ inputs.username }}" ]]; then
+          echo "Input username is missing."
+          exit 1
+        fi
+        if [[ -z "${{ inputs.password }}" ]]; then
+          echo "Input password is missing."
+          exit 1
+        fi
+        if [[ -z "${{ inputs.apple-team-id }}" ]]; then
+          echo "Input apple-team-id is missing."
+          exit 1
+        fi
+        if [[ -z "${{ inputs.app-path }}" ]]; then
+          echo "Input app-path is missing."
+          exit 1
+        fi
+
+    - name: Install dependencies
+      shell: bash
+      run: |
+        brew install zip
+
     - name: Import signing keychain
       uses: apple-actions/import-codesign-certs@v3
       with:
@@ -35,7 +76,7 @@ runs:
         p12-file-base64: ${{ inputs.certificate }}
         p12-password: ${{ inputs.certificate-password }}
 
-    - name: Set Entitlements Argument
+    - name: Set Entitlements Argument Env Var
       if: ${{ inputs.entitlements-path != '' }}
       shell: bash
       run: |
@@ -45,23 +86,78 @@ runs:
       shell: bash
       run: |
         security find-identity -v signing_temp.keychain | grep "${{ inputs.apple-team-id }}" | grep "Developer ID Application"
-        codesign --keychain signing_temp.keychain --force --deep --sign "${{ inputs.apple-team-id }}" ${{ env.entitlements_arg }} --options=runtime "${{ inputs.app-path }}"
+        PATHS=$(cat << APP-PATH-DELIMITER-95654260
+        ${{ inputs.app-path }}
+        APP-PATH-DELIMITER-95654260
+        )
+        echo "$PATHS" | tr '\n' '\0' | xargs -0 -r \
+          codesign --keychain signing_temp.keychain --force --deep --sign "${{ inputs.apple-team-id }}" ${{ env.entitlements_arg }} --options=runtime
 
     - name: Validate code signature
       shell: bash
       run: |
-        echo "Validating signature for ${{ inputs.app-path }}"
-        echo "Basic signature verification..."
-        codesign --verify --verbose=4 "${{ inputs.app-path }}"
-        echo "Deep signature verification..."
-        codesign --verify --verbose=4 --deep "${{ inputs.app-path }}"
-        echo "Strict requirement verification..."
-        codesign --verify --verbose=4 --strict "${{ inputs.app-path }}"
-        echo "Signature details..."
-        codesign --display --verbose=4 "${{ inputs.app-path }}"
+        PATHS=$(cat << APP-PATH-DELIMITER-95654260
+        ${{ inputs.app-path }}
+        APP-PATH-DELIMITER-95654260
+        )
+        echo "$PATHS" | tr '\n' '\0' | xargs -0 -r -I{} sh -c '
+          echo "Validating signature for {}"
+          codesign --verify --verbose=4 "{}"
+          spctl --assess --verbose=4 --type execute "{}"
+        '
+        if [ $? -ne 0 ]; then
+          echo "Signature validation failed"
+          exit 1
+        fi
 
-    - name: Cleanup keychain
-      if: always()
+    - name: Create a tmp directory
+      id: tmp
       shell: bash
       run: |
+        echo "path=$(mktemp -d -t sign_notarize.XXXXXXXXXX)" >> $GITHUB_OUTPUT
+
+    - name: Create a ZIP
+      id: zip
+      shell: bash
+      run: |
+        TMP=${{ steps.tmp.outputs.path }}
+        ZIP_PATH="$TMP/app.zip"
+        PATHS=$(cat << APP-PATH-DELIMITER-95654260
+        ${{ inputs.app-path }}
+        APP-PATH-DELIMITER-95654260
+        )
+        echo "$PATHS" | tr '\n' '\0' | xargs -0 -r \
+          zip "$ZIP_PATH"
+        echo "zip_path=$ZIP_PATH" >> $GITHUB_OUTPUT
+
+    - name: Notarize
+      shell: bash
+      run: |
+        TMP=${{ steps.tmp.outputs.path }}
+        xcrun notarytool submit \
+            "${{ steps.zip.outputs.zip_path }}" \
+            --wait \
+            --apple-id "${{ inputs.username }}" \
+            --password "${{ inputs.password }}" \
+            --team-id "${{ inputs.apple-team-id }}" \
+            --output-format json \
+          | tee "$TMP/out.json"
+        grep -q "Accepted" "$TMP/out.json"
+
+    - name: Check notarization
+      shell: bash
+      run: |
+        # See https://developer.apple.com/forums/thread/130560
+        PATHS=$(cat << APP-PATH-DELIMITER-95654260
+        ${{ inputs.app-path }}
+        APP-PATH-DELIMITER-95654260
+        )
+        echo "$PATHS" | tr '\n' '\0' | xargs -0 -r \
+          codesign -vvvv -R="notarized" --check-notarization
+
+    - name: Cleanup keychain
+      if: always() # Always run this step to ensure the keychain is properly disposed of.
+      shell: bash
+      run: |
+        # Don't fail if the keychain doesn't exist.
         security delete-keychain signing_temp.keychain || true
