@@ -96,28 +96,30 @@ runs:
     - name: Validate code signature
       shell: bash
       run: |
-        PATHS=$(cat << APP-PATH-DELIMITER-95654260
+        validate_signature() {
+          local app_path="$1"
+          echo "Validating signature for $app_path"
+
+          echo "Basic signature verification..."
+          codesign --verify --verbose=4 "$app_path" || return 1
+
+          echo "Deep signature verification..."
+          codesign --verify --verbose=4 --deep "$app_path" || return 1
+
+          echo "Strict requirement verification..."
+          codesign --verify --verbose=4 --strict "$app_path" || return 1
+
+          echo "Signature details..."
+          codesign --display --verbose=4 "$app_path" || return 1
+        }
+
+        while IFS= read -r path || [[ -n "$path" ]]; do
+          if [[ -n "$path" ]]; then
+            validate_signature "$path" || exit 1
+          fi
+        done << APP-PATH-DELIMITER-95654260
         ${{ inputs.app-path }}
         APP-PATH-DELIMITER-95654260
-        )
-        echo "$PATHS" | tr '\n' '\0' | xargs -0 -r -I{} sh -c '
-          echo "Validating signature for {}"
-          # Verify basic signature validity
-          codesign --verify --verbose=4 "{}"
-
-          # Verify deep signature validity
-          codesign --verify --verbose=4 --deep "{}"
-
-          # Verify strict requirements but ignore notarization
-          codesign --verify --verbose=4 --strict "{}"
-
-          # Display signature details for debugging
-          codesign --display --verbose=4 "{}"
-        '
-        if [ $? -ne 0 ]; then
-          echo "Signature validation failed"
-          exit 1
-        fi
 
     - name: Create a tmp directory
       id: tmp
