@@ -151,6 +151,7 @@ runs:
             --apple-id "${{ inputs.username }}" \
             --password "${{ inputs.password }}" \
             --team-id "${{ inputs.apple-team-id }}" \
+            --verbose \
             --output-format json \
           | tee "$TMP/out.json"
         grep -q "Accepted" "$TMP/out.json"
