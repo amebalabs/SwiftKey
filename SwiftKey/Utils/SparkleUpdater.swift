@@ -1,4 +1,3 @@
-import Foundation
 import Sparkle
 
 final class SparkleUpdater: ObservableObject {
@@ -18,7 +17,7 @@ final class SparkleUpdater: ObservableObject {
             updaterDelegate: nil,
             userDriverDelegate: nil
         )
-        
+        controller.updater.clearFeedURLFromUserDefaults()
         controller.updater.publisher(for: \.canCheckForUpdates)
             .assign(to: &$canCheckForUpdates)
         
