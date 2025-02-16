@@ -14,6 +14,7 @@ class SettingsStore: ObservableObject {
     @AppStorage("menuStateResetDelay") public var menuStateResetDelay: Double = 3.0
     @AppStorage("useHorizontalOverlayLayout") public var useHorizontalOverlayLayout: Bool = false
     @AppStorage("overlayStyle") public var overlayStyle: OverlayStyle = .hud
+    @AppStorage("needsOnboarding") public var needsOnboarding: Bool = true
     
     @AppStorage("AutomaticallyCheckForUpdates")
     public var automaticallyCheckForUpdates: Bool = true {
