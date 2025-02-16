@@ -113,20 +113,33 @@ runs:
           zip "$ZIP_PATH"
         echo "zip_path=$ZIP_PATH" >> $GITHUB_OUTPUT
 
-    - name: Notarize
+    - name: Notarize App
       shell: bash
       run: |
-        TMP=${{ steps.tmp.outputs.path }}
-        xcrun notarytool submit \
-            "${{ steps.zip.outputs.zip_path }}" \
-            --wait \
-            --apple-id "${{ inputs.username }}" \
-            --password "${{ inputs.password }}" \
-            --team-id "${{ inputs.apple-team-id }}" \
-            --output-format json \
-          | tee "$TMP/out.json"
-        cat "$TMP/out.json"
-        grep -q "Accepted" "$TMP/out.json"
+        # Create temporary keychain profile
+        xcrun notarytool store-credentials "AC_PASSWORD" \
+          --apple-id "${{ secrets.APPLE_ID }}" \
+          --team-id "${{ secrets.TEAM_ID }}" \
+          --password "${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}"
+
+        # Submit with verbose logging
+        SUBMISSION_ID=$(xcrun notarytool submit "YourApp.zip" \
+          --keychain-profile "AC_PASSWORD" \
+          --verbose \
+          --wait | tee notary_output.log | grep -o 'id: [a-f0-9-]*' | cut -d' ' -f2)
+
+        # Get detailed logs
+        echo "Submission ID: $SUBMISSION_ID"
+        xcrun notarytool log "$SUBMISSION_ID" \
+          --keychain-profile "AC_PASSWORD" \
+          --verbose
+
+        # Check if submission was successful
+        if ! grep -q "status: Accepted" notary_output.log; then
+          echo "Notarization failed. Full logs:"
+          cat notary_output.log
+          exit 1
+        fi
 
     - name: Check notarization
       shell: bash
