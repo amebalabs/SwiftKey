@@ -9,9 +9,7 @@
 /* Begin PBXBuildFile section */
 		FA409DFC2D58166200FCFC04 /* Yams in Frameworks */ = {isa = PBXBuildFile; productRef = FA409DFB2D58166200FCFC04 /* Yams */; };
 		FA409EA82D614C5400FCFC04 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = FA409EA72D614C5400FCFC04 /* Sparkle */; };
-		FA62DE542D44187600B1CC0C /* LaunchAtLogin in Frameworks */ = {isa = PBXBuildFile; productRef = FA62DE532D44187600B1CC0C /* LaunchAtLogin */; };
 		FA62DE5A2D4418A900B1CC0C /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = FA62DE592D4418A900B1CC0C /* KeyboardShortcuts */; };
-		FAF87AD52D4A8457008986C6 /* DynamicNotchKit in Frameworks */ = {isa = PBXBuildFile; productRef = FAF87AD42D4A8457008986C6 /* DynamicNotchKit */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -64,9 +62,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				FA409EA82D614C5400FCFC04 /* Sparkle in Frameworks */,
-				FAF87AD52D4A8457008986C6 /* DynamicNotchKit in Frameworks */,
 				FA409DFC2D58166200FCFC04 /* Yams in Frameworks */,
-				FA62DE542D44187600B1CC0C /* LaunchAtLogin in Frameworks */,
 				FA62DE5A2D4418A900B1CC0C /* KeyboardShortcuts in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -130,9 +126,7 @@
 			);
 			name = SwiftKey;
 			packageProductDependencies = (
-				FA62DE532D44187600B1CC0C /* LaunchAtLogin */,
 				FA62DE592D4418A900B1CC0C /* KeyboardShortcuts */,
-				FAF87AD42D4A8457008986C6 /* DynamicNotchKit */,
 				FA409DFB2D58166200FCFC04 /* Yams */,
 				FA409EA72D614C5400FCFC04 /* Sparkle */,
 			);
@@ -192,9 +186,7 @@
 			mainGroup = FA3044A82D43F59400BA98E2;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				FA62DE522D44187600B1CC0C /* XCRemoteSwiftPackageReference "LaunchAtLogin-Modern" */,
 				FA62DE582D4418A900B1CC0C /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */,
-				FAF87AD32D4A8457008986C6 /* XCRemoteSwiftPackageReference "DynamicNotchKit" */,
 				FA409DFA2D58166200FCFC04 /* XCRemoteSwiftPackageReference "Yams" */,
 				FA409EA62D614C5400FCFC04 /* XCRemoteSwiftPackageReference "Sparkle" */,
 			);
@@ -385,7 +377,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"SwiftKey/Preview Content\"";
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = X93LWC49WV;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -420,7 +412,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"SwiftKey/Preview Content\"";
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = X93LWC49WV;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -527,28 +519,12 @@
 				minimumVersion = 2.6.4;
 			};
 		};
-		FA62DE522D44187600B1CC0C /* XCRemoteSwiftPackageReference "LaunchAtLogin-Modern" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/sindresorhus/LaunchAtLogin-Modern";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 1.0.0;
-			};
-		};
 		FA62DE582D4418A900B1CC0C /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/sindresorhus/KeyboardShortcuts";
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 2.2.4;
-			};
-		};
-		FAF87AD32D4A8457008986C6 /* XCRemoteSwiftPackageReference "DynamicNotchKit" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/MrKai77/DynamicNotchKit";
-			requirement = {
-				branch = main;
-				kind = branch;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
@@ -564,20 +540,10 @@
 			package = FA409EA62D614C5400FCFC04 /* XCRemoteSwiftPackageReference "Sparkle" */;
 			productName = Sparkle;
 		};
-		FA62DE532D44187600B1CC0C /* LaunchAtLogin */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = FA62DE522D44187600B1CC0C /* XCRemoteSwiftPackageReference "LaunchAtLogin-Modern" */;
-			productName = LaunchAtLogin;
-		};
 		FA62DE592D4418A900B1CC0C /* KeyboardShortcuts */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = FA62DE582D4418A900B1CC0C /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */;
 			productName = KeyboardShortcuts;
-		};
-		FAF87AD42D4A8457008986C6 /* DynamicNotchKit */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = FAF87AD32D4A8457008986C6 /* XCRemoteSwiftPackageReference "DynamicNotchKit" */;
-			productName = DynamicNotchKit;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

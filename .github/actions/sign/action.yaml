@@ -85,115 +85,75 @@ runs:
     - name: Code sign
       shell: bash
       run: |
-        echo "Debug: Searching for identity in keychain..."
-        security find-identity -v signing_temp.keychain
-        echo "Debug: Searching for specific Team ID: ${{ inputs.apple-team-id }}"
         security find-identity -v signing_temp.keychain | grep "${{ inputs.apple-team-id }}" | grep "Developer ID Application"
-
-        echo "Debug: Processing app paths..."
-        while IFS= read -r path || [ -n "$path" ]; do
-          if [ -n "$path" ]; then
-            echo "Debug: Signing path: $path"
-            echo "Debug: Executing codesign command..."
-            codesign --keychain signing_temp.keychain \
-                     --force \
-                     --deep \
-                     --sign "${{ inputs.apple-team-id }}" \
-                     ${{ env.entitlements_arg }} \
-                     --options=runtime \
-                     --verbose \
-                     "$path"
-
-            echo "Debug: Verifying signature..."
-            codesign -vvv --deep --strict "$path"
-
-            echo "Debug: Signature verification completed for: $path"
-          fi
-        done << APP-PATH-DELIMITER-95654260
+        PATHS=$(cat << APP-PATH-DELIMITER-95654260
         ${{ inputs.app-path }}
         APP-PATH-DELIMITER-95654260
+        )
+        echo "$PATHS" | tr '\n' '\0' | xargs -0 -r \
+          codesign --keychain signing_temp.keychain --force --deep --sign "${{ inputs.apple-team-id }}" ${{ env.entitlements_arg }} --options=runtime
+
+    - name: Validate code signature
+      shell: bash
+      run: |
+        PATHS=$(cat << APP-PATH-DELIMITER-95654260
+        ${{ inputs.app-path }}
+        APP-PATH-DELIMITER-95654260
+        )
+        echo "$PATHS" | tr '\n' '\0' | xargs -0 -r -I{} sh -c '
+          echo "Validating signature for {}"
+          codesign --verify --verbose=4 "{}"
+          spctl --assess --verbose=4 --type execute "{}"
+        '
+        if [ $? -ne 0 ]; then
+          echo "Signature validation failed"
+          exit 1
+        fi
+
+    - name: Create a tmp directory
+      id: tmp
+      shell: bash
+      run: |
+        echo "path=$(mktemp -d -t sign_notarize.XXXXXXXXXX)" >> $GITHUB_OUTPUT
 
     - name: Create a ZIP
       id: zip
       shell: bash
       run: |
-        echo "Debug: Creating ZIP at ${{ steps.tmp.outputs.path }}"
         TMP=${{ steps.tmp.outputs.path }}
         ZIP_PATH="$TMP/app.zip"
-
-        echo "Debug: Creating ZIP file..."
-        cd $(dirname "$ZIP_PATH")
-
-        while IFS= read -r path || [ -n "$path" ]; do
-          if [ -n "$path" ]; then
-            echo "Debug: Adding to ZIP: $path"
-            zip -rv "$(basename "$ZIP_PATH")" "$path"
-          fi
-        done << APP-PATH-DELIMITER-95654260
+        PATHS=$(cat << APP-PATH-DELIMITER-95654260
         ${{ inputs.app-path }}
         APP-PATH-DELIMITER-95654260
-
-        echo "Debug: ZIP created at: $ZIP_PATH"
-        echo "Debug: ZIP contents:"
-        unzip -l "$ZIP_PATH"
+        )
+        echo "$PATHS" | tr '\n' '\0' | xargs -0 -r \
+          zip "$ZIP_PATH"
         echo "zip_path=$ZIP_PATH" >> $GITHUB_OUTPUT
 
     - name: Notarize
       shell: bash
       run: |
         TMP=${{ steps.tmp.outputs.path }}
-        echo "Debug: Starting notarization process..."
-        echo "Debug: Using Apple ID: ${{ inputs.username }}"
-        echo "Debug: Team ID: ${{ inputs.apple-team-id }}"
-        echo "Debug: ZIP file path: ${{ steps.zip.outputs.zip_path }}"
-
-        # Check if file exists and is readable
-        if [ ! -f "${{ steps.zip.outputs.zip_path }}" ]; then
-          echo "Error: ZIP file not found!"
-          exit 1
-        fi
-
-        echo "Debug: File size: $(ls -lh "${{ steps.zip.outputs.zip_path }}")"
-
-        # Attempt notarization with detailed output
-        NOTARY_OUTPUT=$(xcrun notarytool submit \
+        xcrun notarytool submit \
             "${{ steps.zip.outputs.zip_path }}" \
             --wait \
             --apple-id "${{ inputs.username }}" \
             --password "${{ inputs.password }}" \
             --team-id "${{ inputs.apple-team-id }}" \
-            --output-format json 2>&1)
-
-        echo "Debug: Notarization output:"
-        echo "$NOTARY_OUTPUT" | tee "$TMP/out.json"
-
-        # Check for specific error patterns
-        if echo "$NOTARY_OUTPUT" | grep -q "Authentication error"; then
-          echo "Error: Authentication failed. Please check credentials."
-          exit 1
-        fi
-
-        if ! grep -q "Accepted" "$TMP/out.json"; then
-          echo "Error: Notarization failed. Full response:"
-          cat "$TMP/out.json"
-          exit 1
-        fi
+            --output-format json \
+          | tee "$TMP/out.json"
+        grep -q "Accepted" "$TMP/out.json"
 
     - name: Check notarization
       shell: bash
       run: |
-        echo "Debug: Verifying notarization status..."
-        while IFS= read -r path || [ -n "$path" ]; do
-          if [ -n "$path" ]; then
-            echo "Debug: Checking notarization for: $path"
-            if ! codesign -vvvv -R="notarized" --check-notarization "$path"; then
-              echo "Error: Notarization verification failed for: $path"
-              exit 1
-            fi
-          fi
-        done << APP-PATH-DELIMITER-95654260
+        # See https://developer.apple.com/forums/thread/130560
+        PATHS=$(cat << APP-PATH-DELIMITER-95654260
         ${{ inputs.app-path }}
         APP-PATH-DELIMITER-95654260
+        )
+        echo "$PATHS" | tr '\n' '\0' | xargs -0 -r \
+          codesign -vvvv -R="notarized" --check-notarization
 
     - name: Cleanup keychain
       if: always() # Always run this step to ensure the keychain is properly disposed of.
