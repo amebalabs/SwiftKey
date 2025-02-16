@@ -80,7 +80,7 @@ jobs:
           password: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           apple-team-id: ${{ secrets.TEAM_ID }}
           app-path: "build/Build/Products/Release/${{ env.APP_NAME }}.app"
-          # entitlements-path: "SwiftKey/Resources/SwiftKey.entitlements"
+          entitlements-path: "SwiftKey/Resources/SwiftKey.entitlements"
 
       - name: Verify Universal Binary
         run: |
