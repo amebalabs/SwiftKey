@@ -111,6 +111,7 @@ runs:
 
           echo "Signature details..."
           codesign --display --verbose=4 "$app_path" || return 1
+          cat "${{ inputs.entitlements-path }}"
         }
 
         while IFS= read -r path || [[ -n "$path" ]]; do
