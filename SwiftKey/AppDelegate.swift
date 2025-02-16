@@ -32,6 +32,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     func applicationDidFinishLaunching(_: Notification) {
         AppDelegate.shared = self
         sparkle = SparkleUpdater.shared
+        setupDefaultConfigFolder()
 
         if let customPath = SettingsStore.shared.configDirectoryResolvedPath {
             let configURL = URL(fileURLWithPath: customPath).appendingPathComponent("menu.yaml")
@@ -74,7 +75,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         KeyboardShortcuts.onKeyDown(for: .toggleApp) { [self] in
             toggleSession()
         }
-
+        
         if settings.needsOnboarding {
             showOnboardingWindow()
         }
@@ -201,6 +202,53 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
         window.makeFirstResponder(window.contentView)
+    }
+    
+}
+
+
+// MARK: - First Launch experience
+extension AppDelegate {
+    func setupDefaultConfigFolder() {
+        let defaults = UserDefaults.standard
+        if let path = defaults.string(forKey: "ConfigDirectoryPath"), !path.isEmpty {
+            return
+        }
+        
+        let fileManager = FileManager.default
+        if let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first {
+            let configFolderURL = documentsURL.appendingPathComponent("SwiftKey Config")
+            
+            if !fileManager.fileExists(atPath: configFolderURL.path) {
+                do {
+                    try fileManager.createDirectory(at: configFolderURL, withIntermediateDirectories: true, attributes: nil)
+                } catch {
+                    print("Error creating config folder: \(error)")
+                }
+            }
+            
+            let configFileURL = configFolderURL.appendingPathComponent("menu.yaml")
+            
+            if !fileManager.fileExists(atPath: configFileURL.path) {
+                if let bundleConfigURL = Bundle.main.url(forResource: "menu", withExtension: "yaml") {
+                    do {
+                        try fileManager.copyItem(at: bundleConfigURL, to: configFileURL)
+                    } catch {
+                        print("Error copying default config from bundle: \(error)")
+                    }
+                } else {
+                    let defaultContent = "# Default menu configuration\n"
+                    do {
+                        try defaultContent.write(to: configFileURL, atomically: true, encoding: .utf8)
+                    } catch {
+                        print("Error writing default config file: \(error)")
+                    }
+                }
+            }
+            
+            defaults.set(configFolderURL.path, forKey: "ConfigDirectoryPath")
+            print("Default config folder set to: \(configFolderURL.path)")
+        }
     }
     
     func showOnboardingWindow() {

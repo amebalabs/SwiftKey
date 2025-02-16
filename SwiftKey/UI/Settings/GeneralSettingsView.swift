@@ -37,10 +37,20 @@ struct GeneralSettingsView: View {
                     AppShared.changeConfigFolder()
                 }
             }
-            Text(settings.configDirectoryPath)
-                .font(.system(size: 11))
-                .foregroundColor(.secondary)
-                .textSelection(.enabled)
+            HStack(spacing: 8) {
+                Text(settings.configDirectoryPath)
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+                    .textSelection(.enabled)
+                Button(action: {
+                    AppShared.openConfigFolder(path: settings.configDirectoryPath)
+                }) {
+                    Image(systemName: "folder")
+                        .foregroundColor(.accentColor)
+                }
+                .buttonStyle(BorderlessButtonStyle())
+                .help("Reveal config folder in Finder")
+            }
 
             Divider()
             
