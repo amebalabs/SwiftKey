@@ -94,10 +94,11 @@ func englishCharactersForKeyEvent(event: NSEvent) -> String? {
 // MARK: - Helper to retrieve the app icon given an application name.
 
 func getAppIcon(appName: String) -> NSImage? {
-    if let path = NSWorkspace.shared.fullPath(forApplication: appName) {
-        return NSWorkspace.shared.icon(forFile: path)
+    if let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: appName) {
+        return NSWorkspace.shared.icon(forFile: appURL.path)
     }
-    return nil
+
+    return NSImage(systemSymbolName: "questionmark", accessibilityDescription: nil)
 }
 
 extension NSEvent.ModifierFlags {
