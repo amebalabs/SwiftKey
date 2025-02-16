@@ -118,9 +118,9 @@ runs:
       run: |
         # Create temporary keychain profile
         xcrun notarytool store-credentials "AC_PASSWORD" \
-          --apple-id "${{ secrets.APPLE_ID }}" \
-          --team-id "${{ secrets.TEAM_ID }}" \
-          --password "${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}"
+          --apple-id "${{ inputs.username }}" \
+          --team-id "${{ inputs.apple-team-id }}" \
+          --password "${{ inputs.password }}"
 
         # Submit with verbose logging
         SUBMISSION_ID=$(xcrun notarytool submit "YourApp.zip" \
