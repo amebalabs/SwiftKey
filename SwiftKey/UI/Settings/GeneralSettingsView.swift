@@ -34,6 +34,7 @@ struct GeneralSettingsView: View {
                 }
             }
             HStack(spacing: 8) {
+<<<<<<< HEAD
                 if let _ = UserDefaults.standard.data(forKey: "ConfigFileBookmark") {
                     if let url = AppShared.resolveConfigFileURL() {
                         Text(url.path)
@@ -57,6 +58,22 @@ struct GeneralSettingsView: View {
                 .help("Reveal configuration file in Finder")
             }
             
+=======
+                Text(settings.configDirectoryPath)
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+                    .textSelection(.enabled)
+                Button(action: {
+                    AppShared.openConfigFolder(path: settings.configDirectoryPath)
+                }) {
+                    Image(systemName: "folder")
+                        .foregroundColor(.accentColor)
+                }
+                .buttonStyle(BorderlessButtonStyle())
+                .help("Reveal config folder in Finder")
+            }
+
+>>>>>>> bb9f5b2 (Imrpove onboarding expirience for default config)
             Divider()
             
             Section {

@@ -1,6 +1,7 @@
 import AppKit
 import Carbon.HIToolbox
 import Combine
+import DynamicNotchKit
 import KeyboardShortcuts
 import SwiftUI
 
@@ -9,9 +10,15 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     var settings = SettingsStore.shared
 
     var overlayWindow: OverlayWindow?
+    var notchHUD: DynamicNotch<AnyView>?
     var notchContext: NotchContext?
 
     var hotKeyRef: EventHotKeyRef?
+
+    var menuStateResetDelay: TimeInterval {
+        let delay = UserDefaults.standard.double(forKey: "menuStateResetDelay")
+        return delay == 0 ? 3 : delay
+    }
 
     var lastHideTime: Date?
 
@@ -27,7 +34,18 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     func applicationDidFinishLaunching(_: Notification) {
         AppDelegate.shared = self
         sparkle = SparkleUpdater.shared
-        setupDefaultConfigFile()
+        setupDefaultConfigFolder()
+
+        if let customPath = SettingsStore.shared.configDirectoryResolvedPath {
+            let configURL = URL(fileURLWithPath: customPath).appendingPathComponent("menu.yaml")
+            _ = ConfigWatcher(url: configURL) { [weak self] in
+                guard let self = self else { return }
+                if let updatedMenu = loadMenuConfig() {
+                    self.menuState.rootMenu = updatedMenu
+                    print("Menu config reloaded!")
+                }
+            }
+        }
 
         menuState.rootMenu = loadMenuConfig() ?? []
         menuState.reset()
@@ -48,10 +66,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 facelessMenuController = FacelessMenuController(
                     rootMenu: menuState.rootMenu,
                     statusItem: statusItem,
-                    resetDelay: settings.menuStateResetDelay
+                    resetDelay: menuStateResetDelay
                 )
             } else {
-                facelessMenuController?.resetDelay = settings.menuStateResetDelay
+                facelessMenuController?.resetDelay = menuStateResetDelay
             }
         }
 
@@ -94,11 +112,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 let controller = FacelessMenuController(
                     rootMenu: menuState.rootMenu,
                     statusItem: statusItem,
-                    resetDelay: settings.menuStateResetDelay
+                    resetDelay: menuStateResetDelay
                 )
                 facelessMenuController = controller
             } else {
-                facelessMenuController?.resetDelay = settings.menuStateResetDelay
+                facelessMenuController?.resetDelay = menuStateResetDelay
             }
         } else {
             facelessMenuController?.endSession()
@@ -121,15 +139,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     func toggleSession() {
-        if let configURL = SettingsStore.shared.configFileResolvedURL {
-            if ConfigMonitor.shared.hasConfigChanged(at: configURL) {
-                if let updatedMenu = loadMenuConfig() {
-                    menuState.rootMenu = updatedMenu
-                    print("Configuration file changed; reloaded config.")
-                }
-            }
-        }
-        
         switch settings.overlayStyle {
         case .faceless:
             facelessMenuController?.startSession()
@@ -155,9 +164,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             if window.isVisible {
                 window.orderOut(nil)
             } else {
-                if settings.menuStateResetDelay == 0 {
+                if menuStateResetDelay == 0 {
                     menuState.reset()
-                } else if let lastHide = lastHideTime, Date().timeIntervalSince(lastHide) >= settings.menuStateResetDelay {
+                    NotificationCenter.default.post(name: .resetMenuState, object: nil)
+                } else if let lastHide = lastHideTime, Date().timeIntervalSince(lastHide) >= menuStateResetDelay {
                     menuState.reset()
                 }
                 window.center()
@@ -198,14 +208,28 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     
 }
 
+
 // MARK: - First Launch experience
 extension AppDelegate {
-    func setupDefaultConfigFile() {
-        guard settings.configFilePath.isEmpty else { return }
+    func setupDefaultConfigFolder() {
+        let defaults = UserDefaults.standard
+        if let path = defaults.string(forKey: "ConfigDirectoryPath"), !path.isEmpty {
+            return
+        }
         
         let fileManager = FileManager.default
         if let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first {
-            let configFileURL = documentsURL.appendingPathComponent("menu.yaml")
+            let configFolderURL = documentsURL.appendingPathComponent("SwiftKey Config")
+            
+            if !fileManager.fileExists(atPath: configFolderURL.path) {
+                do {
+                    try fileManager.createDirectory(at: configFolderURL, withIntermediateDirectories: true, attributes: nil)
+                } catch {
+                    print("Error creating config folder: \(error)")
+                }
+            }
+            
+            let configFileURL = configFolderURL.appendingPathComponent("menu.yaml")
             
             if !fileManager.fileExists(atPath: configFileURL.path) {
                 if let bundleConfigURL = Bundle.main.url(forResource: "menu", withExtension: "yaml") {
@@ -224,8 +248,8 @@ extension AppDelegate {
                 }
             }
             
-            settings.configFilePath = configFileURL.path
-            print("Default config file set to: \(configFileURL.path)")
+            defaults.set(configFolderURL.path, forKey: "ConfigDirectoryPath")
+            print("Default config folder set to: \(configFolderURL.path)")
         }
     }
     
