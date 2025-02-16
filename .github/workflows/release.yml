@@ -78,7 +78,7 @@ jobs:
           security unlock-keychain -p "${{ github.run_id }}" "$KEYCHAIN_PATH"
           security list-keychains -d user -s "$KEYCHAIN_PATH" $(security list-keychains -d user | tr -d '"')
 
-          # Build
+          # First, build without signing
           xcodebuild -scheme "${{ env.APP_NAME }}" \
             -configuration Release \
             -derivedDataPath build \
@@ -86,23 +86,27 @@ jobs:
             ONLY_ACTIVE_ARCH=NO \
             BUILD_NUMBER="${{ github.run_number }}" \
             CODE_SIGN_STYLE="Manual" \
-            CODE_SIGN_IDENTITY="${{ env.DEVELOPER_ID }}" \
+            CODE_SIGN_IDENTITY="-" \
             DEVELOPMENT_TEAM="${{ env.TEAM_ID }}" \
-            CODE_SIGNING_REQUIRED=YES \
-            CODE_SIGNING_ALLOWED=YES
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
 
-          # Additional signing step
+          # Remove any existing signatures
+          codesign --remove-signature "build/Build/Products/Release/${{ env.APP_NAME }}.app"
+
+          # Sign with hardened runtime and timestamp
           codesign --force \
             --options runtime \
             --deep \
             --sign "${{ env.DEVELOPER_ID }}" \
             --timestamp \
-            --entitlements "./SwiftKey/Resources/SwiftKey.entitlements" \
+            --entitlements "path/to/your/entitlements.plist" \
+            --verbose \
             "build/Build/Products/Release/${{ env.APP_NAME }}.app"
 
           # Verify signing
-          codesign --verify --deep --strict "build/Build/Products/Release/${{ env.APP_NAME }}.app" || exit 1
-          spctl --assess --type exec "build/Build/Products/Release/${{ env.APP_NAME }}.app" || exit 1
+          codesign -vvv --deep --strict "build/Build/Products/Release/${{ env.APP_NAME }}.app" || exit 1
+          spctl --assess --verbose --type exec "build/Build/Products/Release/${{ env.APP_NAME }}.app" || exit 1
 
           # Clean up keychain
           security delete-keychain "$KEYCHAIN_PATH"
