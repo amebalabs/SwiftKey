@@ -1,7 +1,6 @@
 import AppKit
 import Carbon.HIToolbox
 import Combine
-import DynamicNotchKit
 import KeyboardShortcuts
 import SwiftUI
 
@@ -10,7 +9,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     var settings = SettingsStore.shared
 
     var overlayWindow: OverlayWindow?
-    var notchHUD: DynamicNotch<AnyView>?
     var notchContext: NotchContext?
 
     var hotKeyRef: EventHotKeyRef?
