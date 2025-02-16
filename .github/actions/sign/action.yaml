@@ -123,7 +123,7 @@ runs:
           --password "${{ inputs.password }}"
 
         # Submit with verbose logging
-        SUBMISSION_ID=$(xcrun notarytool submit "YourApp.zip" \
+        SUBMISSION_ID=$(xcrun notarytool submit "${{ steps.zip.outputs.zip_path }}" \
           --keychain-profile "AC_PASSWORD" \
           --verbose \
           --wait | tee notary_output.log | grep -o 'id: [a-f0-9-]*' | cut -d' ' -f2)
