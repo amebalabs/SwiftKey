@@ -66,10 +66,9 @@ jobs:
             -arch arm64 -arch x86_64 \
             ONLY_ACTIVE_ARCH=NO \
             BUILD_NUMBER="${{ github.run_number }}"
-      
-      - uses: actions/checkout@v3
+
       - name: Sign and Notarize
-      - uses: ./.github/workflows/actions/sign.yaml
+        uses: ./.github/actions/sign
         with:
           certificate: ${{ secrets.CERTIFICATES_P12 }}
           certificate-password: ${{ secrets.CERTIFICATES_P12_PASSWORD }}
