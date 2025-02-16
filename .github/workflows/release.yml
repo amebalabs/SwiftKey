@@ -68,7 +68,7 @@ jobs:
             BUILD_NUMBER="${{ github.run_number }}"
 
       - name: Sign and Notarize
-        uses: toitlang/action-macos-sign-notarize@v1.2.0
+        uses: .github/workflows/actions/sign.yaml
         with:
           certificate: ${{ secrets.CERTIFICATES_P12 }}
           certificate-password: ${{ secrets.CERTIFICATES_P12_PASSWORD }}
