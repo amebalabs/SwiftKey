@@ -144,22 +144,13 @@ extension MenuItem {
 }
 
 func loadMenuConfig() -> [MenuItem]? {
-    let configURL: URL?
-    if let customPath = SettingsStore.shared.configDirectoryResolvedPath {
-        // Look for the config in the custom folder.
-        configURL = URL(fileURLWithPath: customPath).appendingPathComponent("menu.yaml")
-    } else {
-        // Fallback to bundled resource.
-        configURL = Bundle.main.url(forResource: "menu", withExtension: "yaml")
-    }
-
-    guard let url = configURL, FileManager.default.fileExists(atPath: url.path) else {
-        print("menu.yaml not found.")
+    guard let configURL = AppShared.resolveConfigFileURL() else {
+        print("Configuration file URL not available.")
         return nil
     }
-
+    
     do {
-        let yamlString = try String(contentsOf: url, encoding: .utf8)
+        let yamlString = try String(contentsOf: configURL, encoding: .utf8)
         let decoder = YAMLDecoder()
         let config = try decoder.decode([MenuItem].self, from: yamlString)
         return config

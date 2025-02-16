@@ -1,25 +1,29 @@
-import AppKit
+import Foundation
 
-class ConfigWatcher {
-    private var source: DispatchSourceFileSystemObject?
-    private let fileDescriptor: CInt
-
-    init?(url: URL, reloadHandler: @escaping () -> Void) {
-        guard let path = url.path.cString(using: .utf8) else { return nil }
-        fileDescriptor = open(path, O_EVTONLY)
-        if fileDescriptor < 0 { return nil }
-
-        source = DispatchSource.makeFileSystemObjectSource(
-            fileDescriptor: fileDescriptor,
-            eventMask: .write,
-            queue: DispatchQueue.main
-        )
-        source?.setEventHandler(handler: reloadHandler)
-        source?.setCancelHandler { close(self.fileDescriptor) }
-        source?.resume()
-    }
-
-    deinit {
-        source?.cancel()
+class ConfigMonitor {
+    static let shared = ConfigMonitor()
+    private var lastModificationDate: Date?
+    
+    func hasConfigChanged(at url: URL) -> Bool {
+        let fileManager = FileManager.default
+        do {
+            let attributes = try fileManager.attributesOfItem(atPath: url.path)
+            if let modDate = attributes[.modificationDate] as? Date {
+                if let lastMod = lastModificationDate {
+                    if modDate > lastMod {
+                        lastModificationDate = modDate
+                        return true
+                    } else {
+                        return false
+                    }
+                } else {
+                    lastModificationDate = modDate
+                    return false
+                }
+            }
+        } catch {
+            print("Error reading file attributes: \(error)")
+        }
+        return false
     }
 }

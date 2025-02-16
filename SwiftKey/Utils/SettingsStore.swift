@@ -10,11 +10,11 @@ class SettingsStore: ObservableObject {
     }
 
     @AppStorage("IsShowingMenuBar") public var isShowingMenuBar: Bool = true
-    @AppStorage("ConfigDirectoryPath") public var configDirectoryPath: String = ""
-    @AppStorage("menuStateResetDelay") public var menuStateResetDelay: Double = 3.0
-    @AppStorage("useHorizontalOverlayLayout") public var useHorizontalOverlayLayout: Bool = false
-    @AppStorage("overlayStyle") public var overlayStyle: OverlayStyle = .hud
-    @AppStorage("needsOnboarding") public var needsOnboarding: Bool = true
+    @AppStorage("ConfigFilePath") public var configFilePath: String = ""
+    @AppStorage("MenuStateResetDelay") public var menuStateResetDelay: Double = 3.0
+    @AppStorage("UseHorizontalOverlayLayout") public var useHorizontalOverlayLayout: Bool = true
+    @AppStorage("OverlayStyle") public var overlayStyle: OverlayStyle = .panel
+    @AppStorage("NeedsOnboarding") public var needsOnboarding: Bool = true
     
     @AppStorage("AutomaticallyCheckForUpdates")
     public var automaticallyCheckForUpdates: Bool = true {
@@ -40,12 +40,12 @@ class SettingsStore: ObservableObject {
         overlayStyle == .faceless
     }
 
-    var configDirectoryResolvedURL: URL? {
-        guard let path = configDirectoryPath as NSString? else { return nil }
+    var configFileResolvedURL: URL? {
+        guard let path = configFilePath as NSString? else { return nil }
         return URL(fileURLWithPath: path.expandingTildeInPath).resolvingSymlinksInPath()
     }
 
-    var configDirectoryResolvedPath: String? {
-        configDirectoryResolvedURL?.path
+    var configFileResolvedPath: String? {
+        configFileResolvedURL?.path
     }
 }

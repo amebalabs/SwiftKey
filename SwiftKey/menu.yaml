@@ -10,7 +10,7 @@
   systemImage: "safari"
   title: "Open Apple Website"
   action: "open://https://apple.com"
-- key: "c"
+- key: "p"
   systemImage: "star"
   title: "Confetti"
   action: "open://raycast://confetti"

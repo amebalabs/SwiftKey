@@ -32,18 +32,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     func applicationDidFinishLaunching(_: Notification) {
         AppDelegate.shared = self
         sparkle = SparkleUpdater.shared
-        setupDefaultConfigFolder()
-
-        if let customPath = SettingsStore.shared.configDirectoryResolvedPath {
-            let configURL = URL(fileURLWithPath: customPath).appendingPathComponent("menu.yaml")
-            _ = ConfigWatcher(url: configURL) { [weak self] in
-                guard let self = self else { return }
-                if let updatedMenu = loadMenuConfig() {
-                    self.menuState.rootMenu = updatedMenu
-                    print("Menu config reloaded!")
-                }
-            }
-        }
+        setupDefaultConfigFile()
 
         menuState.rootMenu = loadMenuConfig() ?? []
         menuState.reset()
@@ -137,6 +126,15 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     func toggleSession() {
+        if let configURL = SettingsStore.shared.configFileResolvedURL {
+            if ConfigMonitor.shared.hasConfigChanged(at: configURL) {
+                if let updatedMenu = loadMenuConfig() {
+                    menuState.rootMenu = updatedMenu
+                    print("Configuration file changed; reloaded config.")
+                }
+            }
+        }
+        
         switch settings.overlayStyle {
         case .faceless:
             facelessMenuController?.startSession()
@@ -206,28 +204,14 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     
 }
 
-
 // MARK: - First Launch experience
 extension AppDelegate {
-    func setupDefaultConfigFolder() {
-        let defaults = UserDefaults.standard
-        if let path = defaults.string(forKey: "ConfigDirectoryPath"), !path.isEmpty {
-            return
-        }
+    func setupDefaultConfigFile() {
+        guard settings.configFilePath.isEmpty else { return }
         
         let fileManager = FileManager.default
         if let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first {
-            let configFolderURL = documentsURL.appendingPathComponent("SwiftKey Config")
-            
-            if !fileManager.fileExists(atPath: configFolderURL.path) {
-                do {
-                    try fileManager.createDirectory(at: configFolderURL, withIntermediateDirectories: true, attributes: nil)
-                } catch {
-                    print("Error creating config folder: \(error)")
-                }
-            }
-            
-            let configFileURL = configFolderURL.appendingPathComponent("menu.yaml")
+            let configFileURL = documentsURL.appendingPathComponent("menu.yaml")
             
             if !fileManager.fileExists(atPath: configFileURL.path) {
                 if let bundleConfigURL = Bundle.main.url(forResource: "menu", withExtension: "yaml") {
@@ -246,8 +230,8 @@ extension AppDelegate {
                 }
             }
             
-            defaults.set(configFolderURL.path, forKey: "ConfigDirectoryPath")
-            print("Default config folder set to: \(configFolderURL.path)")
+            settings.configFilePath = configFileURL.path
+            print("Default config file set to: \(configFileURL.path)")
         }
     }
     
