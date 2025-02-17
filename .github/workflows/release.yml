@@ -75,76 +75,77 @@ jobs:
         run: |
           echo "Checking binary architectures..."
           lipo -archs "build/Build/Products/Release/${{ env.APP_NAME }}.app/Contents/MacOS/${{ env.APP_NAME }}"
-      - name: Upload Unsigned Build
+      - name: Package App Bundle
+        run: |
+          cd build/Build/Products/Release
+          ditto -c -k --keepParent "${{ env.APP_NAME }}.app" "${{ env.APP_NAME }}.app.zip"
+      - name: Upload App Bundle
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.APP_NAME }}-Unsigned
-          path: build/Build/Products/Release/${{ env.APP_NAME }}.app
+          path: build/Build/Products/Release/${{ env.APP_NAME }}.app.zip
           retention-days: 5
-          compression-level: 0
 
   sign:
     needs: build
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Create directory structure
-        run: |
-          mkdir -p artifact
-      - name: Download Unsigned Build
+      - name: Download Unsigned App
         uses: actions/download-artifact@v4
         with:
           name: ${{ env.APP_NAME }}-Unsigned
-          path: artifact
-      - name: List downloaded files
+          path: .
+      - name: Unpack App Bundle
         run: |
-          ls -la artifact
+          ditto -x -k "${{ env.APP_NAME }}.app.zip" .
       - name: Sign Application
         uses: ./.github/actions/sign
         with:
           certificate: ${{ secrets.CERTIFICATES_P12 }}
           certificate-password: ${{ secrets.CERTIFICATES_P12_PASSWORD }}
           apple-team-id: ${{ secrets.TEAM_ID }}
-          app-path: "artifact/${{ env.APP_NAME }}.app"
+          app-path: "${{ env.APP_NAME }}.app"
           entitlements-path: "SwiftKey/Resources/SwiftKey.entitlements"
-      - name: Upload Signed Build
+      - name: Package Signed App Bundle
+        run: |
+          ditto -c -k --keepParent "${{ env.APP_NAME }}.app" "${{ env.APP_NAME }}.app.zip"
+      - name: Upload Signed App Bundle
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.APP_NAME }}-Signed
-          path: artifact/${{ env.APP_NAME }}.app
+          path: ${{ env.APP_NAME }}.app.zip
           retention-days: 5
-          compression-level: 0
 
   notarize:
     needs: sign
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Create directory structure
-        run: |
-          mkdir -p artifact
-      - name: Download Signed Build
+      - name: Download Signed App
         uses: actions/download-artifact@v4
         with:
           name: ${{ env.APP_NAME }}-Signed
-          path: artifact
-      - name: List downloaded files
+          path: .
+      - name: Unpack App Bundle
         run: |
-          ls -la artifact
+          ditto -x -k "${{ env.APP_NAME }}.app.zip" .
       - name: Notarize Application
         uses: ./.github/actions/notarize
         with:
           username: ${{ secrets.APPLE_ID }}
           password: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           apple-team-id: ${{ secrets.TEAM_ID }}
-          app-path: "artifact/${{ env.APP_NAME }}.app"
-      - name: Upload Notarized Build
+          app-path: "${{ env.APP_NAME }}.app"
+      - name: Package Notarized App Bundle
+        run: |
+          ditto -c -k --keepParent "${{ env.APP_NAME }}.app" "${{ env.APP_NAME }}.app.zip"
+      - name: Upload Notarized App Bundle
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.APP_NAME }}-Notarized
-          path: artifact/${{ env.APP_NAME }}.app
+          path: ${{ env.APP_NAME }}.app.zip
           retention-days: 5
-          compression-level: 0
 
   release:
     needs: [notarize, verify-release-notes]
