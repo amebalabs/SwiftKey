@@ -1,15 +1,6 @@
 {
-  "originHash" : "491551ba513eab7f651b1378294bd832cdaf7ffd3a7cc3b8f6cc063f3cb4c02f",
+  "originHash" : "92daf831cde7e0070c607a37dccf5160e5ccc4ec3d19b2c7347c7c0ae1797ca6",
   "pins" : [
-    {
-      "identity" : "dynamicnotchkit",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/MrKai77/DynamicNotchKit",
-      "state" : {
-        "branch" : "main",
-        "revision" : "0f2213c671585db887f53e86812134a7a6cc74e5"
-      }
-    },
     {
       "identity" : "keyboardshortcuts",
       "kind" : "remoteSourceControl",
@@ -17,15 +8,6 @@
       "state" : {
         "revision" : "7ecc38bb6edf7d087d30e737057b8d8a9b7f51eb",
         "version" : "2.2.4"
-      }
-    },
-    {
-      "identity" : "launchatlogin-modern",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/sindresorhus/LaunchAtLogin-Modern",
-      "state" : {
-        "revision" : "a04ec1c363be3627734f6dad757d82f5d4fa8fcc",
-        "version" : "1.1.0"
       }
     },
     {

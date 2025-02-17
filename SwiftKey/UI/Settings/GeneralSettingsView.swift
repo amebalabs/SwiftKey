@@ -1,5 +1,4 @@
 import KeyboardShortcuts
-import LaunchAtLogin
 import SwiftUI
 
 struct GeneralSettingsView: View {
@@ -7,8 +6,6 @@ struct GeneralSettingsView: View {
     @ObservedObject private var launchAtLogin = LaunchAtLogin.observable
     @StateObject private var updater = SparkleUpdater.shared
     
-    let width: CGFloat = 90
-
     var body: some View {
         Form {
             LaunchAtLogin.Toggle()
@@ -17,50 +14,56 @@ struct GeneralSettingsView: View {
                     Text(style.rawValue).tag(style)
                 }
             }
-
+            
             if settings.overlayStyle == .panel {
-                Toggle(
-                    "Horizontal Layout",
-                    isOn: settings.$useHorizontalOverlayLayout
-                )
+                Toggle("Horizontal Layout", isOn: settings.$useHorizontalOverlayLayout)
             }
-
+            
             HStack {
                 Text("Menu Reset Delay")
                 Slider(value: settings.$menuStateResetDelay, in: 0 ... 10, step: 0.5)
                 Text("\(settings.menuStateResetDelay, specifier: "%.1f")")
             }
             KeyboardShortcuts.Recorder("Hot key", name: .toggleApp)
-
+            
+            // Configuration file section.
             HStack {
-                Text("Configuration folder:")
+                Text("Configuration file:")
                 Button("Change...") {
-                    AppShared.changeConfigFolder()
+                    AppShared.changeConfigFile()
                 }
             }
             HStack(spacing: 8) {
-                Text(settings.configDirectoryPath)
-                    .font(.system(size: 11))
-                    .foregroundColor(.secondary)
-                    .textSelection(.enabled)
+                if let _ = UserDefaults.standard.data(forKey: "ConfigFileBookmark") {
+                    if let url = AppShared.resolveConfigFileURL() {
+                        Text(url.path)
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary)
+                            .textSelection(.enabled)
+                    }
+                } else {
+                    Text("No config file selected")
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                }
+                
                 Button(action: {
-                    AppShared.openConfigFolder(path: settings.configDirectoryPath)
+                    AppShared.openConfigFile()
                 }) {
-                    Image(systemName: "folder")
+                    Image(systemName: "doc.text")
                         .foregroundColor(.accentColor)
                 }
                 .buttonStyle(BorderlessButtonStyle())
-                .help("Reveal config folder in Finder")
+                .help("Reveal configuration file in Finder")
             }
+            
 
             Divider()
             
-            Section() {
-                Toggle("Automatically check for updates",
-                           isOn: $settings.automaticallyCheckForUpdates)
-                Toggle("Receive beta updates",
-                       isOn: $settings.enableBetaUpdates)
-                .help("Beta versions might contain bugs and are not recommended for production use")
+            Section {
+                Toggle("Automatically check for updates", isOn: $settings.automaticallyCheckForUpdates)
+                Toggle("Receive beta updates", isOn: $settings.enableBetaUpdates)
+                    .help("Beta versions might contain bugs and are not recommended for production use")
             }
             
             Section {
@@ -76,7 +79,6 @@ struct GeneralSettingsView: View {
                             .padding(.leading, 4)
                     }
                 }
-                
                 Text("Last checked: \(lastUpdateCheck)")
                     .font(.caption)
                     .foregroundColor(.secondary)
@@ -93,10 +95,7 @@ struct GeneralSettingsView: View {
     }
     
     private var currentVersion: String {
-        Bundle.main
-            .object(
-                forInfoDictionaryKey: "CFBundleShortVersionString"
-            ) as? String ?? "Unknown"
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "Unknown"
     }
     
     private var lastUpdateCheck: String {
@@ -108,6 +107,5 @@ struct GeneralSettingsView: View {
 }
 
 #Preview {
-    GeneralSettingsView()
-        .environmentObject(SettingsStore())
+    GeneralSettingsView().environmentObject(SettingsStore.shared)
 }

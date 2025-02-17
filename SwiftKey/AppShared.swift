@@ -3,64 +3,66 @@ import os
 import SwiftUI
 
 class AppShared: NSObject {
-    public static func openConfigFolder(path: String? = nil) {
-        NSWorkspace.shared
-            .selectFile(
-                path,
-                inFileViewerRootedAtPath: SettingsStore.shared.configDirectoryResolvedPath ?? ""
-            )
-    }
-
-    public static func changeConfigFolder() {
+    public static func changeConfigFile() {
         let dialog = NSOpenPanel()
-        dialog.message = "Choose a folder to store your plugins"
+        dialog.message = "Choose your configuration file"
         dialog.showsHiddenFiles = false
-        dialog.canChooseDirectories = true
-        dialog.canChooseFiles = false
-        dialog.canCreateDirectories = true
+        dialog.canChooseDirectories = false
+        dialog.canChooseFiles = true
         dialog.allowsMultipleSelection = false
-
-        guard dialog.runModal() == .OK,
-              let url = dialog.url
-        else { return }
-
-        var restrictedPaths =
-            [
-                FileManager.SearchPathDirectory.allApplicationsDirectory,
-                .documentDirectory,
-                .downloadsDirectory,
-                .desktopDirectory,
-                .libraryDirectory,
-                .developerDirectory,
-                .userDirectory,
-                .musicDirectory,
-                .moviesDirectory,
-                .picturesDirectory,
-            ]
-            .map { FileManager.default.urls(for: $0, in: .allDomainsMask) }
-            .flatMap { $0 }
-
-        restrictedPaths.append(FileManager.default.homeDirectoryForCurrentUser)
-
-        if restrictedPaths.contains(url) {
-            let alert = NSAlert()
-            alert.messageText = "Folder not allowed"
-            alert.informativeText = "\(url.path)"
-            alert.addButton(withTitle: "OK")
-            let modalResult = alert.runModal()
-
-            switch modalResult {
-            case .alertFirstButtonReturn:
-                AppShared.changeConfigFolder()
-            default:
-                break
-            }
-            return
+        
+        guard dialog.runModal() == .OK, let url = dialog.url else { return }
+        SettingsStore.shared.configFilePath = url.path
+        // Create a security-scoped bookmark.
+        do {
+            let bookmarkData = try url.bookmarkData(options: .withSecurityScope,
+                                                    includingResourceValuesForKeys: nil,
+                                                    relativeTo: nil)
+            UserDefaults.standard.set(bookmarkData, forKey: "ConfigFileBookmark")
+        } catch {
+            print("Error creating bookmark: \(error)")
         }
-
-        SettingsStore.shared.configDirectoryPath = url.path
+        reloadConfig()
+    }
+    
+    public static func openConfigFile() {
+        guard let url = resolveConfigFileURL() else { return }
+        // Reveal the file in Finder by selecting it.
+        NSWorkspace.shared.selectFile(url.path,
+                                      inFileViewerRootedAtPath: url.deletingLastPathComponent().path)
+    }
+    
+    /// Helper to resolve the saved security-scoped bookmark.
+    public static func resolveConfigFileURL() -> URL? {
+        guard let bookmarkData = UserDefaults.standard.data(forKey: "ConfigFileBookmark") else {
+            return nil
+        }
+        
+        var isStale = false
+        do {
+            let url = try URL(resolvingBookmarkData: bookmarkData,
+                              options: .withSecurityScope,
+                              relativeTo: nil,
+                              bookmarkDataIsStale: &isStale)
+            if isStale {
+                print("Bookmark is stale, please re-select the configuration file.")
+            }
+            guard url.startAccessingSecurityScopedResource() else {
+                print("Couldn't access the resource via the security-scoped bookmark.")
+                return nil
+            }
+            return url
+        } catch {
+            print("Error resolving bookmark: \(error)")
+            return nil
+        }
     }
 
+    public static func reloadConfig() {
+        DispatchQueue.main.async {
+            MenuState.shared.rootMenu = loadMenuConfig() ?? []
+        }
+    }
     public static func showAbout() {
         NSApp.orderFrontStandardAboutPanel()
     }
