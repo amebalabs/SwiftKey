@@ -74,27 +74,13 @@ jobs:
           else
             echo "VERSION=0.0.0" >> $GITHUB_OUTPUT
           fi
+          echo VERSION
+          echo $BUILD_NUMBER
 
       - name: Setup Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
           xcode-version: ${{ env.XCODE_VERSION }}
-
-      - name: Update Info.plist Version
-        run: |
-          # Path to your Info.plist
-          PLIST_PATH="SwiftKey/Resources/Info.plist"
-
-          # Update CFBundleShortVersionString (semantic version)
-          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString ${{ steps.get_versions.outputs.VERSION }}" "$PLIST_PATH"
-
-          # Update CFBundleVersion (build number)
-          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${{ steps.get_versions.outputs.BUILD_NUMBER }}" "$PLIST_PATH"
-
-          # Verify the changes
-          echo "Updated versions in Info.plist:"
-          /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$PLIST_PATH"
-          /usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$PLIST_PATH"
 
       - name: Build Application
         run: |
