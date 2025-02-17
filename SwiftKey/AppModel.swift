@@ -11,7 +11,7 @@ import Yams
 struct MenuItem: Identifiable, Codable {
     let id: UUID
     var key: String // e.g. "a", "B", "!", etc.
-    var systemImage: String // Default SF Symbol name
+    var icon: String? // Default SF Symbol name
     var title: String // Descriptive title
     var action: String? // Raw action string from YAML
     var sticky: Bool? // Sticky actions don't close window after execution
@@ -19,7 +19,7 @@ struct MenuItem: Identifiable, Codable {
     
     // Define coding keys explicitly.
     enum CodingKeys: String, CodingKey {
-        case id, key, systemImage, title, action, sticky, submenu
+        case id, key, icon, title, action, sticky, submenu
     }
     
     // Custom initializer that ignores any incoming 'id' from the YAML
@@ -29,7 +29,7 @@ struct MenuItem: Identifiable, Codable {
         // Always generate a new UUID (or you could choose to decode if needed)
         id = UUID()
         key = try container.decode(String.self, forKey: .key)
-        systemImage = try container.decode(String.self, forKey: .systemImage)
+        icon = try container.decodeIfPresent(String.self, forKey: .icon)
         title = try container.decode(String.self, forKey: .title)
         action = try container.decodeIfPresent(String.self, forKey: .action)
         sticky = try container.decodeIfPresent(Bool.self, forKey: .sticky)
@@ -37,10 +37,10 @@ struct MenuItem: Identifiable, Codable {
     }
     
     // Standard initializer for manual creation
-    init(id: UUID = UUID(), key: String, systemImage: String, title: String, action: String? = nil, sticky: Bool? = nil, submenu: [MenuItem]? = nil) {
+    init(id: UUID = UUID(), key: String, icon: String? = nil, title: String, action: String? = nil, sticky: Bool? = nil, submenu: [MenuItem]? = nil) {
         self.id = id
         self.key = key
-        self.systemImage = systemImage
+        self.icon = icon
         self.title = title
         self.action = action
         self.sticky = sticky
@@ -51,7 +51,7 @@ struct MenuItem: Identifiable, Codable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
         try container.encode(key, forKey: .key)
-        try container.encode(systemImage, forKey: .systemImage)
+        try container.encode(icon, forKey: .icon)
         try container.encode(title, forKey: .title)
         try container.encodeIfPresent(action, forKey: .action)
         try container.encodeIfPresent(sticky, forKey: .sticky)
@@ -82,12 +82,6 @@ struct MenuItem: Identifiable, Codable {
                 }
             }
         }
-        if action.hasPrefix("print://") {
-            let message = String(action.dropFirst("print://".count))
-            return {
-                print(message)
-            }
-        }
         if action.hasPrefix("shortcut://") {
             let shortcutName = String(action.dropFirst("shortcut://".count))
             return {
@@ -108,9 +102,9 @@ struct MenuItem: Identifiable, Codable {
 }
 
 extension MenuItem {
-    var icon: Image {
-        if !systemImage.isEmpty {
-            return Image(systemName: systemImage)
+    var iconImage: Image {
+        if let icon, !icon.isEmpty {
+            return Image(systemName: icon)
         } else if let action = action {
             if action.hasPrefix("launch://") {
                 let appPath = String(action.dropFirst("launch://".count))

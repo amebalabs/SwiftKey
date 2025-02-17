@@ -6,13 +6,13 @@ extension MenuItem {
         return [
             MenuItem(
                 key: "a",
-                systemImage: "star.fill",
+                icon: "star.fill",
                 title: "Launch Calculator",
                 action: "launch://Calculator",
                 submenu: [
                     MenuItem(
                         key: "b",
-                        systemImage: "safari",
+                        icon: "safari",
                         title: "Open Website",
                         action: "open://https://www.example.com",
                         submenu: nil
@@ -21,7 +21,7 @@ extension MenuItem {
             ),
             MenuItem(
                 key: "c",
-                systemImage: "printer",
+                icon: "printer",
                 title: "Print Message",
                 action: "print://Hello, World!",
                 submenu: nil
@@ -51,7 +51,7 @@ struct MenuConfigView: View {
                 Button(action: {
                     config.append(MenuItem(
                         key: "",
-                        systemImage: "questionmark",
+                        icon: "questionmark",
                         title: "New Menu Item",
                         action: nil,
                         submenu: []
@@ -104,7 +104,7 @@ struct MenuItemEditorRow: View {
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .frame(width: 150)
 
-                Picker(selection: $item.systemImage, label: Text("")) {
+                Picker(selection: $item.icon, label: Text("")) {
                     ForEach(systemImageOptions, id: \.self) { image in
                         HStack {
                             Image(systemName: image)
@@ -151,7 +151,7 @@ struct MenuItemEditorRow: View {
                     if item.submenu == nil { item.submenu = [] }
                     item.submenu?.append(MenuItem(
                         key: "",
-                        systemImage: "questionmark",
+                        icon: "questionmark",
                         title: "New Submenu Item",
                         action: nil,
                         submenu: []

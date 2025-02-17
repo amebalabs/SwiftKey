@@ -156,7 +156,7 @@ struct VerticalMenuItemView: View {
 
     var body: some View {
         HStack {
-            item.icon
+            item.iconImage
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.title)
@@ -181,7 +181,7 @@ struct HorizontalMenuItemView: View {
     var body: some View {
         VStack(spacing: 4) {
             ZStack(alignment: .topTrailing) {
-                item.icon
+                item.iconImage
                     .resizable()
                     .scaledToFit()
                     .frame(width: 60, height: 60)
