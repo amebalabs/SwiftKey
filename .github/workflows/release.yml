@@ -92,20 +92,20 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: ${{ env.APP_NAME }}-Unsigned
-          path: ./unsigned
+          path: build/Build/Products/Release
       - name: Sign Application
         uses: ./.github/actions/sign
         with:
           certificate: ${{ secrets.CERTIFICATES_P12 }}
           certificate-password: ${{ secrets.CERTIFICATES_P12_PASSWORD }}
           apple-team-id: ${{ secrets.TEAM_ID }}
-          app-path: "./unsigned/${{ env.APP_NAME }}.app"
+          app-path: "build/Build/Products/Release/${{ env.APP_NAME }}.app"
           entitlements-path: "SwiftKey/Resources/SwiftKey.entitlements"
       - name: Upload Signed Build
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.APP_NAME }}-Signed
-          path: ./unsigned/${{ env.APP_NAME }}.app
+          path: build/Build/Products/Release/${{ env.APP_NAME }}.app
           retention-days: 5
           compression-level: 0
 
