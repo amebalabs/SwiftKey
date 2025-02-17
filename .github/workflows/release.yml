@@ -18,8 +18,8 @@ env:
   XCODE_VERSION: "16.2.0"
   BUNDLE_ID: "com.ameba.SwiftKey"
   APP_NAME: "SwiftKey"
-  BETA_FEED_URL: "https://amebalabs.github.io/swiftkey/appcast_beta.xml"
-  PROD_FEED_URL: "https://amebalabs.github.io/swiftkey/appcast.xml"
+  BETA_FEED_URL: "https://swiftkey.app/appcast_beta.xml"
+  PROD_FEED_URL: "https://swiftkey.app/appcast.xml"
 
 jobs:
   verify-release-notes:

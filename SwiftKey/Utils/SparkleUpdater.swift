@@ -33,7 +33,7 @@ final class SparkleUpdater: ObservableObject {
         let defaults = UserDefaults.standard
         let isBetaEnabled = defaults.bool(forKey: "EnableBetaUpdates")
         
-        let baseURL = "https://amebalabs.github.io/swiftkey"
+        let baseURL = "https://swiftkey.app"
         let feedURL = isBetaEnabled ?
         "\(baseURL)/appcast_beta.xml" :
         "\(baseURL)/appcast.xml"
