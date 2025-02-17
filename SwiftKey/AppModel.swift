@@ -62,12 +62,15 @@ struct MenuItem: Identifiable, Codable {
     var actionClosure: (() -> Void)? {
         guard let action = action else { return nil }
         if action.hasPrefix("launch://") {
-            let bundleID = String(action.dropFirst("launch://".count))
+            let appPath = String(action.dropFirst("launch://".count))
             return {
-                if let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) {
+                let expandedPath = (appPath as NSString).expandingTildeInPath
+                let appURL = URL(fileURLWithPath: expandedPath)
+                
+                if FileManager.default.fileExists(atPath: appURL.path) {
                     NSWorkspace.shared.openApplication(at: appURL, configuration: .init(), completionHandler: nil)
                 } else {
-                    print("Application with bundle identifier \(bundleID) not found.")
+                    print("Application not found or invalid at path: \(appPath)")
                 }
             }
         }
@@ -110,8 +113,8 @@ extension MenuItem {
             return Image(systemName: systemImage)
         } else if let action = action {
             if action.hasPrefix("launch://") {
-                let appName = String(action.dropFirst("launch://".count))
-                if let nsImage = getAppIcon(appName: appName) {
+                let appPath = String(action.dropFirst("launch://".count))
+                if let nsImage = getAppIcon(appPath: appPath) {
                     return Image(nsImage: nsImage)
                 } else {
                     return Image(systemName: "questionmark")
