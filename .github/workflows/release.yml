@@ -88,24 +88,30 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v3
+      - name: Create directory structure
+        run: |
+          mkdir -p artifact
       - name: Download Unsigned Build
         uses: actions/download-artifact@v4
         with:
           name: ${{ env.APP_NAME }}-Unsigned
-          path: build/Build/Products/Release
+          path: artifact
+      - name: List downloaded files
+        run: |
+          ls -la artifact
       - name: Sign Application
         uses: ./.github/actions/sign
         with:
           certificate: ${{ secrets.CERTIFICATES_P12 }}
           certificate-password: ${{ secrets.CERTIFICATES_P12_PASSWORD }}
           apple-team-id: ${{ secrets.TEAM_ID }}
-          app-path: "build/Build/Products/Release/${{ env.APP_NAME }}.app"
+          app-path: "artifact/${{ env.APP_NAME }}.app"
           entitlements-path: "SwiftKey/Resources/SwiftKey.entitlements"
       - name: Upload Signed Build
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.APP_NAME }}-Signed
-          path: build/Build/Products/Release/${{ env.APP_NAME }}.app
+          path: artifact/${{ env.APP_NAME }}.app
           retention-days: 5
           compression-level: 0
 
@@ -114,23 +120,29 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v3
+      - name: Create directory structure
+        run: |
+          mkdir -p artifact
       - name: Download Signed Build
         uses: actions/download-artifact@v4
         with:
           name: ${{ env.APP_NAME }}-Signed
-          path: ./signed
+          path: artifact
+      - name: List downloaded files
+        run: |
+          ls -la artifact
       - name: Notarize Application
         uses: ./.github/actions/notarize
         with:
           username: ${{ secrets.APPLE_ID }}
           password: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           apple-team-id: ${{ secrets.TEAM_ID }}
-          app-path: "./signed/${{ env.APP_NAME }}.app"
+          app-path: "artifact/${{ env.APP_NAME }}.app"
       - name: Upload Notarized Build
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.APP_NAME }}-Notarized
-          path: ./signed/${{ env.APP_NAME }}.app
+          path: artifact/${{ env.APP_NAME }}.app
           retention-days: 5
           compression-level: 0
 
@@ -144,6 +156,9 @@ jobs:
         run: |
           echo "VERSION=$(echo ${{ github.ref_name }} | sed 's/v//')" >> $GITHUB_ENV
           echo "IS_BETA=$(echo ${{ github.ref_name }} | grep -q 'beta' && echo 'true' || echo 'false')" >> $GITHUB_ENV
+      - name: Create directory structure
+        run: |
+          mkdir -p artifact
       - name: Download Notarized Build
         uses: actions/download-artifact@v4
         with:
@@ -154,23 +169,6 @@ jobs:
           cd artifact
           zip -r "../${{ env.APP_NAME }}-${{ env.VERSION }}.zip" "${{ env.APP_NAME }}.app"
           cd ..
-      - name: Calculate SHA256
-        run: |
-          echo "ZIP_SHA=$(shasum -a 256 ${{ env.APP_NAME }}-${{ env.VERSION }}.zip | cut -d' ' -f1)" >> $GITHUB_ENV
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: ${{ env.APP_NAME }}-${{ env.VERSION }}.zip
-          body: ${{ needs.verify-release-notes.outputs.release_notes }}
-          prerelease: ${{ env.IS_BETA == 'true' }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./docs
-          keep_files: true
 
   notify:
     needs: [build, sign, notarize]
