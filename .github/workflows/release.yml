@@ -224,15 +224,15 @@ jobs:
             echo "Error: Release notes not found at $NOTES_PATH"
             exit 1
           fi
-          # Read and store release notes content
-          CONTENT=$(cat "$NOTES_PATH")
-          # Handle multiline content for GitHub Actions
-          echo "RELEASE_NOTES<<EOF" >> $GITHUB_ENV
-          echo "$CONTENT" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
 
-          # Also store just the content for the changelog update
+          # Escape the content for GitHub Actions output
+          CONTENT=$(cat "$NOTES_PATH" | perl -p -e 's/%/%25/g' | perl -p -e 's/\n/%0A/g' | perl -p -e 's/\r/%0D/g')
           echo "content=$CONTENT" >> $GITHUB_OUTPUT
+
+          # Also store raw content for the release
+          echo "RELEASE_NOTES<<EOF" >> $GITHUB_ENV
+          cat "$NOTES_PATH" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
 
       - name: Update Appcast
         run: |
@@ -252,26 +252,26 @@ jobs:
 
           # Generate new item content
           cat > "$TEMP_ITEM" << EOF
-          <item>
-              <title>${{ env.APP_NAME }} ${{ env.VERSION }}</title>
-              <sparkle:version>${{ env.VERSION }}</sparkle:version>
-              <sparkle:shortVersionString>${{ env.VERSION }}</sparkle:shortVersionString>
-              <description><![CDATA[
-          ${{ steps.release_notes.outputs.content }}
+                    <item>
+                        <title>${{ env.APP_NAME }} ${{ env.VERSION }}</title>
+                        <sparkle:version>${{ env.VERSION }}</sparkle:version>
+                        <sparkle:shortVersionString>${{ env.VERSION }}</sparkle:shortVersionString>
+                        <description><![CDATA[
+          ${{ env.RELEASE_NOTES }}
           ]]>
-              </description>
-              <pubDate>$(date -R)</pubDate>
-              <enclosure
-                  url="https://github.com/${{ github.repository }}/releases/download/${{ env.TAG }}/${{ env.APP_NAME }}-${{ env.VERSION }}.zip"
-                  sparkle:version="${{ env.VERSION }}"
-                  sparkle:shortVersionString="${{ env.VERSION }}"
-                  length="$(stat -f%z "${{ env.APP_NAME }}-${{ env.VERSION }}.zip")"
-                  type="application/octet-stream"
-                  sparkle:edSignature="${{ steps.generate_signature.outputs.signature }}"
-                  sparkle:sha256="${{ env.ZIP_SHA }}"
-              />
-          </item>
-          EOF
+                        </description>
+                        <pubDate>$(date -R)</pubDate>
+                        <enclosure
+                            url="https://github.com/${{ github.repository }}/releases/download/${{ env.TAG }}/${{ env.APP_NAME }}-${{ env.VERSION }}.zip"
+                            sparkle:version="${{ env.VERSION }}"
+                            sparkle:shortVersionString="${{ env.VERSION }}"
+                            length="$(stat -f%z "${{ env.APP_NAME }}-${{ env.VERSION }}.zip")"
+                            type="application/octet-stream"
+                            sparkle:edSignature="${{ steps.generate_signature.outputs.signature }}"
+                            sparkle:sha256="${{ env.ZIP_SHA }}"
+                        />
+                    </item>
+                    EOF
 
           # Create temporary file for the new appcast
           TEMP_APPCAST=$(mktemp)
@@ -320,7 +320,7 @@ jobs:
           # Add new release notes with header
           echo "# ${{ env.TAG }} ($(date +'%Y-%m-%d'))" > "$TEMP_FILE"
           echo "" >> "$TEMP_FILE"
-          echo "${{ steps.release_notes.outputs.content }}" >> "$TEMP_FILE"
+          echo "${{ env.RELEASE_NOTES }}" >> "$TEMP_FILE"
           echo "" >> "$TEMP_FILE"
 
           # Append existing changelog if it exists
