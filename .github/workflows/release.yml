@@ -103,8 +103,24 @@ jobs:
             -derivedDataPath build \
             -arch arm64 -arch x86_64 \
             ONLY_ACTIVE_ARCH=NO \
+            BUILD_NUMBER="${{ steps.get_commit_count.outputs.BUILD_NUMBER }}"
             MARKETING_VERSION="${{ steps.get_versions.outputs.VERSION }}" \
             CURRENT_PROJECT_VERSION="${{ steps.get_versions.outputs.BUILD_NUMBER }}"
+
+      - name: Verify Universal Binary
+        run: |
+          echo "Checking binary architectures..."
+          lipo -archs "build/Build/Products/Release/${{ env.APP_NAME }}.app/Contents/MacOS/${{ env.APP_NAME }}"
+      - name: Package App Bundle
+        run: |
+          cd build/Build/Products/Release
+          ditto -c -k --keepParent "${{ env.APP_NAME }}.app" "${{ env.APP_NAME }}.app.zip"
+      - name: Upload App Bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.APP_NAME }}-Unsigned
+          path: build/Build/Products/Release/${{ env.APP_NAME }}.app.zip
+          retention-days: 5
 
   sign:
     needs: build
