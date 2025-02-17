@@ -21,5 +21,9 @@
 	<string>c1vnuzkyrl2y6GNfNk/N91wC0S2w0PYxfbBonj+QrT0=</string>
 	<key>SUEnableAutomaticChecks</key>
 	<true/>
+    <key>CFBundleShortVersionString</key>
+    <string>$(MARKETING_VERSION)</string>
+    <key>CFBundleVersion</key>
+    <string>$(CURRENT_PROJECT_VERSION)</string>
 </dict>
 </plist>
