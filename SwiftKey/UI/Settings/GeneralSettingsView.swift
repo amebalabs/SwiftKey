@@ -57,6 +57,7 @@ struct GeneralSettingsView: View {
                 .help("Reveal configuration file in Finder")
             }
             
+
             Divider()
             
             Section {

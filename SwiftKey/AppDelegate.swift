@@ -27,8 +27,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     func applicationDidFinishLaunching(_: Notification) {
         AppDelegate.shared = self
         sparkle = SparkleUpdater.shared
+
         setupDefaultConfigFile()
-        
+
         menuState.rootMenu = loadMenuConfig() ?? []
         menuState.reset()
         
