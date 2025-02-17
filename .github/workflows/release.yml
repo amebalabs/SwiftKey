@@ -201,62 +201,47 @@ jobs:
       - name: Update Appcast
         run: |
           # Determine which appcast to update
-          APPCAST_FILE="docs/appcast$([[ "${{ env.IS_BETA }}" == "true" ]] && echo "_beta").xml"
+          IS_BETA="${{ env.IS_BETA }}"
+          APPCAST_NAME="appcast$([ "$IS_BETA" == "true" ] && echo "_beta").xml"
+          APPCAST_FILE="docs/$APPCAST_NAME"
+          TEMPLATE_FILE="docs/templates/$APPCAST_NAME"
 
-          # Create temporary file
-          TEMP_FILE=$(mktemp)
-
-          # If appcast doesn't exist, create initial structure
+          # If appcast doesn't exist, copy from template
           if [ ! -f "$APPCAST_FILE" ]; then
-            cat > "$APPCAST_FILE" << EOF
-          <?xml version="1.0" encoding="utf-8"?>
-          <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
-              <channel>
-                  <title>${{ env.APP_NAME }} Appcast</title>
-                  <link>$([ "${{ env.IS_BETA }}" == "true" ] && echo "${{ env.BETA_FEED_URL }}" || echo "${{ env.PROD_FEED_URL }}")</link>
-                  <description>${{ env.APP_NAME }} Updates</description>
-                  <language>en</language>
-              </channel>
-          </rss>
-          EOF
+            cp "$TEMPLATE_FILE" "$APPCAST_FILE"
           fi
 
-          # Prepare new item XML
-          NEW_ITEM=$(cat << EOF
-              <item>
-                  <title>${{ env.APP_NAME }} ${{ env.VERSION }}</title>
-                  <sparkle:version>${{ env.VERSION }}</sparkle:version>
-                  <sparkle:shortVersionString>${{ env.VERSION }}</sparkle:shortVersionString>
-                  <description><![CDATA[
-          ${{ steps.release_notes.outputs.content }}
-          ]]>
-                  </description>
-                  <pubDate>$(date -R)</pubDate>
-                  <enclosure
-                      url="https://github.com/${{ github.repository }}/releases/download/${{ env.TAG }}/${{ env.APP_NAME }}-${{ env.VERSION }}.zip"
-                      sparkle:version="${{ env.VERSION }}"
-                      sparkle:shortVersionString="${{ env.VERSION }}"
-                      length="0"
-                      type="application/octet-stream"
-                      sparkle:edSignature=""
-                      sparkle:sha256="${{ env.ZIP_SHA }}"
-                  />
-              </item>
-          EOF
-          )
+          # Save existing items
+          PREVIOUS_ITEMS=$(grep -A 999999 "<!-- PREVIOUS_ITEMS -->" "$APPCAST_FILE" | tail -n +2)
 
-          # Insert new item after <channel> tag
-          awk -v new_item="$NEW_ITEM" '
-              /<channel>/ {
-                  print $0
-                  print new_item
-                  next
-              }
-              { print }
-          ' "$APPCAST_FILE" > "$TEMP_FILE"
+          # Generate new item from template
+          ITEM_TEMPLATE=$(cat docs/templates/item.xml)
 
-          # Replace original appcast
-          mv "$TEMP_FILE" "$APPCAST_FILE"
+          # Replace placeholders
+          NEW_ITEM=$(echo "$ITEM_TEMPLATE" | sed -e "
+            s/__APP_NAME__/${{ env.APP_NAME }}/g;
+            s/__VERSION__/${{ env.VERSION }}/g;
+            s/__RELEASE_NOTES__/${{ steps.release_notes.outputs.content }}/g;
+            s/__PUB_DATE__/$(date -R)/g;
+            s|__DOWNLOAD_URL__|https://github.com/${{ github.repository }}/releases/download/${{ env.TAG }}/${{ env.APP_NAME }}-${{ env.VERSION }}.zip|g;
+            s/__FILE_SIZE__/$(stat -f%z "${{ env.APP_NAME }}-${{ env.VERSION }}.zip")/g;
+            s/__SHA256__/${{ env.ZIP_SHA }}/g;
+          ")
+
+          # Create new appcast content
+          cp "$TEMPLATE_FILE" "$APPCAST_FILE"
+
+          # Replace placeholders in the appcast
+          sed -i '' -e "
+            s|<!-- LATEST_ITEM -->|$NEW_ITEM|;
+            s|<!-- PREVIOUS_ITEMS -->|$PREVIOUS_ITEMS|;
+          " "$APPCAST_FILE"
+
+          # Validate XML format
+          xmllint --noout "$APPCAST_FILE" || {
+            echo "Error: Invalid XML format in appcast"
+            exit 1
+          }
 
       - name: Update CHANGELOG.md
         run: |

@@ -1,0 +1,19 @@
+<item>
+    <title>__APP_NAME__ __VERSION__</title>
+    <sparkle:version>__VERSION__</sparkle:version>
+    <sparkle:shortVersionString>__VERSION__</sparkle:shortVersionString>
+    <description><![CDATA[
+__RELEASE_NOTES__
+]]>
+    </description>
+    <pubDate>__PUB_DATE__</pubDate>
+    <enclosure
+        url="__DOWNLOAD_URL__"
+        sparkle:version="__VERSION__"
+        sparkle:shortVersionString="__VERSION__"
+        length="__FILE_SIZE__"
+        type="application/octet-stream"
+        sparkle:edSignature="__ED_SIGNATURE__"
+        sparkle:sha256="__SHA256__"
+    />
+</item>
