@@ -157,19 +157,17 @@ jobs:
         run: |
           echo "VERSION=$(echo ${{ github.ref_name }} | sed 's/v//')" >> $GITHUB_ENV
           echo "IS_BETA=$(echo ${{ github.ref_name }} | grep -q 'beta' && echo 'true' || echo 'false')" >> $GITHUB_ENV
-      - name: Create directory structure
-        run: |
-          mkdir -p artifact
-      - name: Download Notarized Build
+      - name: Download Notarized App
         uses: actions/download-artifact@v4
         with:
           name: ${{ env.APP_NAME }}-Notarized
-          path: artifact
-      - name: Create ZIP Archive
+          path: .
+      - name: Unpack App Bundle
         run: |
-          cd artifact
-          zip -r "../${{ env.APP_NAME }}-${{ env.VERSION }}.zip" "${{ env.APP_NAME }}.app"
-          cd ..
+          ditto -x -k "${{ env.APP_NAME }}.app.zip" .
+      - name: Create Release Archive
+        run: |
+          ditto -c -k --keepParent "${{ env.APP_NAME }}.app" "${{ env.APP_NAME }}-${{ env.VERSION }}.zip"
 
   notify:
     needs: [build, sign, notarize]
