@@ -49,7 +49,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 facelessMenuController = FacelessMenuController(
                     rootMenu: menuState.rootMenu,
                     statusItem: statusItem,
-                    resetDelay: settings.menuStateResetDelay
+                    resetDelay: settings.menuStateResetDelay == 0 ? 2 : settings.menuStateResetDelay // TODO: in fact we should have another setting, but for now we'll just use 2 seconds
                 )
             } else {
                 facelessMenuController?.resetDelay = settings.menuStateResetDelay
@@ -133,6 +133,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         
         switch settings.overlayStyle {
             case .faceless:
+                facelessMenuController?.endSession()
                 facelessMenuController?.startSession()
             case .hud:
                 if notchContext == nil {
