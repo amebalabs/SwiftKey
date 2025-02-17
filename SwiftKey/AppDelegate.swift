@@ -13,11 +13,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     var hotKeyRef: EventHotKeyRef?
 
-    var menuStateResetDelay: TimeInterval {
-        let delay = UserDefaults.standard.double(forKey: "menuStateResetDelay")
-        return delay == 0 ? 3 : delay
-    }
-
     var lastHideTime: Date?
 
     var statusItem: NSStatusItem?
@@ -53,10 +48,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 facelessMenuController = FacelessMenuController(
                     rootMenu: menuState.rootMenu,
                     statusItem: statusItem,
-                    resetDelay: menuStateResetDelay
+                    resetDelay: settings.menuStateResetDelay
                 )
             } else {
-                facelessMenuController?.resetDelay = menuStateResetDelay
+                facelessMenuController?.resetDelay = settings.menuStateResetDelay
             }
         }
 
@@ -99,11 +94,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 let controller = FacelessMenuController(
                     rootMenu: menuState.rootMenu,
                     statusItem: statusItem,
-                    resetDelay: menuStateResetDelay
+                    resetDelay: settings.menuStateResetDelay
                 )
                 facelessMenuController = controller
             } else {
-                facelessMenuController?.resetDelay = menuStateResetDelay
+                facelessMenuController?.resetDelay = settings.menuStateResetDelay
             }
         } else {
             facelessMenuController?.endSession()
@@ -160,10 +155,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             if window.isVisible {
                 window.orderOut(nil)
             } else {
-                if menuStateResetDelay == 0 {
+                if settings.menuStateResetDelay == 0 {
                     menuState.reset()
-                    NotificationCenter.default.post(name: .resetMenuState, object: nil)
-                } else if let lastHide = lastHideTime, Date().timeIntervalSince(lastHide) >= menuStateResetDelay {
+                } else if let lastHide = lastHideTime, Date().timeIntervalSince(lastHide) >= settings.menuStateResetDelay {
                     menuState.reset()
                 }
                 window.center()
