@@ -65,17 +65,40 @@ jobs:
         id: get_versions
         run: |
           # Get build number from commit count
-          echo "BUILD_NUMBER=$(git rev-list --count HEAD)" >> $GITHUB_OUTPUT
+          BUILD_NUMBER=$(git rev-list --count HEAD)
+          echo "BUILD_NUMBER=$BUILD_NUMBER" >> $GITHUB_OUTPUT
 
-          # Get version from tag or set development version
-          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
-            # Remove 'v' prefix from tag
-            echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-          else
-            echo "VERSION=0.0.0" >> $GITHUB_OUTPUT
+          # Initialize version variables
+          VERSION="0.0.0"
+          IS_RELEASE=false
+
+          # Check for tag
+          if [ -n "$GITHUB_REF_TYPE" ]; then
+            case "$GITHUB_REF_TYPE" in
+              "tag")
+                if [[ "$GITHUB_REF_NAME" == v* ]]; then
+                  VERSION=${GITHUB_REF_NAME#v}
+                  IS_RELEASE=true
+                fi
+                ;;
+              "branch")
+                VERSION="0.0.0"
+                IS_RELEASE=false
+                ;;
+            esac
           fi
-          echo VERSION
-          echo $BUILD_NUMBER
+
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "IS_RELEASE=$IS_RELEASE" >> $GITHUB_OUTPUT
+
+          # Debug output
+          echo "Debug information:"
+          echo "GITHUB_REF_TYPE: $GITHUB_REF_TYPE"
+          echo "GITHUB_REF_NAME: $GITHUB_REF_NAME"
+          echo "GITHUB_REF: $GITHUB_REF"
+          echo "BUILD_NUMBER: $BUILD_NUMBER"
+          echo "VERSION: $VERSION"
+          echo "IS_RELEASE: $IS_RELEASE"
 
       - name: Setup Xcode
         uses: maxim-lobanov/setup-xcode@v1
