@@ -211,31 +211,64 @@ jobs:
             cp "$TEMPLATE_FILE" "$APPCAST_FILE"
           fi
 
-          # Save existing items
-          PREVIOUS_ITEMS=$(grep -A 999999 "<!-- PREVIOUS_ITEMS -->" "$APPCAST_FILE" | tail -n +2)
+          # Create a temporary file for the new item
+          TEMP_ITEM=$(mktemp)
 
-          # Generate new item from template
-          ITEM_TEMPLATE=$(cat docs/templates/item.xml)
+          # Generate new item content
+          cat > "$TEMP_ITEM" << EOF
+          <item>
+              <title>${{ env.APP_NAME }} ${{ env.VERSION }}</title>
+              <sparkle:version>${{ env.VERSION }}</sparkle:version>
+              <sparkle:shortVersionString>${{ env.VERSION }}</sparkle:shortVersionString>
+              <description><![CDATA[
+          ${{ steps.release_notes.outputs.content }}
+          ]]>
+              </description>
+              <pubDate>$(date -R)</pubDate>
+              <enclosure
+                  url="https://github.com/${{ github.repository }}/releases/download/${{ env.TAG }}/${{ env.APP_NAME }}-${{ env.VERSION }}.zip"
+                  sparkle:version="${{ env.VERSION }}"
+                  sparkle:shortVersionString="${{ env.VERSION }}"
+                  length="$(stat -f%z "${{ env.APP_NAME }}-${{ env.VERSION }}.zip")"
+                  type="application/octet-stream"
+                  sparkle:edSignature="${{ steps.generate_signature.outputs.signature }}"
+                  sparkle:sha256="${{ env.ZIP_SHA }}"
+              />
+          </item>
+          EOF
 
-          # Replace placeholders
-          NEW_ITEM=$(echo "$ITEM_TEMPLATE" | sed -e "
-            s/__APP_NAME__/${{ env.APP_NAME }}/g;
-            s/__VERSION__/${{ env.VERSION }}/g;
-            s/__RELEASE_NOTES__/${{ steps.release_notes.outputs.content }}/g;
-            s/__PUB_DATE__/$(date -R)/g;
-            s|__DOWNLOAD_URL__|https://github.com/${{ github.repository }}/releases/download/${{ env.TAG }}/${{ env.APP_NAME }}-${{ env.VERSION }}.zip|g;
-            s/__FILE_SIZE__/$(stat -f%z "${{ env.APP_NAME }}-${{ env.VERSION }}.zip")/g;
-            s/__SHA256__/${{ env.ZIP_SHA }}/g;
-          ")
+          # Create temporary file for the new appcast
+          TEMP_APPCAST=$(mktemp)
 
-          # Create new appcast content
-          cp "$TEMPLATE_FILE" "$APPCAST_FILE"
+          # Extract previous items (everything between <!-- PREVIOUS_ITEMS --> and </channel>)
+          PREVIOUS_ITEMS=$(awk '
+            /<!-- PREVIOUS_ITEMS -->/ {p=1;next}
+            /<\/channel>/ {p=0}
+            p {print}
+          ' "$APPCAST_FILE")
 
-          # Replace placeholders in the appcast
-          sed -i '' -e "
-            s|<!-- LATEST_ITEM -->|$NEW_ITEM|;
-            s|<!-- PREVIOUS_ITEMS -->|$PREVIOUS_ITEMS|;
-          " "$APPCAST_FILE"
+          # Construct new appcast
+          cat > "$TEMP_APPCAST" << EOF
+          <?xml version="1.0" encoding="utf-8"?>
+          <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
+              <channel>
+                  <title>${{ env.APP_NAME }} $([ "$IS_BETA" == "true" ] && echo "Beta ")Appcast</title>
+                  <link>$([ "$IS_BETA" == "true" ] && echo "${{ env.BETA_FEED_URL }}" || echo "${{ env.PROD_FEED_URL }}")</link>
+                  <description>${{ env.APP_NAME }} $([ "$IS_BETA" == "true" ] && echo "Beta ")Updates</description>
+                  <language>en</language>
+                  <!-- LATEST_ITEM -->
+          $(cat "$TEMP_ITEM")
+                  <!-- PREVIOUS_ITEMS -->
+          $PREVIOUS_ITEMS
+              </channel>
+          </rss>
+          EOF
+
+          # Replace the old appcast with the new one
+          mv "$TEMP_APPCAST" "$APPCAST_FILE"
+
+          # Clean up
+          rm "$TEMP_ITEM"
 
           # Validate XML format
           xmllint --noout "$APPCAST_FILE" || {
