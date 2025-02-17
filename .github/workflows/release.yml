@@ -153,22 +153,157 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # Need full history for changelog
+
       - name: Set version variables
         run: |
           echo "VERSION=$(echo ${{ github.ref_name }} | sed 's/v//')" >> $GITHUB_ENV
           echo "IS_BETA=$(echo ${{ github.ref_name }} | grep -q 'beta' && echo 'true' || echo 'false')" >> $GITHUB_ENV
+          echo "TAG=$(echo ${{ github.ref_name }})" >> $GITHUB_ENV
+
       - name: Download Notarized App
         uses: actions/download-artifact@v4
         with:
           name: ${{ env.APP_NAME }}-Notarized
           path: .
+
       - name: Unpack App Bundle
         run: |
           ditto -x -k "${{ env.APP_NAME }}.app.zip" .
+
       - name: Create Release Archive
         run: |
           ditto -c -k --keepParent "${{ env.APP_NAME }}.app" "${{ env.APP_NAME }}-${{ env.VERSION }}.zip"
 
+      - name: Calculate SHA256
+        run: |
+          echo "ZIP_SHA=$(shasum -a 256 ${{ env.APP_NAME }}-${{ env.VERSION }}.zip | cut -d' ' -f1)" >> $GITHUB_ENV
+
+      - name: Read Release Notes
+        id: release_notes
+        run: |
+          NOTES_PATH="docs/release-notes/${{ env.TAG }}.md"
+          if [ ! -f "$NOTES_PATH" ]; then
+            echo "Error: Release notes not found at $NOTES_PATH"
+            exit 1
+          fi
+          # Read and store release notes content
+          CONTENT=$(cat "$NOTES_PATH")
+          # Handle multiline content for GitHub Actions
+          echo "RELEASE_NOTES<<EOF" >> $GITHUB_ENV
+          echo "$CONTENT" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+          # Also store just the content for the changelog update
+          echo "content=$CONTENT" >> $GITHUB_OUTPUT
+
+      - name: Update Appcast
+        run: |
+          # Determine which appcast to update
+          APPCAST_FILE="docs/appcast$([[ "${{ env.IS_BETA }}" == "true" ]] && echo "_beta").xml"
+
+          # Create temporary file
+          TEMP_FILE=$(mktemp)
+
+          # If appcast doesn't exist, create initial structure
+          if [ ! -f "$APPCAST_FILE" ]; then
+            cat > "$APPCAST_FILE" << EOF
+          <?xml version="1.0" encoding="utf-8"?>
+          <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
+              <channel>
+                  <title>${{ env.APP_NAME }} Appcast</title>
+                  <link>$([ "${{ env.IS_BETA }}" == "true" ] && echo "${{ env.BETA_FEED_URL }}" || echo "${{ env.PROD_FEED_URL }}")</link>
+                  <description>${{ env.APP_NAME }} Updates</description>
+                  <language>en</language>
+              </channel>
+          </rss>
+          EOF
+          fi
+
+          # Prepare new item XML
+          NEW_ITEM=$(cat << EOF
+              <item>
+                  <title>${{ env.APP_NAME }} ${{ env.VERSION }}</title>
+                  <sparkle:version>${{ env.VERSION }}</sparkle:version>
+                  <sparkle:shortVersionString>${{ env.VERSION }}</sparkle:shortVersionString>
+                  <description><![CDATA[
+          ${{ steps.release_notes.outputs.content }}
+          ]]>
+                  </description>
+                  <pubDate>$(date -R)</pubDate>
+                  <enclosure
+                      url="https://github.com/${{ github.repository }}/releases/download/${{ env.TAG }}/${{ env.APP_NAME }}-${{ env.VERSION }}.zip"
+                      sparkle:version="${{ env.VERSION }}"
+                      sparkle:shortVersionString="${{ env.VERSION }}"
+                      length="0"
+                      type="application/octet-stream"
+                      sparkle:edSignature=""
+                      sparkle:sha256="${{ env.ZIP_SHA }}"
+                  />
+              </item>
+          EOF
+          )
+
+          # Insert new item after <channel> tag
+          awk -v new_item="$NEW_ITEM" '
+              /<channel>/ {
+                  print $0
+                  print new_item
+                  next
+              }
+              { print }
+          ' "$APPCAST_FILE" > "$TEMP_FILE"
+
+          # Replace original appcast
+          mv "$TEMP_FILE" "$APPCAST_FILE"
+
+      - name: Update CHANGELOG.md
+        run: |
+          # Create temporary file
+          TEMP_FILE=$(mktemp)
+
+          # Add new release notes with header
+          echo "# ${{ env.TAG }} ($(date +'%Y-%m-%d'))" > "$TEMP_FILE"
+          echo "" >> "$TEMP_FILE"
+          echo "${{ steps.release_notes.outputs.content }}" >> "$TEMP_FILE"
+          echo "" >> "$TEMP_FILE"
+
+          # Append existing changelog if it exists
+          if [ -f "CHANGELOG.md" ]; then
+            cat "CHANGELOG.md" >> "$TEMP_FILE"
+          fi
+
+          # Replace original changelog
+          mv "$TEMP_FILE" "CHANGELOG.md"
+
+      - name: Commit and Push Changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add CHANGELOG.md
+          git add docs/appcast*.xml
+          git commit -m "docs: update CHANGELOG.md and appcast for ${{ env.TAG }}"
+          git push origin HEAD:main
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ${{ env.APP_NAME }}-${{ env.VERSION }}.zip
+          body: ${{ env.RELEASE_NOTES }}
+          prerelease: ${{ env.IS_BETA == 'true' }}
+          draft: false
+          fail_on_unmatched_files: true
+          generate_release_notes: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs
+          keep_files: true
   notify:
     needs: [build, sign, notarize]
     if: always()
