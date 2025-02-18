@@ -1,3 +1,10 @@
+[![GitHub license](https://img.shields.io/github/license/amebalabs/SwiftKey.svg)](https://github.com/amebalabs/SwiftKey/blob/master/LICENSE)
+[![Latest Release](https://img.shields.io/github/v/release/amebalabs/SwiftKey)](https://github.com/amebalabs/SwiftKey/releases/latest)
+
+<p align="center">
+ <img width="155" height="150" alt="SwiftKey Logo" src="docs/logo.png">
+</p>
+
 # SwiftKey
 
 SwiftKey is a powerful macOS productivity tool that provides quick access to applications, shortcuts, and custom actions through customizable keyboard shortcuts and an elegant overlay interface.
