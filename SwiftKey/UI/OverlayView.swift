@@ -185,7 +185,7 @@ struct HorizontalMenuItemView: View {
                     .resizable()
                     .scaledToFit()
                     .frame(width: 60, height: 60)
-                    .opacity(0.7)
+                    .opacity(0.9)
 
                 Text(item.key)
                     .font(.caption)
