@@ -3,73 +3,173 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>SwiftKey - Keyboard-driven Application Launcher</title>
-        <style>
-            body {
-                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell,
-                    "Helvetica Neue", sans-serif;
-                line-height: 1.6;
-                max-width: 800px;
-                margin: 0 auto;
-                padding: 20px;
-                color: #333;
-            }
-            .container {
-                background: #fff;
-                border-radius: 8px;
-                padding: 20px;
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            }
-            .download-button {
-                display: inline-block;
-                background: #007aff;
-                color: white;
-                padding: 12px 24px;
-                border-radius: 6px;
-                text-decoration: none;
-                margin: 10px 0;
-            }
-            .download-button:hover {
-                background: #0056b3;
-            }
-            .beta-note {
-                background: #fff3cd;
-                border: 1px solid #ffeeba;
-                padding: 10px;
-                border-radius: 4px;
-                margin: 10px 0;
-            }
-        </style>
+        <title>SwiftKey - Keyboard-driven Productivity for macOS</title>
+        <link rel="stylesheet" href="styles.css" />
+        <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+        />
     </head>
     <body>
-        <div class="container">
-            <h1>SwiftKey</h1>
-            <p>A powerful keyboard-driven application launcher and menu system for macOS.</p>
-
-            <h2>Download</h2>
-            <a
-                href="https://github.com/yourusername/swiftkey/releases/latest/download/SwiftKey.dmg"
-                class="download-button"
-            >
-                Download Latest Version
-            </a>
-
-            <div class="beta-note">
-                <h3>Beta Channel</h3>
-                <p>Want to try the latest features? Join our beta program:</p>
-                <a href="https://github.com/yourusername/swiftkey/releases" class="download-button">
-                    Get Beta Version
-                </a>
+        <nav>
+            <div class="container">
+                <div class="logo">⌘ SwiftKey</div>
+                <div class="nav-links">
+                    <a href="#features">Features</a>
+                    <a href="#installation">Install</a>
+                    <a href="#docs">Docs</a>
+                    <a
+                        href="https://github.com/yourusername/swiftkey"
+                        class="github-link"
+                    >
+                        <i class="fab fa-github"></i>
+                    </a>
+                </div>
             </div>
+        </nav>
 
-            <h2>Features</h2>
-            <ul>
-                <li>Multiple overlay styles (Panel, HUD, Menu bar)</li>
-                <li>Keyboard-driven navigation</li>
-                <li>Dynamic menu configuration via YAML</li>
-                <li>Hot reload of configuration changes</li>
-                <li>Various action types support</li>
-            </ul>
-        </div>
+        <header class="hero">
+            <div class="container">
+                <h1>Keyboard-driven Productivity</h1>
+                <p class="subtitle">
+                    Launch apps, run commands, and control your Mac with elegant
+                    simplicity
+                </p>
+                <div class="cta-buttons">
+                    <a href="#download" class="btn primary">Download Latest</a>
+                    <a href="#brew" class="btn secondary">
+                        <i class="fas fa-terminal"></i> brew install --cask
+                        swiftkey
+                    </a>
+                </div>
+            </div>
+            <div class="hero-image">
+                <img src="demo.gif" alt="SwiftKey Demo" class="demo-gif" />
+            </div>
+        </header>
+
+        <section id="features" class="features">
+            <div class="container">
+                <h2>Features</h2>
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <i class="fas fa-keyboard"></i>
+                        <h3>Keyboard First</h3>
+                        <p>
+                            Navigate your entire workflow without touching the
+                            mouse
+                        </p>
+                    </div>
+                    <div class="feature-card">
+                        <i class="fas fa-layer-group"></i>
+                        <h3>Multiple Styles</h3>
+                        <p>Choose between Panel, HUD, or Menu Bar interfaces</p>
+                    </div>
+                    <div class="feature-card">
+                        <i class="fas fa-code"></i>
+                        <h3>YAML Config</h3>
+                        <p>Simple yet powerful configuration in YAML format</p>
+                    </div>
+                    <div class="feature-card">
+                        <i class="fas fa-bolt"></i>
+                        <h3>Dynamic Menus</h3>
+                        <p>Generate menus dynamically with shell commands</p>
+                    </div>
+                    <div class="feature-card">
+                        <i class="fas fa-paint-brush"></i>
+                        <h3>SF Symbols</h3>
+                        <p>Beautiful native macOS icons for your menus</p>
+                    </div>
+                    <div class="feature-card">
+                        <i class="fas fa-link"></i>
+                        <h3>Deep Linking</h3>
+                        <p>Control SwiftKey from other applications</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="installation" class="installation">
+            <div class="container">
+                <h2>Installation</h2>
+                <div class="install-options">
+                    <div class="install-card">
+                        <h3>Direct Download</h3>
+                        <p>Download the latest release from GitHub</p>
+                        <a
+                            href="https://github.com/yourusername/swiftkey/releases"
+                            class="btn primary"
+                        >
+                            <i class="fas fa-download"></i> Download
+                        </a>
+                    </div>
+                    <div class="install-card">
+                        <h3>Homebrew</h3>
+                        <p>Install via Homebrew package manager</p>
+                        <div class="code-block">
+                            <code>brew install --cask swiftkey</code>
+                            <button class="copy-btn" onclick="copyCode(this)">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="config" class="config">
+            <div class="container">
+                <h2>Configuration</h2>
+                <div class="config-example">
+                    <pre><code class="yaml">
+- key: "a"
+  icon: "star.fill"
+  title: "Launch Calculator"
+  action: "launch://Calculator"
+  submenu:
+    - key: "b"
+      icon: "safari"
+      title: "Open Website"
+      action: "open://https://example.com"
+
+- key: "s"
+  icon: "terminal"
+  title: "Run Command"
+  action: "shell://echo 'Hello'"
+  sticky: true
+                </code></pre>
+                </div>
+            </div>
+        </section>
+
+        <footer>
+            <div class="container">
+                <div class="footer-content">
+                    <div class="footer-left">
+                        <div class="logo">⌘ SwiftKey</div>
+                        <p>Made with ❤️ for macOS power users</p>
+                    </div>
+                    <div class="footer-links">
+                        <a href="https://github.com/yourusername/swiftkey"
+                            >GitHub</a
+                        >
+                        <a href="#docs">Documentation</a>
+                        <a href="#privacy">Privacy</a>
+                        <a href="#license">License</a>
+                    </div>
+                </div>
+            </div>
+        </footer>
+
+        <script>
+            function copyCode(button) {
+                const codeBlock = button.parentElement.querySelector("code");
+                navigator.clipboard.writeText(codeBlock.textContent.trim());
+                button.innerHTML = '<i class="fas fa-check"></i>';
+                setTimeout(() => {
+                    button.innerHTML = '<i class="fas fa-copy"></i>';
+                }, 2000);
+            }
+        </script>
     </body>
 </html>
