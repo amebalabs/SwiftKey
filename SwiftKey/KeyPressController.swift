@@ -68,7 +68,7 @@ class KeyPressController {
             return
         }
         if let submenu = item.submenu {
-            if modifierFlags?.isOption == true {
+            if modifierFlags?.isOption == true || item.batch == true {
                 DispatchQueue.global(qos: .userInitiated).async {
                     for menu in submenu where menu.actionClosure != nil {
                         guard menu.action?.hasPrefix("dynamic://") == false else { continue }
