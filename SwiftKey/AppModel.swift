@@ -1,4 +1,3 @@
-// Unified model for both configuration and runtime usage.
 import AppKit
 import SwiftUI
 import Yams
@@ -11,12 +10,13 @@ struct MenuItem: Identifiable, Codable {
     var title: String  // Descriptive title
     var action: String?  // Raw action string from YAML
     var sticky: Bool?  // Sticky actions don't close window after execution
+    var notify: Bool?  // Notify actions show a notification after execution
     var batch: Bool?  // Batch runs all submenu items
     var submenu: [MenuItem]?  // Optional nested submenu
 
     // Define coding keys explicitly.
     enum CodingKeys: String, CodingKey {
-        case id, key, icon, title, action, sticky, batch, submenu
+        case id, key, icon, title, action, sticky, notify, batch, submenu
     }
 
     // Custom initializer that ignores any incoming 'id' from the YAML
@@ -30,6 +30,7 @@ struct MenuItem: Identifiable, Codable {
         title = try container.decode(String.self, forKey: .title)
         action = try container.decodeIfPresent(String.self, forKey: .action)
         sticky = try container.decodeIfPresent(Bool.self, forKey: .sticky)
+        notify = try container.decodeIfPresent(Bool.self, forKey: .notify)
         batch = try container.decodeIfPresent(Bool.self, forKey: .batch)
         submenu = try container.decodeIfPresent([MenuItem].self, forKey: .submenu)
     }
@@ -37,7 +38,7 @@ struct MenuItem: Identifiable, Codable {
     // Standard initializer for manual creation
     init(
         id: UUID = UUID(), key: String, icon: String? = nil, title: String, action: String? = nil,
-        sticky: Bool? = nil, batch: Bool? = nil, submenu: [MenuItem]? = nil
+        sticky: Bool? = nil, notify: Bool? = nil, batch: Bool? = nil, submenu: [MenuItem]? = nil
     ) {
         self.id = id
         self.key = key
@@ -45,6 +46,7 @@ struct MenuItem: Identifiable, Codable {
         self.title = title
         self.action = action
         self.sticky = sticky
+        self.notify = notify
         self.batch = batch
         self.submenu = submenu
     }
@@ -57,6 +59,7 @@ struct MenuItem: Identifiable, Codable {
         try container.encode(title, forKey: .title)
         try container.encodeIfPresent(action, forKey: .action)
         try container.encodeIfPresent(sticky, forKey: .sticky)
+        try container.encodeIfPresent(notify, forKey: .notify)
         try container.encodeIfPresent(batch, forKey: .batch)
         try container.encodeIfPresent(submenu, forKey: .submenu)
     }
@@ -95,10 +98,17 @@ struct MenuItem: Identifiable, Codable {
         if action.hasPrefix("shell://") {
             let command = String(action.dropFirst("shell://".count))
             return {
-                let process = Process()
-                process.launchPath = "/bin/bash"
-                process.arguments = ["-c", command]
-                process.launch()
+                do {
+                    let out = try runScript(to: command, env: [:])
+                    
+                    notifyUser(title: "Finished running \(title)", message: out.out)
+                } catch {
+                    guard let error = error as? ShellOutError else {
+                        notifyUser(title: "Error running \(title)", message:"Unknown error")
+                        return
+                    }
+                    notifyUser(title: "Error running \(title)", message:error.message)
+                }
             }
         }
         return nil

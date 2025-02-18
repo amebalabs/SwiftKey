@@ -1,6 +1,7 @@
 import AppKit
 import Carbon.HIToolbox
 import Foundation
+import UserNotifications
 
 // MARK: - Helper: FOUR_CHAR_CODE
 
@@ -105,4 +106,19 @@ extension NSEvent.ModifierFlags {
     var isOption: Bool {
         rawValue == 524576
     }
+}
+
+func notifyUser(title: String, message: String) {
+    let content = UNMutableNotificationContent()
+    content.title = title
+    content.body = message
+    content.sound = .default
+    
+    let uuidString = UUID().uuidString
+    let request = UNNotificationRequest(identifier: uuidString,
+                                        content: content, trigger: nil)
+    
+    let notificationCenter = UNUserNotificationCenter.current()
+    notificationCenter.requestAuthorization(options: [.alert, .sound]) { _, _ in }
+    notificationCenter.add(request)
 }
