@@ -8,6 +8,7 @@
 # SwiftKey
 
 SwiftKey is a powerful macOS productivity tool that provides quick access to applications, shortcuts, and custom actions through customizable keyboard shortcuts and an elegant overlay interface.
+
 **TL;DR:** A highly customizable keyboard-driven launcher for macOS with multiple interface styles and YAML configuration.
 
 ## Features
