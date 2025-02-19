@@ -166,14 +166,14 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         guard menuState.isCurrentMenuSticky == false else { return }
         print("hideWindow triggered")
         switch settings.overlayStyle {
-            case .hud:
-                menuState.reset()
-                notchContext?.close()
-            case .panel:
-                overlayWindow?.orderOut(nil)
-                lastHideTime = Date()
-            case .faceless:
-                facelessMenuController?.endSession()
+        case .hud:
+            menuState.reset()
+            notchContext?.close()
+        case .panel:
+            overlayWindow?.orderOut(nil)
+            lastHideTime = Date()
+        case .faceless:
+            facelessMenuController?.endSession()
         }
     }
 
