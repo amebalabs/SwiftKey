@@ -2,7 +2,7 @@
 <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
     <channel>
         <title>SwiftKey Beta Appcast</title>
-        <link>https://amebalabs.github.io/swiftkey/appcast_beta.xml</link>
+        <link>https://swiftkey.app/appcast_beta.xml</link>
         <description>SwiftKey Beta Updates</description>
         <language>en</language>
         <!-- LATEST_ITEM -->
