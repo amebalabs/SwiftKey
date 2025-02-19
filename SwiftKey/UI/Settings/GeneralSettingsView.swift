@@ -24,13 +24,15 @@ struct GeneralSettingsView: View {
                     Text(option.rawValue).tag(option)
                 }
             }
+            Divider()
             HStack {
                 Text("Menu Reset Delay")
                 Slider(value: settings.$menuStateResetDelay, in: 0 ... 10, step: 0.5)
                 Text("\(settings.menuStateResetDelay, specifier: "%.1f")")
             }
             KeyboardShortcuts.Recorder("Hot key", name: .toggleApp)
-
+            Toggle("Trigger hold mode", isOn: settings.$triggerKeyHoldMode)
+            Divider()
             // Configuration file section.
             HStack {
                 Text("Configuration file:")

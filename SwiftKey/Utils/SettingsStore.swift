@@ -19,6 +19,7 @@ class SettingsStore: ObservableObject {
     @AppStorage("UseHorizontalOverlayLayout") public var useHorizontalOverlayLayout: Bool = true
     @AppStorage("OverlayStyle") public var overlayStyle: OverlayStyle = .panel
     @AppStorage("OverlayScreenOption") public var overlayScreenOption: OverlayScreenOption = .primary
+    @AppStorage("TriggerKeyHoldMode") public var triggerKeyHoldMode: Bool = false
     @AppStorage("NeedsOnboarding") public var needsOnboarding: Bool = true
     @AppStorage("AutomaticallyCheckForUpdates")
     public var automaticallyCheckForUpdates: Bool = true {

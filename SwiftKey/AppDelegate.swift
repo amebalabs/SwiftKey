@@ -49,6 +49,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         KeyboardShortcuts.onKeyDown(for: .toggleApp) { [self] in
             toggleSession()
         }
+        KeyboardShortcuts.onKeyUp(for: .toggleApp) { [self] in
+            if settings.triggerKeyHoldMode {
+                hideWindow()
+            }
+        }
         if settings.needsOnboarding {
             showOnboardingWindow()
         }
@@ -160,12 +165,15 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     @objc func hideWindow() {
         guard menuState.isCurrentMenuSticky == false else { return }
         print("hideWindow triggered")
-        if settings.overlayStyle == .hud {
-            menuState.reset()
-            notchContext?.close()
-        } else {
-            overlayWindow?.orderOut(nil)
-            lastHideTime = Date()
+        switch settings.overlayStyle {
+            case .hud:
+                menuState.reset()
+                notchContext?.close()
+            case .panel:
+                overlayWindow?.orderOut(nil)
+                lastHideTime = Date()
+            case .faceless:
+                facelessMenuController?.endSession()
         }
     }
 
