@@ -10,7 +10,7 @@ class AppShared: NSObject {
         dialog.canChooseDirectories = false
         dialog.canChooseFiles = true
         dialog.allowsMultipleSelection = false
-        
+
         guard dialog.runModal() == .OK, let url = dialog.url else { return }
         SettingsStore.shared.configFilePath = url.path
         // Create a security-scoped bookmark.
@@ -24,20 +24,20 @@ class AppShared: NSObject {
         }
         reloadConfig()
     }
-    
+
     public static func openConfigFile() {
         guard let url = resolveConfigFileURL() else { return }
         // Reveal the file in Finder by selecting it.
         NSWorkspace.shared.selectFile(url.path,
                                       inFileViewerRootedAtPath: url.deletingLastPathComponent().path)
     }
-    
+
     /// Helper to resolve the saved security-scoped bookmark.
     public static func resolveConfigFileURL() -> URL? {
         guard let bookmarkData = UserDefaults.standard.data(forKey: "ConfigFileBookmark") else {
             return nil
         }
-        
+
         var isStale = false
         do {
             let url = try URL(resolvingBookmarkData: bookmarkData,
@@ -63,6 +63,7 @@ class AppShared: NSObject {
             MenuState.shared.rootMenu = loadMenuConfig() ?? []
         }
     }
+
     public static func showAbout() {
         NSApp.orderFrontStandardAboutPanel()
     }

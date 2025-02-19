@@ -15,27 +15,28 @@ class SettingsStore: ObservableObject {
     @AppStorage("UseHorizontalOverlayLayout") public var useHorizontalOverlayLayout: Bool = true
     @AppStorage("OverlayStyle") public var overlayStyle: OverlayStyle = .panel
     @AppStorage("NeedsOnboarding") public var needsOnboarding: Bool = true
-    
+
     @AppStorage("AutomaticallyCheckForUpdates")
     public var automaticallyCheckForUpdates: Bool = true {
         didSet {
             SparkleUpdater.shared.automaticallyChecksForUpdates = automaticallyCheckForUpdates
         }
     }
-    
+
     @AppStorage("AutomaticallyDownloadUpdates")
     public var automaticallyDownloadUpdates: Bool = false {
         didSet {
             SparkleUpdater.shared.automaticallyDownloadsUpdates = automaticallyDownloadUpdates
         }
     }
-    
+
     @AppStorage("EnableBetaUpdates")
     public var enableBetaUpdates: Bool = false {
         didSet {
             SparkleUpdater.shared.configureFeedURLs()
         }
     }
+
     var facelessMode: Bool {
         overlayStyle == .faceless
     }

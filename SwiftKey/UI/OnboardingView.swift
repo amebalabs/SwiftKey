@@ -1,28 +1,30 @@
-import SwiftUI
 import KeyboardShortcuts
+import SwiftUI
 
 struct OnboardingView: View {
     let onFinish: () -> Void
     @State private var isDismissing = false
-    
+
     var body: some View {
         VStack(spacing: 20) {
             Image("mac_512")
                 .resizable()
                 .renderingMode(.original)
                 .frame(width: 90, height: 90, alignment: .leading)
-            
+
             Text("Welcome to SwiftKey!")
                 .font(.largeTitle)
                 .fontWeight(.bold)
-            
-            Text("SwiftKey is your quick access tool for launching apps, shortcuts, and more. Customize your hotkey below and start navigating efficiently!")
-                .multilineTextAlignment(.center)
-                .padding(.horizontal)
-            
+
+            Text(
+                "SwiftKey is your quick access tool for launching apps, shortcuts, and more. Customize your hotkey below and start navigating efficiently!"
+            )
+            .multilineTextAlignment(.center)
+            .padding(.horizontal)
+
             KeyboardShortcuts.Recorder("Set your Hotkey", name: .toggleApp)
                 .padding(.horizontal)
-            
+
             Button(action: {
                 withAnimation {
                     isDismissing = true

@@ -3,17 +3,18 @@ import SwiftUI
 import Yams
 
 // MARK: - MenuItem
+
 struct MenuItem: Identifiable, Codable {
     let id: UUID
-    var key: String  // e.g. "a", "B", "!", etc.
-    var icon: String?  // Default SF Symbol name
-    var title: String  // Descriptive title
-    var action: String?  // Raw action string from YAML
-    var sticky: Bool?  // Sticky actions don't close window after execution
-    var notify: Bool?  // Notify actions show a notification after execution
-    var batch: Bool?  // Batch runs all submenu items
-    var submenu: [MenuItem]?  // Optional nested submenu
-    var hotkey: String?  // Hotkey for the menu item
+    var key: String // e.g. "a", "B", "!", etc.
+    var icon: String? // Default SF Symbol name
+    var title: String // Descriptive title
+    var action: String? // Raw action string from YAML
+    var sticky: Bool? // Sticky actions don't close window after execution
+    var notify: Bool? // Notify actions show a notification after execution
+    var batch: Bool? // Batch runs all submenu items
+    var submenu: [MenuItem]? // Optional nested submenu
+    var hotkey: String? // Hotkey for the menu item
 
     // Define coding keys explicitly.
     enum CodingKeys: String, CodingKey {
@@ -80,7 +81,8 @@ struct MenuItem: Identifiable, Codable {
 
                 if FileManager.default.fileExists(atPath: appURL.path) {
                     NSWorkspace.shared.openApplication(
-                        at: appURL, configuration: .init(), completionHandler: nil)
+                        at: appURL, configuration: .init(), completionHandler: nil
+                    )
                 } else {
                     print("Application not found or invalid at path: \(appPath)")
                 }
@@ -135,8 +137,8 @@ extension MenuItem {
             } else if action.hasPrefix("open://") {
                 let urlString = String(action.dropFirst("open://".count))
                 if let url = URL(string: urlString),
-                    let appURL = NSWorkspace.shared.urlForApplication(toOpen: url),
-                    case let nsImage = NSWorkspace.shared.icon(forFile: appURL.path)
+                   let appURL = NSWorkspace.shared.urlForApplication(toOpen: url),
+                   case let nsImage = NSWorkspace.shared.icon(forFile: appURL.path)
                 {
                     return Image(nsImage: nsImage)
                 } else {
@@ -144,7 +146,8 @@ extension MenuItem {
                 }
             } else if action.hasPrefix("shortcut://") {
                 if let appURL = NSWorkspace.shared.urlForApplication(
-                    withBundleIdentifier: "com.apple.shortcuts"),
+                    withBundleIdentifier: "com.apple.shortcuts"
+                ),
                     case let nsImage = NSWorkspace.shared.icon(forFile: appURL.path)
                 {
                     return Image(nsImage: nsImage)

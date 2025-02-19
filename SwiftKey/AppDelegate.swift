@@ -52,7 +52,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                     rootMenu: menuState.rootMenu,
                     statusItem: statusItem,
                     resetDelay: settings.menuStateResetDelay == 0
-                        ? 2 : settings.menuStateResetDelay  // TODO: in fact we should have another setting, but for now we'll just use 2 seconds
+                        ? 2 : settings
+                        .menuStateResetDelay // TODO: in fact we should have another setting, but for now we'll just use 2 seconds
                 )
             } else {
                 facelessMenuController?.resetDelay = settings.menuStateResetDelay
@@ -74,12 +75,14 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         .sink { [weak self] _ in self?.applySettings() }
 
         NotificationCenter.default.addObserver(
-            self, selector: #selector(hideWindow), name: .hideOverlay, object: nil)
+            self, selector: #selector(hideWindow), name: .hideOverlay, object: nil
+        )
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(applicationDidResignActive(_:)),
             name: NSApplication.didResignActiveNotification,
-            object: nil)
+            object: nil
+        )
     }
 
     func application(_ application: NSApplication, open urls: [URL]) {
@@ -168,7 +171,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 if settings.menuStateResetDelay == 0 {
                     menuState.reset()
                 } else if let lastHide = lastHideTime,
-                    Date().timeIntervalSince(lastHide) >= settings.menuStateResetDelay
+                          Date().timeIntervalSince(lastHide) >= settings.menuStateResetDelay
                 {
                     menuState.reset()
                 }
@@ -210,18 +213,20 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 }
 
 // MARK: - Hotkeys
+
 extension AppDelegate {
     private func registerMenuHotkeys(_ menu: [MenuItem]) {
         for item in menu {
             if let hotkeyStr = item.hotkey,
-               let shortcut = KeyboardShortcuts.Shortcut(hotkeyStr) {
+               let shortcut = KeyboardShortcuts.Shortcut(hotkeyStr)
+            {
                 let name = KeyboardShortcuts.Name(item.id.uuidString)
-                
+
                 KeyboardShortcuts.setShortcut(shortcut, for: name)
-                
+
                 KeyboardShortcuts.onKeyDown(for: name) { [weak self] in
                     guard let self = self else { return }
-                    
+
                     if item.submenu != nil {
                         DispatchQueue.main.async {
                             self.navigateToMenuItem(item)
@@ -232,19 +237,19 @@ extension AppDelegate {
                         }
                     }
                 }
-                
+
                 hotkeyHandlers[item.id.uuidString] = name
             }
-            
+
             if let submenu = item.submenu {
                 registerMenuHotkeys(submenu)
             }
         }
     }
-    
+
     private func navigateToMenuItem(_ item: MenuItem) {
         menuState.reset()
-        
+
         if let path = findPathToMenuItem(item, in: menuState.rootMenu) {
             for (index, menuItem) in path.enumerated() {
                 if index < path.count {
@@ -254,31 +259,37 @@ extension AppDelegate {
                     }
                 }
             }
-            
+
             overlayWindow?.orderOut(nil)
             overlayWindow?.center()
             overlayWindow?.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
         }
     }
-    
-    private func findPathToMenuItem(_ target: MenuItem, in menu: [MenuItem], currentPath: [MenuItem] = []) -> [MenuItem]? {
+
+    private func findPathToMenuItem(
+        _ target: MenuItem,
+        in menu: [MenuItem],
+        currentPath: [MenuItem] = []
+    ) -> [MenuItem]? {
         for item in menu {
             if item.id == target.id {
                 return currentPath + [item]
             }
-            
+
             if let submenu = item.submenu,
-               let path = findPathToMenuItem(target, in: submenu, currentPath: currentPath + [item]) {
+               let path = findPathToMenuItem(target, in: submenu, currentPath: currentPath + [item])
+            {
                 return path
             }
         }
-        
+
         return nil
     }
 }
 
 // MARK: - First Launch experience
+
 extension AppDelegate {
     func setupDefaultConfigFile() {
         guard settings.configFilePath.isEmpty else { return }
@@ -288,8 +299,7 @@ extension AppDelegate {
             let configFileURL = documentsURL.appendingPathComponent("menu.yaml")
 
             if !fileManager.fileExists(atPath: configFileURL.path) {
-                if let bundleConfigURL = Bundle.main.url(forResource: "menu", withExtension: "yaml")
-                {
+                if let bundleConfigURL = Bundle.main.url(forResource: "menu", withExtension: "yaml") {
                     do {
                         try fileManager.copyItem(at: bundleConfigURL, to: configFileURL)
                     } catch {
@@ -299,7 +309,8 @@ extension AppDelegate {
                     let defaultContent = "# Default menu configuration\n"
                     do {
                         try defaultContent.write(
-                            to: configFileURL, atomically: true, encoding: .utf8)
+                            to: configFileURL, atomically: true, encoding: .utf8
+                        )
                     } catch {
                         print("Error writing default config file: \(error)")
                     }

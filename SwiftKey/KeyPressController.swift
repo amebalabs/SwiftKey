@@ -87,8 +87,8 @@ class KeyPressController {
             DispatchQueue.global(qos: .userInitiated).async {
                 action()
             }
-            //sticky menus are only for full panel mode for now
-            if item.sticky == false && SettingsStore.shared.overlayStyle == .panel {
+            // sticky menus are only for full panel mode for now
+            if item.sticky == false, SettingsStore.shared.overlayStyle == .panel {
                 completion(.none)
             } else {
                 completion(.actionExecuted)

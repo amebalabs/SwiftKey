@@ -3,7 +3,7 @@ import Foundation
 class ConfigMonitor {
     static let shared = ConfigMonitor()
     private var lastModificationDate: Date?
-    
+
     func hasConfigChanged(at url: URL) -> Bool {
         let fileManager = FileManager.default
         do {
