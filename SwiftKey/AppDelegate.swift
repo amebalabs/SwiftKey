@@ -216,6 +216,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
 extension AppDelegate {
     private func registerMenuHotkeys(_ menu: [MenuItem]) {
+        if menu == menuState.rootMenu {
+            hotkeyHandlers.removeAll()
+        }
         for item in menu {
             if let hotkeyStr = item.hotkey,
                let shortcut = KeyboardShortcuts.Shortcut(hotkeyStr)
@@ -239,7 +242,7 @@ extension AppDelegate {
                 }
 
                 hotkeyHandlers[item.id.uuidString] = name
-            }
+            } //TODO: this is a place where we could do optional automagic hotkeys
 
             if let submenu = item.submenu {
                 registerMenuHotkeys(submenu)

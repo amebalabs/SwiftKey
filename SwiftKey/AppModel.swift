@@ -4,7 +4,7 @@ import Yams
 
 // MARK: - MenuItem
 
-struct MenuItem: Identifiable, Codable {
+struct MenuItem: Identifiable, Codable, Equatable {
     let id: UUID
     var key: String // e.g. "a", "B", "!", etc.
     var icon: String? // Default SF Symbol name
