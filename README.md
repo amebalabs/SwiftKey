@@ -82,6 +82,55 @@ SwiftKey uses YAML for configuration. Here's a basic example:
 - `notify` — Show notification after execution (optional)
 - `batch` — Execute all submenu items (optional). Alternative: hold ⌥ for batch execution.
 - `submenu` — Nested menu items (optional)
+- `hotkey` — Global keyboard shortcut (optional)
+
+## Global Hotkeys
+SwiftKey allows you to assign global hotkeys to any menu item. Hotkeys work even when the overlay is not visible:
+
+```yaml
+# Direct action hotkey
+- key: "c"
+  title: "Launch Calculator"
+  action: "launch:///Applications/Calculator.app"
+  hotkey: "cmd+ctrl+c"
+
+# Submenu navigation hotkey
+- key: "d"
+  title: "Development"
+  hotkey: "cmd+shift+d"  # Opens this submenu
+  submenu:
+    - key: "1"
+      title: "VS Code"
+      action: "launch:///Applications/Visual Studio Code.app"
+    - key: "2"
+      title: "Terminal"
+      action: "launch:///System/Applications/Terminal.app"
+
+# Nested submenu with hotkey
+- key: "u"
+  title: "Utilities"
+  submenu:
+    - key: "s"
+      title: "System Tools"
+      hotkey: "alt+cmd+s"  # Direct access to this submenu
+      submenu:
+        - key: "1"
+          title: "Activity Monitor"
+          action: "launch:///System/Applications/Activity Monitor.app"
+```
+
+Supported hotkey formats:
+- Modifiers: `cmd`, `ctrl`, `alt`, `shift`
+- Keys: letters, numbers, function keys (f1-f12), arrows, and special keys
+- Examples:
+  - `cmd+shift+a`
+  - `ctrl+alt+p`
+  - `cmd+f12`
+  - `shift+space`
+
+Hotkeys can:
+1. Execute actions directly — work globally without showing the overlay
+2. Open specific submenus
 
 ## Deep Linking
 SwiftKey supports deep linking through the swiftkey:// URL scheme:
