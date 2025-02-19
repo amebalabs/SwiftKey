@@ -7,38 +7,26 @@ import SwiftUI
 class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     static var shared: AppDelegate!
     var settings = SettingsStore.shared
-
     var overlayWindow: OverlayWindow?
     var notchContext: NotchContext?
-
     var hotKeyRef: EventHotKeyRef?
-
     var lastHideTime: Date?
-
     var statusItem: NSStatusItem?
     var facelessMenuController: FacelessMenuController?
-
     var menuState = MenuState.shared
-
     var defaultsObserver: AnyCancellable?
     var hotkeyHandlers: [String: KeyboardShortcuts.Name] = [:]
-
     private var sparkle: SparkleUpdater?
-
     func applicationDidFinishLaunching(_: Notification) {
         AppDelegate.shared = self
         sparkle = SparkleUpdater.shared
-
         setupDefaultConfigFile()
-
         menuState.rootMenu = loadMenuConfig() ?? []
         registerMenuHotkeys(menuState.rootMenu)
         menuState.reset()
-
         let contentView = OverlayView(state: menuState).environmentObject(SettingsStore.shared)
         overlayWindow = OverlayWindow.makeWindow(view: contentView)
         overlayWindow?.delegate = self
-
         if settings.facelessMode {
             if statusItem == nil {
                 statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -51,32 +39,22 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 facelessMenuController = FacelessMenuController(
                     rootMenu: menuState.rootMenu,
                     statusItem: statusItem,
-                    resetDelay: settings.menuStateResetDelay == 0
-                        ? 2 : settings
-                        .menuStateResetDelay // TODO: in fact we should have another setting, but for now we'll just use 2 seconds
+                    resetDelay: settings.menuStateResetDelay == 0 ? 2 : settings.menuStateResetDelay
                 )
             } else {
                 facelessMenuController?.resetDelay = settings.menuStateResetDelay
             }
         }
-
         hotKeyRef = registerHotKey()
         KeyboardShortcuts.onKeyDown(for: .toggleApp) { [self] in
             toggleSession()
         }
-
         if settings.needsOnboarding {
             showOnboardingWindow()
         }
-
-        defaultsObserver = NotificationCenter.default.publisher(
-            for: UserDefaults.didChangeNotification
-        )
-        .sink { [weak self] _ in self?.applySettings() }
-
-        NotificationCenter.default.addObserver(
-            self, selector: #selector(hideWindow), name: .hideOverlay, object: nil
-        )
+        defaultsObserver = NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)
+            .sink { [weak self] _ in self?.applySettings() }
+        NotificationCenter.default.addObserver(self, selector: #selector(hideWindow), name: .hideOverlay, object: nil)
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(applicationDidResignActive(_:)),
@@ -141,7 +119,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 }
             }
         }
-
         switch settings.overlayStyle {
         case .faceless:
             facelessMenuController?.endSession()
@@ -175,8 +152,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 {
                     menuState.reset()
                 }
-                window.center()
-                window.makeKeyAndOrderFront(nil)
+                presentOverlay()
             }
         }
     }
@@ -204,15 +180,30 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     func presentOverlay() {
         notchContext?.close()
-        guard let window = overlayWindow else { return }
-        window.center()
+        guard let window = overlayWindow, let screen = chosenScreen() else { return }
+        let frame = window.frame
+        let screenFrame = screen.visibleFrame
+
+        let verticalAdjustment: CGFloat = 150
+        let newOrigin = NSPoint(
+            x: screenFrame.origin.x + (screenFrame.width - frame.width) / 2,
+            y: screenFrame.origin.y + (screenFrame.height - frame.height) / 2 + verticalAdjustment
+        )
+        window.setFrameOrigin(newOrigin)
         window.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
-        window.makeFirstResponder(window.contentView)
+    }
+
+    private func chosenScreen() -> NSScreen? {
+        let screens = NSScreen.screens
+        switch SettingsStore.shared.overlayScreenOption {
+        case .primary:
+            return screens.first
+        case .mouse:
+            let mouseLocation = NSEvent.mouseLocation
+            return screens.first { NSMouseInRect(mouseLocation, $0.frame, false) }
+        }
     }
 }
-
-// MARK: - Hotkeys
 
 extension AppDelegate {
     private func registerMenuHotkeys(_ menu: [MenuItem]) {
@@ -220,16 +211,11 @@ extension AppDelegate {
             hotkeyHandlers.removeAll()
         }
         for item in menu {
-            if let hotkeyStr = item.hotkey,
-               let shortcut = KeyboardShortcuts.Shortcut(hotkeyStr)
-            {
+            if let hotkeyStr = item.hotkey, let shortcut = KeyboardShortcuts.Shortcut(hotkeyStr) {
                 let name = KeyboardShortcuts.Name(item.id.uuidString)
-
                 KeyboardShortcuts.setShortcut(shortcut, for: name)
-
                 KeyboardShortcuts.onKeyDown(for: name) { [weak self] in
                     guard let self = self else { return }
-
                     if item.submenu != nil {
                         DispatchQueue.main.async {
                             self.navigateToMenuItem(item)
@@ -240,10 +226,8 @@ extension AppDelegate {
                         }
                     }
                 }
-
                 hotkeyHandlers[item.id.uuidString] = name
-            } //TODO: this is a place where we could do optional automagic hotkeys
-
+            }
             if let submenu = item.submenu {
                 registerMenuHotkeys(submenu)
             }
@@ -252,7 +236,6 @@ extension AppDelegate {
 
     private func navigateToMenuItem(_ item: MenuItem) {
         menuState.reset()
-
         if let path = findPathToMenuItem(item, in: menuState.rootMenu) {
             for (index, menuItem) in path.enumerated() {
                 if index < path.count {
@@ -262,7 +245,6 @@ extension AppDelegate {
                     }
                 }
             }
-
             overlayWindow?.orderOut(nil)
             overlayWindow?.center()
             overlayWindow?.makeKeyAndOrderFront(nil)
@@ -279,28 +261,24 @@ extension AppDelegate {
             if item.id == target.id {
                 return currentPath + [item]
             }
-
-            if let submenu = item.submenu,
-               let path = findPathToMenuItem(target, in: submenu, currentPath: currentPath + [item])
-            {
+            if let submenu = item.submenu, let path = findPathToMenuItem(
+                target,
+                in: submenu,
+                currentPath: currentPath + [item]
+            ) {
                 return path
             }
         }
-
         return nil
     }
 }
 
-// MARK: - First Launch experience
-
 extension AppDelegate {
     func setupDefaultConfigFile() {
         guard settings.configFilePath.isEmpty else { return }
-
         let fileManager = FileManager.default
         if let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first {
             let configFileURL = documentsURL.appendingPathComponent("menu.yaml")
-
             if !fileManager.fileExists(atPath: configFileURL.path) {
                 if let bundleConfigURL = Bundle.main.url(forResource: "menu", withExtension: "yaml") {
                     do {
@@ -311,27 +289,22 @@ extension AppDelegate {
                 } else {
                     let defaultContent = "# Default menu configuration\n"
                     do {
-                        try defaultContent.write(
-                            to: configFileURL, atomically: true, encoding: .utf8
-                        )
+                        try defaultContent.write(to: configFileURL, atomically: true, encoding: .utf8)
                     } catch {
                         print("Error writing default config file: \(error)")
                     }
                 }
             }
-
             settings.configFilePath = configFileURL.path
             print("Default config file set to: \(configFileURL.path)")
         }
     }
 
     func showOnboardingWindow() {
-        let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 400, height: 300),
-            styleMask: [.titled, .closable],
-            backing: .buffered,
-            defer: false
-        )
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 400, height: 300),
+                              styleMask: [.titled, .closable],
+                              backing: .buffered,
+                              defer: false)
         window.center()
         window.title = "Welcome to SwiftKey"
         let onboardingView = OnboardingView(onFinish: { [weak window, self] in

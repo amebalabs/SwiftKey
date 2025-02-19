@@ -22,34 +22,23 @@ class NotchContext {
     }
 
     convenience init?(
-        headerLeadingView: AnyView,
-        headerTrailingView: AnyView,
-        bodyView: AnyView,
-        animated: Bool
-    ) {
-        let mouseLocation = NSEvent.mouseLocation
-        let screens = NSScreen.screens
-        let screenWithMouse = screens.first { NSMouseInRect(mouseLocation, $0.frame, false) }
-
-        guard let screen = screenWithMouse ?? NSScreen.buildin else {
-            return nil
-        }
-        self.init(
-            screen: screen,
-            headerLeadingView: headerLeadingView,
-            headerTrailingView: headerTrailingView,
-            bodyView: bodyView,
-            animated: animated
-        )
-    }
-
-    convenience init?(
         headerLeadingView: some View,
         headerTrailingView: some View,
         bodyView: some View,
         animated: Bool = true
     ) {
+        let screens = NSScreen.screens
+        var chosenScreen: NSScreen?
+        switch SettingsStore.shared.overlayScreenOption {
+        case .primary:
+            chosenScreen = screens.first
+        case .mouse:
+            let mouseLocation = NSEvent.mouseLocation
+            chosenScreen = screens.first { NSMouseInRect(mouseLocation, $0.frame, false) }
+        }
+        guard let screen = chosenScreen ?? NSScreen.buildin else { return nil }
         self.init(
+            screen: screen,
             headerLeadingView: AnyView(headerLeadingView),
             headerTrailingView: AnyView(headerTrailingView),
             bodyView: AnyView(bodyView),
@@ -60,7 +49,6 @@ class NotchContext {
     func open(forInterval interval: TimeInterval = 0) {
         let window = NotchWindowController(screen: screen)
         window.window?.setFrameOrigin(.zero)
-
         viewModel = NotchViewModel(
             screen: screen,
             headerLeadingView: headerLeadingView,
@@ -72,9 +60,7 @@ class NotchContext {
         let view = NotchView(vm: viewModel)
         let viewController = NotchViewController(view)
         window.contentViewController = viewController
-
         let shadowInset: CGFloat = 50
-
         let topRect = CGRect(
             x: screen.frame.origin.x,
             y: screen.frame.origin.y + screen.frame.height - viewModel.notchOpenedSize.height - shadowInset,
@@ -83,7 +69,6 @@ class NotchContext {
         )
         window.window?.setFrameOrigin(topRect.origin)
         window.window?.setContentSize(topRect.size)
-
         window.window?.orderFront(nil)
         window.window?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
@@ -91,9 +76,7 @@ class NotchContext {
             window.window?.makeFirstResponder(window.window?.contentView)
             viewModel.open()
         }
-
         viewModel.referencedWindow = window
-
         guard interval > 0 else { return }
         viewModel.scheduleClose(after: interval)
     }

@@ -19,6 +19,11 @@ struct GeneralSettingsView: View {
                 Toggle("Horizontal Layout", isOn: settings.$useHorizontalOverlayLayout)
             }
 
+            Picker("Show SwiftKey on", selection: settings.$overlayScreenOption) {
+                ForEach(SettingsStore.OverlayScreenOption.allCases, id: \.self) { option in
+                    Text(option.rawValue).tag(option)
+                }
+            }
             HStack {
                 Text("Menu Reset Delay")
                 Slider(value: settings.$menuStateResetDelay, in: 0 ... 10, step: 0.5)
