@@ -13,10 +13,11 @@ struct MenuItem: Identifiable, Codable {
     var notify: Bool?  // Notify actions show a notification after execution
     var batch: Bool?  // Batch runs all submenu items
     var submenu: [MenuItem]?  // Optional nested submenu
+    var hotkey: String?  // Hotkey for the menu item
 
     // Define coding keys explicitly.
     enum CodingKeys: String, CodingKey {
-        case id, key, icon, title, action, sticky, notify, batch, submenu
+        case id, key, icon, title, action, sticky, notify, batch, submenu, hotkey
     }
 
     // Custom initializer that ignores any incoming 'id' from the YAML
@@ -33,12 +34,14 @@ struct MenuItem: Identifiable, Codable {
         notify = try container.decodeIfPresent(Bool.self, forKey: .notify)
         batch = try container.decodeIfPresent(Bool.self, forKey: .batch)
         submenu = try container.decodeIfPresent([MenuItem].self, forKey: .submenu)
+        hotkey = try container.decodeIfPresent(String.self, forKey: .hotkey)
     }
 
     // Standard initializer for manual creation
     init(
         id: UUID = UUID(), key: String, icon: String? = nil, title: String, action: String? = nil,
-        sticky: Bool? = nil, notify: Bool? = nil, batch: Bool? = nil, submenu: [MenuItem]? = nil
+        sticky: Bool? = nil, notify: Bool? = nil, batch: Bool? = nil, submenu: [MenuItem]? = nil,
+        hotkey: String? = nil
     ) {
         self.id = id
         self.key = key
@@ -49,6 +52,7 @@ struct MenuItem: Identifiable, Codable {
         self.notify = notify
         self.batch = batch
         self.submenu = submenu
+        self.hotkey = hotkey
     }
 
     func encode(to encoder: Encoder) throws {
@@ -62,6 +66,7 @@ struct MenuItem: Identifiable, Codable {
         try container.encodeIfPresent(notify, forKey: .notify)
         try container.encodeIfPresent(batch, forKey: .batch)
         try container.encodeIfPresent(submenu, forKey: .submenu)
+        try container.encodeIfPresent(hotkey, forKey: .hotkey)
     }
 
     /// Computed property that creates a closure to perform the specified action.
@@ -100,14 +105,14 @@ struct MenuItem: Identifiable, Codable {
             return {
                 do {
                     let out = try runScript(to: command, env: [:])
-                    
+
                     notifyUser(title: "Finished running \(title)", message: out.out)
                 } catch {
                     guard let error = error as? ShellOutError else {
-                        notifyUser(title: "Error running \(title)", message:"Unknown error")
+                        notifyUser(title: "Error running \(title)", message: "Unknown error")
                         return
                     }
-                    notifyUser(title: "Error running \(title)", message:error.message)
+                    notifyUser(title: "Error running \(title)", message: error.message)
                 }
             }
         }
