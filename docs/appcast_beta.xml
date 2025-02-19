@@ -2,25 +2,26 @@
 <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
     <channel>
         <title>SwiftKey Beta Appcast</title>
-        <link>https://amebalabs.github.io/swiftkey/appcast_beta.xml</link>
+        <link>https://swiftkey.app/appcast_beta.xml</link>
         <description>SwiftKey Beta Updates</description>
         <language>en</language>
         <item>
-            <title>SwiftKey 1.0.0-beta.2</title>
-            <sparkle:version>1.0.0-beta.2</sparkle:version>
-            <sparkle:shortVersionString>1.0.0-beta.2</sparkle:shortVersionString>
-            <description><![CDATA[- Testing release pipeline
-- Much love to GitHub Actions]]>
+            <title>SwiftKey 1.0.0-beta.3</title>
+            <sparkle:version>1.0.0-beta.3</sparkle:version>
+            <sparkle:shortVersionString>1.0.0-beta.3</sparkle:shortVersionString>
+            <description><![CDATA[# First "real" beta release
+- Features described in the README.md file.
+- What to report: anything that doesn't work or doesn't look right. Feature requests are welcome.]]>
             </description>
-            <pubDate>Mon, 17 Feb 2025 15:31:21 +0000</pubDate>
+            <pubDate>Wed, 19 Feb 2025 20:08:29 +0000</pubDate>
             <enclosure
-                url="https://github.com/amebalabs/SwiftKey/releases/download/v1.0.0-beta.2/SwiftKey-1.0.0-beta.2.zip"
-                sparkle:version="1.0.0-beta.2"
-                sparkle:shortVersionString="1.0.0-beta.2"
-                length="5470846"
+                url="https://github.com/amebalabs/SwiftKey/releases/download/v1.0.0-beta.3/SwiftKey-1.0.0-beta.3.zip"
+                sparkle:version="1.0.0-beta.3"
+                sparkle:shortVersionString="1.0.0-beta.3"
+                length="5519009"
                 type="application/octet-stream"
                 sparkle:edSignature=""
-                sparkle:sha256="31a255093cc81bbf19b1c828cf72be0cc5992e486e6dfec8d1f1c03014b0513d"
+                sparkle:sha256="6b68c92e8a7434d7de0cd1b27054ea50f713f773f915c2c7b72811e8231b2ce7"
             />
         </item>
     </channel>
