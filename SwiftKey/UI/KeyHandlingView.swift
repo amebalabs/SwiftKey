@@ -33,11 +33,21 @@ struct KeyHandlingView: NSViewRepresentable {
                 return
             case 59, 62: onKeyDown("control", event.modifierFlags)
                 return
-//            case 58, 61: onKeyDown("option")
-//                return
             case 126:
-                guard event.modifierFlags.contains(.command) else { break }
-                onKeyDown("cmd+up", event.modifierFlags)
+                if event.modifierFlags.contains(.command) {
+                    onKeyDown("cmd+up", event.modifierFlags)
+                } else {
+                    onKeyDown("up", event.modifierFlags)
+                }
+                return
+            case 125:
+                onKeyDown("down", event.modifierFlags)
+                return
+            case 123:
+                onKeyDown("left", event.modifierFlags)
+                return
+            case 124:
+                onKeyDown("right", event.modifierFlags)
                 return
             default: break
             }
