@@ -23,13 +23,13 @@ struct OverlayView: View {
     }
 
     // Fixed height per vertical menu item.
-    var verticalItemHeight: CGFloat { 50 }
+    var verticalItemHeight: CGFloat { 64 }
     // Actual vertical height: total item height capped at verticalMaxHeight.
     var verticalContentHeight: CGFloat {
         min(CGFloat(currentMenu.count) * verticalItemHeight, verticalMaxHeight)
     }
 
-    var verticalContentFixedWidth: CGFloat { 300 }
+    var verticalContentFixedWidth: CGFloat { 340 }
 
     // Horizontal mode: fixed height; width computed dynamically.
     var horizontalFixedHeight: CGFloat { 100 }
@@ -82,9 +82,9 @@ struct OverlayView: View {
                                 VerticalMenuItemView(item: item, altMode: $altMode)
                             }
                         }
-                        .padding(.bottom, 0)
+                        .padding(.vertical, 12)
                     }
-                    .padding()
+                    .padding(.horizontal, 16)
                     .frame(width: verticalContentFixedWidth, height: verticalContentHeight, alignment: .top)
                 }
                 if !errorMessage.isEmpty {
@@ -153,24 +153,42 @@ struct OverlayView: View {
 struct VerticalMenuItemView: View {
     let item: MenuItem
     @Binding var altMode: Bool
-
+    
     var body: some View {
-        HStack {
+        HStack(spacing: 16) {
             item.iconImage
-
-            VStack(alignment: .leading, spacing: 2) {
+                .resizable()
+                .scaledToFit()
+                .frame(width: 40, height: 40)
+                .opacity(0.9)
+            
+            VStack(alignment: .leading, spacing: 4) {
                 Text(item.title)
-                    .font(.subheadline)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(.primary)
+                
                 Text(item.key)
-                    .font(.caption)
-                    .fontWeight(.bold)
+                    .font(.system(size: 12, weight: .semibold))
                     .foregroundColor(.secondary)
             }
-
+            
             Spacer()
+            
+            if item.submenu != nil {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(.secondary)
+            }
         }
-        .padding(.horizontal, 8)
-        .background(altMode && item.submenu != nil ? Color.red.opacity(0.7) : Color.clear)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(altMode && item.submenu != nil ?
+                      Color.red.opacity(0.2) :
+                        Color.primary.opacity(0.05))
+        )
+        .contentShape(Rectangle())
     }
 }
 
