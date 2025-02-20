@@ -14,12 +14,6 @@ struct SettingsView: View {
                     Label("General", systemImage: "gear")
                 }
                 .tag(Tabs.general)
-            MenuConfigView(config: $menuState.rootMenu)
-                .tabItem {
-                    Label("Menu", systemImage: "list.bullet")
-                }
-                .tag(Tabs.general)
-                .frame(width: 800, height: 800)
             AboutSettingsView()
                 .tabItem {
                     Label("About", systemImage: "info")
