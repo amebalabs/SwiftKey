@@ -14,24 +14,74 @@ outputs:
 runs:
   using: "composite"
   steps:
-    - name: Download Sparkle
+    - name: Setup Sparkle
       shell: bash
       run: |
-        curl -L -o sparkle.tar.xz https://github.com/sparkle-project/Sparkle/releases/download/2.4.2/Sparkle-2.4.2.tar.xz
+        set -e
+        SPARKLE_VERSION="2.4.2"
+        TEMP_DIR=$(mktemp -d)
+        echo "TEMP_DIR=$TEMP_DIR" >> $GITHUB_ENV
+
+        echo "Downloading Sparkle..."
+        curl -L -o "$TEMP_DIR/sparkle.tar.xz" \
+          "https://github.com/sparkle-project/Sparkle/releases/download/$SPARKLE_VERSION/Sparkle-$SPARKLE_VERSION.tar.xz"
+
+        echo "Extracting Sparkle..."
+        cd "$TEMP_DIR"
         tar -xf sparkle.tar.xz
+
+        echo "Verifying Sparkle tools..."
+        if [ ! -f "bin/sign_update" ]; then
+          echo "Error: sign_update tool not found"
+          exit 1
+        fi
+
+        chmod +x bin/sign_update
+        echo "SPARKLE_BIN=$TEMP_DIR/bin" >> $GITHUB_ENV
 
     - name: Generate Signature
       id: sign
       shell: bash
       run: |
+        set -e
+
+        if [ ! -f "${{ inputs.file-path }}" ]; then
+          echo "Error: File not found: ${{ inputs.file-path }}"
+          exit 1
+        }
+
+        # Create temporary directory for keys
+        KEYS_DIR=$(mktemp -d)
+
         # Decode private key
-        echo "${{ inputs.private-key }}" | base64 -d > private_key
+        echo "Decoding private key..."
+        echo "${{ inputs.private-key }}" | base64 --decode > "$KEYS_DIR/private_key"
+
+        if [ ! -s "$KEYS_DIR/private_key" ]; then
+          echo "Error: Failed to decode private key"
+          exit 1
+        }
 
         # Generate signature
-        signature=$(./bin/sign_update "${{ inputs.file-path }}" private_key)
+        echo "Generating signature..."
+        SIGNATURE=$("$SPARKLE_BIN/sign_update" "${{ inputs.file-path }}" "$KEYS_DIR/private_key")
+
+        if [ -z "$SIGNATURE" ]; then
+          echo "Error: Failed to generate signature"
+          exit 1
+        }
 
         # Clean up
-        rm private_key
+        rm -rf "$KEYS_DIR"
 
         # Set output
-        echo "signature=$signature" >> $GITHUB_OUTPUT
+        echo "signature=$SIGNATURE" >> $GITHUB_OUTPUT
+        echo "Signature generated successfully"
+
+    - name: Cleanup
+      if: always()
+      shell: bash
+      run: |
+        if [ -n "$TEMP_DIR" ]; then
+          rm -rf "$TEMP_DIR"
+        fi
