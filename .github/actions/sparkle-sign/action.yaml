@@ -45,6 +45,13 @@ runs:
       run: |
         set -e
 
+        # Debug information
+        echo "Current directory: $(pwd)"
+        echo "File to sign: ${{ inputs.file-path }}"
+        echo "File exists check:"
+        ls -la "${{ inputs.file-path }}" || echo "File not found"
+
+        # Verify file exists
         if [ ! -f "${{ inputs.file-path }}" ]; then
           echo "Error: File not found: ${{ inputs.file-path }}"
           exit 1
@@ -52,22 +59,37 @@ runs:
 
         # Create temporary directory for keys
         KEYS_DIR=$(mktemp -d)
+        echo "Created temp dir for keys: $KEYS_DIR"
 
-        # Decode private key
+        # Decode private key with error checking
         echo "Decoding private key..."
-        echo "${{ inputs.private-key }}" | base64 --decode > "$KEYS_DIR/private_key"
-
-        if [ ! -s "$KEYS_DIR/private_key" ]; then
-          echo "Error: Failed to decode private key"
+        if ! echo "${{ inputs.private-key }}" | base64 -d > "$KEYS_DIR/private_key" 2>/dev/null; then
+          echo "Error: Failed to decode private key (invalid base64)"
           exit 1
         fi
 
-        # Generate signature
+        if [ ! -s "$KEYS_DIR/private_key" ]; then
+          echo "Error: Decoded private key is empty"
+          exit 1
+        fi
+
+        # Verify sign_update tool
+        if [ ! -x "$SPARKLE_BIN/sign_update" ]; then
+          echo "Error: sign_update tool not found or not executable"
+          echo "SPARKLE_BIN contents:"
+          ls -la "$SPARKLE_BIN"
+          exit 1
+        fi
+
+        # Generate signature with full error output
         echo "Generating signature..."
-        SIGNATURE=$("$SPARKLE_BIN/sign_update" "${{ inputs.file-path }}" "$KEYS_DIR/private_key")
+        if ! SIGNATURE=$("$SPARKLE_BIN/sign_update" "${{ inputs.file-path }}" "$KEYS_DIR/private_key" 2>&1); then
+          echo "Error generating signature: $SIGNATURE"
+          exit 1
+        fi
 
         if [ -z "$SIGNATURE" ]; then
-          echo "Error: Failed to generate signature"
+          echo "Error: Empty signature generated"
           exit 1
         fi
 
