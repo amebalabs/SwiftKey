@@ -48,7 +48,7 @@ runs:
         if [ ! -f "${{ inputs.file-path }}" ]; then
           echo "Error: File not found: ${{ inputs.file-path }}"
           exit 1
-        }
+        fi
 
         # Create temporary directory for keys
         KEYS_DIR=$(mktemp -d)
@@ -60,7 +60,7 @@ runs:
         if [ ! -s "$KEYS_DIR/private_key" ]; then
           echo "Error: Failed to decode private key"
           exit 1
-        }
+        fi
 
         # Generate signature
         echo "Generating signature..."
@@ -69,7 +69,7 @@ runs:
         if [ -z "$SIGNATURE" ]; then
           echo "Error: Failed to generate signature"
           exit 1
-        }
+        fi
 
         # Clean up
         rm -rf "$KEYS_DIR"
