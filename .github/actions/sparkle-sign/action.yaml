@@ -83,10 +83,12 @@ runs:
 
         # Generate signature with full error output
         echo "Generating signature..."
-        if ! SIGNATURE=$("$SPARKLE_BIN/sign_update" "${{ inputs.file-path }}" "$KEYS_DIR/private_key" 2>&1); then
-          echo "Error generating signature: $SIGNATURE"
-          exit 1
-        fi
+        if ! SIGNATURE=$("$SPARKLE_BIN/sign_update" \
+                  --ed-key-file "$KEYS_DIR/private_key" \
+                  "${{ inputs.file-path }}" 2>&1); then
+                  echo "Error generating signature: $SIGNATURE"
+                  exit 1
+                fi
 
         if [ -z "$SIGNATURE" ]; then
           echo "Error: Empty signature generated"
