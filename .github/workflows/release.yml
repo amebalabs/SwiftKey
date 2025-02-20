@@ -247,6 +247,13 @@ jobs:
           cat "$NOTES_PATH" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
 
+      - name: Generate Sparkle Signature
+        id: generate_signature
+        uses: ./.github/actions/sparkle-sign
+        with:
+          private-key: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+          file-path: ${{ env.APP_NAME }}-${{ env.VERSION }}.zip
+
       - name: Update Appcast
         run: |
           # Determine which appcast to update

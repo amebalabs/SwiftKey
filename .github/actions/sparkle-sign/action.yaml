@@ -1,0 +1,37 @@
+name: "Sparkle Sign"
+description: "Sign updates with Sparkle EdDSA"
+inputs:
+  private-key:
+    description: "Base64 encoded EdDSA private key"
+    required: true
+  file-path:
+    description: "Path to the file to sign"
+    required: true
+outputs:
+  signature:
+    description: "Generated EdDSA signature"
+    value: ${{ steps.sign.outputs.signature }}
+runs:
+  using: "composite"
+  steps:
+    - name: Download Sparkle
+      shell: bash
+      run: |
+        curl -L -o sparkle.tar.xz https://github.com/sparkle-project/Sparkle/releases/download/2.4.2/Sparkle-2.4.2.tar.xz
+        tar -xf sparkle.tar.xz
+
+    - name: Generate Signature
+      id: sign
+      shell: bash
+      run: |
+        # Decode private key
+        echo "${{ inputs.private-key }}" | base64 -d > private_key
+
+        # Generate signature
+        signature=$(./bin/sign_update "${{ inputs.file-path }}" private_key)
+
+        # Clean up
+        rm private_key
+
+        # Set output
+        echo "signature=$signature" >> $GITHUB_OUTPUT
