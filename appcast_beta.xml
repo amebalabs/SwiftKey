@@ -13,15 +13,14 @@
 - Features described in the README.md file.
 - What to report: anything that doesn't work or doesn't look right. Feature requests are welcome.]]>
             </description>
-            <pubDate>Wed, 19 Feb 2025 20:08:29 +0000</pubDate>
+            <pubDate>Fri, 21 Feb 2025 01:32:49 +0000</pubDate>
             <enclosure
                 url="https://github.com/amebalabs/SwiftKey/releases/download/v1.0.0-beta.3/SwiftKey-1.0.0-beta.3.zip"
                 sparkle:version="1.0.0-beta.3"
                 sparkle:shortVersionString="1.0.0-beta.3"
-                length="5519009"
                 type="application/octet-stream"
-                sparkle:edSignature=""
-                sparkle:sha256="6b68c92e8a7434d7de0cd1b27054ea50f713f773f915c2c7b72811e8231b2ce7"
+                sparkle:edSignature="mIaKy/QSBJMvPWcAon7rSg2xgUx+fhSMpzXL1UnVbM9zXYjBwZt/VNFbeYyUsT7XrDbLn0OpKZCWjkg1Y/1QBw==" length="5458587"
+                sparkle:sha256="3d6ecabe0c08a91fbe05d1f5bdfc8966d288293b65cedffa96ed2b306386c8ce"
             />
         </item>
     </channel>
