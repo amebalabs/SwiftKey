@@ -283,7 +283,7 @@ jobs:
                           sparkle:shortVersionString="${{ env.VERSION }}"
                           length="$(stat -f%z "${{ env.APP_NAME }}-${{ env.VERSION }}.zip")"
                           type="application/octet-stream"
-                          sparkle:edSignature="${{ steps.generate_signature.outputs.signature }}"
+                          ${{ steps.generate_signature.outputs.signature }}
                           sparkle:sha256="${{ env.ZIP_SHA }}"
                       />
                   </item>
