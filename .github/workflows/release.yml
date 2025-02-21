@@ -260,7 +260,7 @@ jobs:
           IS_BETA="${{ env.IS_BETA }}"
           APPCAST_NAME="appcast$([ "$IS_BETA" == "true" ] && echo "_beta").xml"
           APPCAST_FILE="docs/$APPCAST_NAME"
-          RELEASE_NOTES_SAFE=$(echo "$RELEASE_NOTES" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g')
+
           # Create the appcast with single latest item
           cat > "$APPCAST_FILE" << EOF
           <?xml version="1.0" encoding="utf-8"?>
@@ -274,7 +274,7 @@ jobs:
                       <title>${{ env.APP_NAME }} ${{ env.VERSION }}</title>
                       <sparkle:version>${{ env.VERSION }}</sparkle:version>
                       <sparkle:shortVersionString>${{ env.VERSION }}</sparkle:shortVersionString>
-                      <description><![CDATA[${RELEASE_NOTES_SAFE}]]></description>
+                      <description><![CDATA[{{ env.RELEASE_NOTES }}]]> </description>
                       </description>
                       <pubDate>$(date -R)</pubDate>
                       <enclosure
