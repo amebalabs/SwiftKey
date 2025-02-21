@@ -18,7 +18,7 @@ runs:
       shell: bash
       run: |
         set -e
-        SPARKLE_VERSION="2.4.2"
+        SPARKLE_VERSION="2.6.4"
         TEMP_DIR=$(mktemp -d)
         echo "TEMP_DIR=$TEMP_DIR" >> $GITHUB_ENV
 
