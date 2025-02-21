@@ -237,12 +237,14 @@ jobs:
             echo "Error: Release notes not found at $NOTES_PATH"
             exit 1
           fi
+
           # Escape the content for GitHub Actions output
           CONTENT=$(cat "$NOTES_PATH" | perl -p -e 's/%/%25/g' | perl -p -e 's/\n/%0A/g' | perl -p -e 's/\r/%0D/g')
           echo "content=$CONTENT" >> $GITHUB_OUTPUT
-          # Store XML-escaped content for the release
+
+          # Also store raw content for the release
           echo "RELEASE_NOTES<<EOF" >> $GITHUB_ENV
-          cat "$NOTES_PATH" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g; s/"/\&quot;/g; s/'"'"'/\&#39;/g' >> $GITHUB_ENV
+          cat "$NOTES_PATH" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
 
       - name: Generate Sparkle Signature
@@ -254,17 +256,10 @@ jobs:
 
       - name: Update Appcast
         run: |
-          # Determine which appcast to update
           IS_BETA="${{ env.IS_BETA }}"
           APPCAST_NAME="appcast$([ "$IS_BETA" == "true" ] && echo "_beta").xml"
           APPCAST_FILE="docs/$APPCAST_NAME"
-
-          # Create temporary file with release notes
-          TEMP_NOTES=$(mktemp)
-          echo "${{ env.RELEASE_NOTES }}" > "$TEMP_NOTES"
-
-          # Create the appcast with single latest item
-          cat > "$APPCAST_FILE" << EOF
+          cat > "$APPCAST_FILE" <<-EOF
           <?xml version="1.0" encoding="utf-8"?>
           <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
               <channel>
@@ -276,7 +271,7 @@ jobs:
                       <title>${{ env.APP_NAME }} ${{ env.VERSION }}</title>
                       <sparkle:version>${{ env.VERSION }}</sparkle:version>
                       <sparkle:shortVersionString>${{ env.VERSION }}</sparkle:shortVersionString>
-                      <description><![CDATA[$(cat "$TEMP_NOTES")]]></description>
+                      <description><![CDATA[${{ env.RELEASE_NOTES }}]]></description>
                       <pubDate>$(date -R)</pubDate>
                       <enclosure
                           url="https://github.com/${{ github.repository }}/releases/download/${{ env.TAG }}/${{ env.APP_NAME }}-${{ env.VERSION }}.zip"
@@ -290,7 +285,6 @@ jobs:
               </channel>
           </rss>
           EOF
-          rm "$TEMP_NOTES"
 
           # Validate XML format
           if ! xmllint --noout "$APPCAST_FILE" 2>xmllint_error.log; then
@@ -298,6 +292,7 @@ jobs:
               cat xmllint_error.log
               exit 1
           fi
+
           echo "Appcast file successfully created and validated at $APPCAST_FILE"
 
       - name: Update CHANGELOG.md
