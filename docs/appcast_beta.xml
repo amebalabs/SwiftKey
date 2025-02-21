@@ -35,9 +35,9 @@ First public release of SwiftKey - a keyboard-driven launcher for macOS that hel
   - Execute Apple Shortcuts
   - Dynamic menus via shell scripts
 
-  ## Configuration
+## Configuration
 
-- Simple YAML config file
+- еSimple YAML config file
 - Hierarchical menu structure
 - SF Symbols support
 - Per-item hotkeys
@@ -55,27 +55,21 @@ First public release of SwiftKey - a keyboard-driven launcher for macOS that hel
 - macOS 12.0 or later
 - Apple Silicon or Intel Mac
 
-## Installation
-
-1. Download latest release
-2. Move to Applications
-3. Launch and follow onboarding
-
 ## Known Issues
 
 None reported. Please file any bugs in Issues!
 
 ## Feedback
 
-This is our first public release - we'd love to hear your thoughts and suggestions!]]> </description>
-            <pubDate>Fri, 21 Feb 2025 19:24:33 +0000</pubDate>
+This is our first public release - we'd love to hear your thoughts and suggestions!]]></description>
+            <pubDate>Fri, 21 Feb 2025 23:48:44 +0000</pubDate>
             <enclosure
                 url="https://github.com/amebalabs/SwiftKey/releases/download/v1.0.0-beta.4/SwiftKey-1.0.0-beta.4.zip"
                 sparkle:version="1.0.0-beta.4"
                 sparkle:shortVersionString="1.0.0-beta.4"
                 type="application/octet-stream"
-                sparkle:edSignature="yQj2QzdxqRmS3AdYkzJ/RUWlpKQF1q1XQkZvIDDmivqgggbl5fdOWCtpCLn/gU4WWAvPzBBfjqAA2vfWaHUpAA==" length="5458519"
-                sparkle:sha256="b89bec8b77c43ec987eed88d0f7f2afb6e972f28c8a4ea3847bfc58e0d5182f6"
+                sparkle:edSignature="YfGb/zLC1HOlTfqcIvHbA75E7F4RRghS+aRjaiJBK3obAQnRSxq5oGsILfgmWfGU0wZxr9/VZZTVhV2/xwvXBg==" length="5458595"
+                sparkle:sha256="c586609fa7fd58b3bad285cd4bf48986997d2138e0533ac13388ccce59fc06ef"
             />
         </item>
     </channel>
