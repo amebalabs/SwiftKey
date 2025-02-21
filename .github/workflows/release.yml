@@ -260,7 +260,7 @@ jobs:
           IS_BETA="${{ env.IS_BETA }}"
           APPCAST_NAME="appcast$([ "$IS_BETA" == "true" ] && echo "_beta").xml"
           APPCAST_FILE="docs/$APPCAST_NAME"
-
+          RELEASE_NOTES_SAFE=$(echo "$RELEASE_NOTES" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g')
           # Create the appcast with single latest item
           cat > "$APPCAST_FILE" << EOF
           <?xml version="1.0" encoding="utf-8"?>
@@ -274,7 +274,7 @@ jobs:
                       <title>${{ env.APP_NAME }} ${{ env.VERSION }}</title>
                       <sparkle:version>${{ env.VERSION }}</sparkle:version>
                       <sparkle:shortVersionString>${{ env.VERSION }}</sparkle:shortVersionString>
-                      <description><![CDATA[${{ env.RELEASE_NOTES }}]]>
+                      <description><![CDATA[${{ env.RELEASE_NOTES_SAFE }}]]>
                       </description>
                       <pubDate>$(date -R)</pubDate>
                       <enclosure
@@ -291,10 +291,13 @@ jobs:
           EOF
 
           # Validate XML format
-          xmllint --noout "$APPCAST_FILE" || {
-            echo "Error: Invalid XML format in appcast"
-            exit 1
-          }
+          if ! xmllint --noout "$APPCAST_FILE" 2>xmllint_error.log; then
+              echo "XML Validation Error:"
+              cat xmllint_error.log
+              exit 1
+          fi
+
+          echo "Appcast file successfully created and validated at $APPCAST_FILE"
 
       - name: Update CHANGELOG.md
         run: |
