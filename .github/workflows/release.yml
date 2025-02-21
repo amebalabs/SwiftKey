@@ -259,6 +259,7 @@ jobs:
           IS_BETA="${{ env.IS_BETA }}"
           APPCAST_NAME="appcast$([ "$IS_BETA" == "true" ] && echo "_beta").xml"
           APPCAST_FILE="docs/$APPCAST_NAME"
+          echo "$APPCAST_FILE"
           cat > "$APPCAST_FILE" <<-EOF
           <?xml version="1.0" encoding="utf-8"?>
           <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
