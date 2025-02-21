@@ -274,7 +274,7 @@ jobs:
                       <title>${{ env.APP_NAME }} ${{ env.VERSION }}</title>
                       <sparkle:version>${{ env.VERSION }}</sparkle:version>
                       <sparkle:shortVersionString>${{ env.VERSION }}</sparkle:shortVersionString>
-                      <description><![CDATA[${{ env.RELEASE_NOTES_SAFE }}]]>
+                      <description><![CDATA[${RELEASE_NOTES_SAFE}]]></description>
                       </description>
                       <pubDate>$(date -R)</pubDate>
                       <enclosure
