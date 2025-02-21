@@ -275,7 +275,6 @@ jobs:
                       <sparkle:version>${{ env.VERSION }}</sparkle:version>
                       <sparkle:shortVersionString>${{ env.VERSION }}</sparkle:shortVersionString>
                       <description><![CDATA[${{ env.RELEASE_NOTES }}]]> </description>
-                      </description>
                       <pubDate>$(date -R)</pubDate>
                       <enclosure
                           url="https://github.com/${{ github.repository }}/releases/download/${{ env.TAG }}/${{ env.APP_NAME }}-${{ env.VERSION }}.zip"
