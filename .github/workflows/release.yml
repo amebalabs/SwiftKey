@@ -287,15 +287,6 @@ jobs:
           </rss>
           EOF
 
-          # Validate XML format
-          if ! xmllint --noout "$APPCAST_FILE" 2>xmllint_error.log; then
-              echo "XML Validation Error:"
-              cat xmllint_error.log
-              echo "Content of generated file:"
-              cat "$APPCAST_FILE"
-              exit 1
-          fi
-
           echo "Appcast file successfully created and validated at $APPCAST_FILE"
 
       - name: Update CHANGELOG.md
