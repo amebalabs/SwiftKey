@@ -259,13 +259,20 @@ jobs:
           IS_BETA="${{ env.IS_BETA }}"
           APPCAST_NAME="appcast$([ "$IS_BETA" == "true" ] && echo "_beta").xml"
           APPCAST_FILE="docs/$APPCAST_NAME"
-          echo "$APPCAST_FILE"
+
+          # Determine feed URL explicitly
+          if [ "$IS_BETA" == "true" ]; then
+            FEED_URL="${{ env.BETA_FEED_URL }}"
+          else
+            FEED_URL="${{ env.PROD_FEED_URL }}"
+          fi
+
           cat > "$APPCAST_FILE" <<-EOF
           <?xml version="1.0" encoding="utf-8"?>
           <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
               <channel>
                   <title>${{ env.APP_NAME }} $([ "$IS_BETA" == "true" ] && echo "Beta ")Appcast</title>
-                  <link>$([ "$IS_BETA" == "true" ] && echo "${{ env.BETA_FEED_URL }}" || echo "${{ env.PROD_FEED_URL }}")</link>
+                  <link>$FEED_URL</link>
                   <description>${{ env.APP_NAME }} $([ "$IS_BETA" == "true" ] && echo "Beta ")Updates</description>
                   <language>en</language>
                   <item>
@@ -287,7 +294,9 @@ jobs:
           </rss>
           EOF
 
-          echo "Appcast file successfully created and validated at $APPCAST_FILE"
+          echo "Created appcast file at $APPCAST_FILE with FEED_URL=$FEED_URL"
+          echo "IS_BETA=$IS_BETA"
+          cat "$APPCAST_FILE"
 
       - name: Update CHANGELOG.md
         run: |
