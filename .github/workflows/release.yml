@@ -283,8 +283,8 @@ jobs:
                       <pubDate>$(date -R)</pubDate>
                       <enclosure
                           url="https://github.com/${{ github.repository }}/releases/download/${{ env.TAG }}/${{ env.APP_NAME }}-${{ env.VERSION }}.zip"
-                          sparkle:version="${{ env.VERSION }}"
-                          sparkle:shortVersionString="${{ env.VERSION }}"
+                          <sparkle:version>${{ env.BUILD_NUMBER }}</sparkle:version>
+                          <sparkle:shortVersionString>${{ env.VERSION }}</sparkle:shortVersionString>
                           type="application/octet-stream"
                           ${{ steps.generate_signature.outputs.signature }}
                           sparkle:sha256="${{ env.ZIP_SHA }}"
