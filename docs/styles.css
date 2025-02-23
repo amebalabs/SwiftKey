@@ -131,6 +131,39 @@ nav .container {
     width: 100%;
 }
 
+/* Social media links in nav */
+.nav-links .github-link,
+.nav-links .mastodon-link {
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.nav-links .mastodon-link {
+    color: #6364ff; /* Mastodon brand color */
+}
+
+.nav-links .mastodon-link:hover {
+    color: #563acc;
+    transform: translateY(-2px);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .mobile-menu a[rel="me"] {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .mobile-menu a[rel="me"] i {
+        font-size: 1.2rem;
+    }
+}
 .mobile-menu-btn {
     display: none;
     background: none;
