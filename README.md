@@ -12,7 +12,10 @@
 
 SwiftKey is a powerful macOS productivity tool that provides quick access to applications, shortcuts, and custom actions through customizable keyboard shortcuts and an elegant overlay interface.
 
-**TL;DR:** A highly customizable keyboard-driven launcher for macOS with multiple interface styles and YAML configuration.
+### Installation
+
+- Download the app from the [Releases](https://github.com/amebalabs/SwiftKey/releases/latest) and drag it to your `Applications` folder
+- ...or `brew install --cask swiftkey` (TBD, THIS IS NOT WORKING YET)
 
 ## Features
 - 🎯 Multiple overlay styles:
