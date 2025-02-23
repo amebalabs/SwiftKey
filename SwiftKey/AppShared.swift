@@ -18,7 +18,7 @@ class AppShared: NSObject {
             let bookmarkData = try url.bookmarkData(options: .withSecurityScope,
                                                     includingResourceValuesForKeys: nil,
                                                     relativeTo: nil)
-            UserDefaults.standard.set(bookmarkData, forKey: "ConfigFileBookmark")
+            SettingsStore.shared.configFileBookmark = bookmarkData
         } catch {
             print("Error creating bookmark: \(error)")
         }
@@ -34,8 +34,8 @@ class AppShared: NSObject {
 
     /// Helper to resolve the saved security-scoped bookmark.
     public static func resolveConfigFileURL() -> URL? {
-        guard let bookmarkData = UserDefaults.standard.data(forKey: "ConfigFileBookmark") else {
-            return nil
+        guard let bookmarkData = SettingsStore.shared.configFileBookmark else {
+            return SettingsStore.shared.configFileResolvedURL
         }
 
         var isStale = false

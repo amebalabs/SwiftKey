@@ -304,6 +304,9 @@ extension AppDelegate {
                 }
             }
             settings.configFilePath = configFileURL.path
+            settings.configFileBookmark = try? configFileURL.bookmarkData(options: .withSecurityScope,
+                                                               includingResourceValuesForKeys: nil,
+                                                               relativeTo: nil)
             print("Default config file set to: \(configFileURL.path)")
         }
     }
