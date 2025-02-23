@@ -311,7 +311,7 @@ jobs:
           TEMP_FILE=$(mktemp)
           echo "# ${TAG} ($(date +'%Y-%m-%d'))" > "$TEMP_FILE"
           echo "" >> "$TEMP_FILE"
-          cat "${{ env.NOTES_PATH }}" >> "$TEMP_FILE"
+          cat "${NOTES_PATH}" >> "$TEMP_FILE"
           echo "" >> "$TEMP_FILE"
           if [ -f "CHANGELOG.md" ]; then
             cat "CHANGELOG.md" >> "$TEMP_FILE"
