@@ -9,15 +9,15 @@
       <title>SwiftKey 1.0.0</title>
       <sparkle:version>1.0.0</sparkle:version>
       <sparkle:shortVersionString>1.0.0</sparkle:shortVersionString>
-      <description><![CDATA[# Adventurous Avocado\n\n## V1.0.0\n\nFirst public release of SwiftKey - a keyboard-driven launcher for macOS that helps you navigate apps and actions with style.\n\n## Highlights\n\n- 3 Interface Styles:\n  - Classic overlay panel with icon grid\n  - Minimal HUD near notch area\n  - Ultra-compact menu bar mode\n\n- Smart Navigation:\n  - Keyboard-first design\n  - Configurable global hotkeys\n  - Quick parent menu return (⌘↑)\n  - Breadcrumb navigation\n\n- Powerful Actions:\n  - Launch apps\n  - Open URLs\n  - Run shell commands\n  - Execute Apple Shortcuts\n  - Dynamic menus via shell scripts\n\n## Configuration\n\n- еSimple YAML config file\n- Hierarchical menu structure\n- SF Symbols support\n- Per-item hotkeys\n- Sticky actions option\n\n## Polish\n\n- Multiple display handling\n- Auto-updates via Sparkle\n- Deep linking support\n- Launch at login option\n\n## Requirements\n\n- macOS 12.0 or later\n- Apple Silicon or Intel Mac\n\n## Known Issues\n\nNone reported. Please file any bugs in Issues!\n\n## Feedback\n\nThis is our first public release - we'd love to hear your thoughts and suggestions!\n]]></description>
-      <pubDate>Sun, 23 Feb 2025 13:26:48 +0000</pubDate>
+      <description><![CDATA[]]></description>
+      <pubDate>Sun, 23 Feb 2025 13:50:28 +0000</pubDate>
       <enclosure
         url="https://github.com/amebalabs/SwiftKey/releases/download/v1.0.0/SwiftKey-1.0.0.zip"
         sparkle:version="1.0.0"
         sparkle:shortVersionString="1.0.0"
         type="application/octet-stream"
-        sparkle:edSignature="x0Qadl9a8Mx/pnKfcZ8ZXFFwcNFUy+T2ogUWex1tez6bWTE8+YVeeDLiK7tF205mVjS7t/sGSFh8fGbGfEKaDQ==" length="5458584"
-        sparkle:sha256="93c5ed81f282ed1b8481bb87ba54be93ab0192bca31d9f1b9885a5747a1c09f0"
+        sparkle:edSignature="boxsGsuqwE45lu5fP19doQ1eZX/DYob4JKm+spsg6vrqQ6yAfy10Q/c/lAwRzk9Q1/cuSmfzHLNscYEPQ7WQAg==" length="5458521"
+        sparkle:sha256="61bdedf3ecb98485b6326f322407098bd98234cffbd1fdfecaff2e84e3952980"
       />
     </item>
   </channel>
