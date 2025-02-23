@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>SwiftKey Appcast</title>
+    <link>https://swiftkey.app/appcast.xml</link>
+    <description>SwiftKey Updates</description>
+    <language>en</language>
+    <item>
+      <title>SwiftKey 1.0.0</title>
+      <sparkle:version>1.0.0</sparkle:version>
+      <sparkle:shortVersionString>1.0.0</sparkle:shortVersionString>
+      <description><![CDATA[- First public version]]></description>
+      <pubDate>Sun, 23 Feb 2025 13:50:28 +0000</pubDate>
+      <enclosure
+        url="https://github.com/amebalabs/SwiftKey/releases/download/v1.0.0/SwiftKey-1.0.0.zip"
+        sparkle:version="1.0.0"
+        sparkle:shortVersionString="1.0.0"
+        type="application/octet-stream"
+        sparkle:edSignature="boxsGsuqwE45lu5fP19doQ1eZX/DYob4JKm+spsg6vrqQ6yAfy10Q/c/lAwRzk9Q1/cuSmfzHLNscYEPQ7WQAg==" length="5458521"
+        sparkle:sha256="61bdedf3ecb98485b6326f322407098bd98234cffbd1fdfecaff2e84e3952980"
+      />
+    </item>
+  </channel>
+</rss>
