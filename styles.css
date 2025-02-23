@@ -5,6 +5,10 @@
     --card-bg: #2c2c2e;
     --text-color: #ffffff;
     --text-secondary: #8e8e93;
+    --nav-blur: rgba(28, 28, 30, 0.8);
+    --card-hover: rgba(255, 255, 255, 0.05);
+    --border-color: rgba(255, 255, 255, 0.1);
+    --shadow-color: rgba(0, 0, 0, 0.3);
 }
 
 * {
@@ -13,12 +17,19 @@
     box-sizing: border-box;
 }
 
+html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 80px;
+}
+
 body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
-        Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+    font-family:
+        -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
+        Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
     line-height: 1.6;
     color: var(--text-color);
     background: var(--dark-bg);
+    overflow-x: hidden;
 }
 
 .container {
@@ -27,14 +38,43 @@ body {
     padding: 0 2rem;
 }
 
+/* Typography */
+h1,
+h2,
+h3 {
+    font-feature-settings:
+        "salt" 1,
+        "ss01" 1;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+}
+
+h1 {
+    font-size: 3.5rem;
+    margin-bottom: 1rem;
+}
+
+h2 {
+    font-size: 2.5rem;
+    margin-bottom: 2rem;
+    text-align: center;
+}
+
+h3 {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+}
+
 /* Navigation */
 nav {
-    background: rgba(28, 28, 30, 0.8);
-    backdrop-filter: blur(10px);
+    background: var(--nav-blur);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     position: fixed;
     width: 100%;
     z-index: 1000;
     padding: 1rem 0;
+    border-bottom: 1px solid var(--border-color);
 }
 
 nav .container {
@@ -44,37 +84,155 @@ nav .container {
 }
 
 .logo {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
     font-size: 1.5rem;
     font-weight: bold;
     color: var(--primary-color);
 }
 
+.logo-img {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+}
+
+.nav-links {
+    display: flex;
+    gap: 2rem;
+    align-items: center;
+}
+
 .nav-links a {
     color: var(--text-color);
     text-decoration: none;
-    margin-left: 2rem;
+    font-weight: 500;
     transition: color 0.3s ease;
+    position: relative;
+}
+
+.nav-links a::after {
+    content: "";
+    position: absolute;
+    bottom: -4px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: var(--primary-color);
+    transition: width 0.2s ease;
 }
 
 .nav-links a:hover {
     color: var(--primary-color);
 }
 
+.nav-links a:hover::after {
+    width: 100%;
+}
+
+/* Social media links in nav */
+.nav-links .github-link,
+.nav-links .mastodon-link {
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.nav-links .mastodon-link {
+    color: #6364ff; /* Mastodon brand color */
+}
+
+.nav-links .mastodon-link:hover {
+    color: #563acc;
+    transform: translateY(-2px);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .mobile-menu a[rel="me"] {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .mobile-menu a[rel="me"] i {
+        font-size: 1.2rem;
+    }
+}
+.mobile-menu-btn {
+    display: none;
+    background: none;
+    border: none;
+    color: var(--text-color);
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0.5rem;
+}
+
+.mobile-menu {
+    display: none;
+    position: fixed;
+    top: 70px;
+    left: 0;
+    width: 100%;
+    background: var(--card-bg);
+    padding: 1rem;
+    z-index: 999;
+    transform: translateY(-100%);
+    transition: transform 0.3s ease;
+}
+
+.mobile-menu.active {
+    transform: translateY(0);
+}
+
+.mobile-menu a {
+    display: block;
+    color: var(--text-color);
+    text-decoration: none;
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.mobile-menu a:last-child {
+    border-bottom: none;
+}
+
 /* Hero Section */
 .hero {
     padding: 8rem 0 4rem;
-    text-align: center;
+    background: linear-gradient(135deg, var(--dark-bg) 0%, var(--card-bg) 100%);
+    position: relative;
+    overflow: hidden;
 }
 
-.hero h1 {
-    font-size: 3.5rem;
-    margin-bottom: 1rem;
+.hero-content {
+    text-align: center;
+    max-width: 800px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem; /* Consistent spacing between elements */
 }
 
 .subtitle {
     font-size: 1.5rem;
     color: var(--text-secondary);
     margin-bottom: 2rem;
+    max-width: 600px; /* Control the width of the subtitle */
+    margin-left: auto;
+    margin-right: auto;
+    opacity: 0;
+    animation: fadeInUp 0.25s ease forwards;
+    animation-delay: 2.5s;
 }
 
 .cta-buttons {
@@ -86,14 +244,17 @@ nav .container {
 
 .btn {
     padding: 0.8rem 1.5rem;
-    border-radius: 8px;
+    border-radius: 12px;
     text-decoration: none;
     font-weight: 500;
-    transition: transform 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
 }
 
-.btn:hover {
-    transform: translateY(-2px);
+.btn i {
+    font-size: 1.1rem;
 }
 
 .btn.primary {
@@ -104,24 +265,59 @@ nav .container {
 .btn.secondary {
     background: var(--card-bg);
     color: white;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--border-color);
 }
 
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px var(--shadow-color);
+}
+
+.version {
+    font-size: 0.8rem;
+    opacity: 0.8;
+    margin-left: 0.5rem;
+}
+
+/* Hero Image */
 .hero-image {
-    max-width: 800px;
+    max-width: 1000px;
     margin: 0 auto;
+    position: relative;
+    padding: 2rem;
 }
 
 .demo-gif {
     width: 100%;
-    border-radius: 12px;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    border-radius: 16px;
+    border: 1px solid var(--border-color);
+    box-shadow:
+        0 20px 40px var(--shadow-color),
+        0 0 0 1px var(--border-color);
+}
+
+.hero-backdrop {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 120%;
+    height: 120%;
+    background: radial-gradient(
+        circle,
+        var(--primary-color) 0%,
+        transparent 70%
+    );
+    opacity: 0.1;
+    filter: blur(60px);
+    z-index: -1;
 }
 
 /* Features Section */
 .features {
     padding: 6rem 0;
     background: var(--card-bg);
+    position: relative;
 }
 
 .feature-grid {
@@ -133,9 +329,17 @@ nav .container {
 
 .feature-card {
     padding: 2rem;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 16px;
     text-align: center;
+    border: 1px solid var(--border-color);
+    transition: all 0.3s ease;
+}
+
+.feature-card:hover {
+    transform: translateY(-4px);
+    background: var(--card-hover);
+    box-shadow: 0 8px 24px var(--shadow-color);
 }
 
 .feature-card i {
@@ -144,9 +348,36 @@ nav .container {
     margin-bottom: 1rem;
 }
 
+/* Demo Section */
+.demo {
+    padding: 6rem 0;
+    background: var(--dark-bg);
+}
+
+.demo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-top: 3rem;
+}
+
+.demo-item {
+    text-align: center;
+    opacity: 0;
+}
+
+.demo-video {
+    width: 100%;
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 8px 24px var(--shadow-color);
+}
+
 /* Installation Section */
 .installation {
     padding: 6rem 0;
+    background: var(--card-bg);
 }
 
 .install-options {
@@ -158,9 +389,17 @@ nav .container {
 
 .install-card {
     padding: 2rem;
-    background: var(--card-bg);
-    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 16px;
     text-align: center;
+    border: 1px solid var(--border-color);
+    transition: all 0.3s ease;
+}
+
+.install-card:hover {
+    transform: translateY(-4px);
+    background: var(--card-hover);
+    box-shadow: 0 8px 24px var(--shadow-color);
 }
 
 .code-block {
@@ -170,6 +409,7 @@ nav .container {
     margin-top: 1rem;
     position: relative;
     text-align: left;
+    font-family: "SF Mono", Menlo, Monaco, Consolas, monospace;
 }
 
 .copy-btn {
@@ -181,30 +421,39 @@ nav .container {
     color: var(--text-secondary);
     cursor: pointer;
     padding: 0.5rem;
+    transition: color 0.2s ease;
+}
+
+.copy-btn:hover {
+    color: var(--text-color);
 }
 
 /* Config Section */
 .config {
     padding: 6rem 0;
-    background: var(--card-bg);
+    background: var(--dark-bg);
 }
 
 .config-example {
     background: rgba(0, 0, 0, 0.3);
     padding: 2rem;
-    border-radius: 12px;
+    border-radius: 16px;
     margin-top: 2rem;
-    overflow-x: auto;
+    position: relative;
+    border: 1px solid var(--border-color);
 }
 
 .config-example pre {
     margin: 0;
+    overflow-x: auto;
+    font-family: "SF Mono", Menlo, Monaco, Consolas, monospace;
 }
 
 /* Footer */
 footer {
     padding: 4rem 0;
-    background: var(--dark-bg);
+    background: var(--card-bg);
+    border-top: 1px solid var(--border-color);
 }
 
 .footer-content {
@@ -233,14 +482,42 @@ footer {
     color: var(--primary-color);
 }
 
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in {
+    animation: fadeIn 0.6s ease forwards;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
-    .hero h1 {
+    h1 {
         font-size: 2.5rem;
     }
 
     .subtitle {
         font-size: 1.2rem;
+    }
+
+    .nav-links {
+        display: none;
+    }
+
+    .mobile-menu-btn {
+        display: block;
+    }
+
+    .mobile-menu {
+        display: block;
     }
 
     .cta-buttons {
@@ -252,10 +529,159 @@ footer {
         text-align: center;
         gap: 2rem;
     }
+
+    .footer-links {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
 }
 
 @media (max-width: 480px) {
-    .nav-links {
+    .container {
+        padding: 0 1rem;
+    }
+
+    .feature-grid,
+    .install-options,
+    .demo-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .hero {
+        padding: 6rem 0 3rem;
+    }
+
+    .btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* Dark Mode Optimization */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --dark-bg: #000000;
+        --card-bg: #1c1c1e;
+        --nav-blur: rgba(0, 0, 0, 0.8);
+    }
+}
+
+/* Print Styles */
+@media print {
+    .nav-links,
+    .cta-buttons,
+    .copy-btn,
+    .mobile-menu-btn {
         display: none;
+    }
+
+    body {
+        color: #000;
+        background: #fff;
+    }
+
+    .container {
+        max-width: 100%;
+    }
+}
+/* Typing effect animation */
+.typing-effect {
+    position: relative;
+    width: fit-content;
+    margin: 0 auto;
+    padding: 0.1em 0; /* Add small vertical padding */
+    line-height: 1.2; /* Slightly increase line height */
+    display: inline-block;
+}
+
+.typing-effect::before,
+.typing-effect::after {
+    content: "";
+    position: absolute;
+    top: -0.1em; /* Extend slightly above */
+    right: 0;
+    bottom: -0.1em; /* Extend slightly below */
+    left: 0;
+}
+
+.typing-effect::before {
+    background: var(--dark-bg);
+    animation: typewriter 2s steps(25) 0.5s forwards;
+}
+
+.typing-effect::after {
+    width: 0.125em;
+    background: var(--primary-color);
+    animation:
+        typewriter 2s steps(25) 0.5s forwards,
+        blink 375ms steps(25) infinite;
+}
+
+@keyframes typewriter {
+    to {
+        left: 100%;
+    }
+}
+
+@keyframes blink {
+    to {
+        background: transparent;
+    }
+}
+
+/* Make text appear word by word */
+.subtitle {
+    opacity: 0;
+    animation: fadeInUp 0.5s ease forwards;
+    animation-delay: 2s; /* Start after typing animation */
+}
+
+.cta-buttons {
+    opacity: 0;
+    animation: fadeInUp 0.5s ease forwards;
+    animation-delay: 2.2s; /* Start slightly after subtitle */
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Enhance gradient text effect */
+.gradient-text {
+    background: linear-gradient(
+        135deg,
+        var(--primary-color) 0%,
+        var(--secondary-color) 50%,
+        var(--primary-color) 100%
+    );
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: gradient 4s linear infinite;
+    display: block;
+    white-space: nowrap;
+    margin: 0;
+    font-size: 3.5rem;
+    letter-spacing: -0.02em;
+    font-weight: bold;
+}
+
+@keyframes gradient {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
     }
 }
