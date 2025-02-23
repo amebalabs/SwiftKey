@@ -240,7 +240,7 @@ jobs:
           fi
           # Prepare escaped version for XML
           CONTENT=$(cat "$NOTES_PATH" | perl -p -e 's/%/%25/g' | perl -p -e 's/\n/%0A/g' | perl -p -e 's/\r/%0D/g')
-          echo "content=$CONTENT" >> $GITHUB_OUTPUT
+          echo "CONTENT=$CONTENT" >> $GITHUB_OUTPUT
           # Also store raw notes for release body and changelog
           RELEASE_NOTES=$(cat "$NOTES_PATH" | awk '{printf "%s\\n", $0}')
           echo "RELEASE_NOTES=$RELEASE_NOTES" >> $GITHUB_ENV
@@ -288,7 +288,7 @@ jobs:
                 <title>${APP_NAME} ${VERSION}</title>
                 <sparkle:version>${VERSION}</sparkle:version>
                 <sparkle:shortVersionString>${VERSION}</sparkle:shortVersionString>
-                <description><![CDATA[${RELEASE_NOTES}]]></description>
+                <description><![CDATA[${CONTENT}]]></description>
                 <pubDate>$(date -R)</pubDate>
                 <enclosure
                   url="https://github.com/${{ github.repository }}/releases/download/${{ env.TAG }}/${APP_NAME}-${VERSION}.zip"
@@ -311,7 +311,7 @@ jobs:
           TEMP_FILE=$(mktemp)
           echo "# ${TAG} ($(date +'%Y-%m-%d'))" > "$TEMP_FILE"
           echo "" >> "$TEMP_FILE"
-          echo "${RELEASE_NOTES}" >> "$TEMP_FILE"
+          cat "${{ env.NOTES_PATH }}" >> "$TEMP_FILE"
           echo "" >> "$TEMP_FILE"
           if [ -f "CHANGELOG.md" ]; then
             cat "CHANGELOG.md" >> "$TEMP_FILE"
@@ -334,7 +334,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: ${{ env.APP_NAME }}-${{ env.VERSION }}.zip
-          body: ${{ env.RELEASE_NOTES }}
+          body: ${{ env.NOTES_PATH }}
           prerelease: ${{ env.IS_BETA == 'true' }}
           draft: false
           fail_on_unmatched_files: true
