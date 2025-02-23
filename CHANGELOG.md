@@ -1,8 +1,6 @@
-# v1.0.0-beta.4 (2025-02-21)
-
+# v1.0.0 (2025-02-23)
 # Adventurous Avocado
-
-## V1.0.0
+# V1.0.0
 
 First public release of SwiftKey - a keyboard-driven launcher for macOS that helps you navigate apps and actions with style.
 
