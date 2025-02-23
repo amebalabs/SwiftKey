@@ -242,11 +242,8 @@ jobs:
           CONTENT=$(cat "$NOTES_PATH" | perl -p -e 's/%/%25/g' | perl -p -e 's/\n/%0A/g' | perl -p -e 's/\r/%0D/g')
           echo "content=$CONTENT" >> $GITHUB_OUTPUT
           # Also store raw notes for release body and changelog
-          {
-            echo "RELEASE_NOTES<<EOF"
-            cat "$NOTES_PATH"
-            echo "EOF"
-          } >> $GITHUB_ENV
+          RELEASE_NOTES=$(cat "$NOTES_PATH")
+          echo "RELEASE_NOTES=$RELEASE_NOTES" >> $GITHUB_ENV
 
           # Verify the content was set
           if [ -z "$RELEASE_NOTES" ]; then
