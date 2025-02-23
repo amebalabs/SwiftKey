@@ -14,6 +14,7 @@ permissions:
   contents: write
   pages: write
   id-token: write
+
 env:
   XCODE_VERSION: "16.2.0"
   BUNDLE_ID: "com.ameba.SwiftKey"
@@ -55,7 +56,7 @@ jobs:
     runs-on: macos-latest
     timeout-minutes: 30
     outputs:
-      build_number: ${{ steps.get_commit_count.outputs.BUILD_NUMBER }}
+      build_number: ${{ steps.get_versions.outputs.BUILD_NUMBER }}
     steps:
       - uses: actions/checkout@v3
         with:
@@ -72,33 +73,23 @@ jobs:
           VERSION="0.0.0"
           IS_RELEASE=false
 
-          # Check for tag
-          if [ -n "$GITHUB_REF_TYPE" ]; then
-            case "$GITHUB_REF_TYPE" in
-              "tag")
-                if [[ "$GITHUB_REF_NAME" == v* ]]; then
-                  VERSION=${GITHUB_REF_NAME#v}
-                  IS_RELEASE=true
-                fi
-                ;;
-              "branch")
-                VERSION="0.0.0"
-                IS_RELEASE=false
-                ;;
-            esac
+          # Determine if this is a release tag
+          if [ "${GITHUB_REF_TYPE}" = "tag" ] && [[ "${GITHUB_REF_NAME}" == v* ]]; then
+            VERSION=${GITHUB_REF_NAME#v}
+            IS_RELEASE=true
           fi
 
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
           echo "IS_RELEASE=$IS_RELEASE" >> $GITHUB_OUTPUT
 
-          # Debug output
+          # Debug logging
           echo "Debug information:"
-          echo "GITHUB_REF_TYPE: $GITHUB_REF_TYPE"
-          echo "GITHUB_REF_NAME: $GITHUB_REF_NAME"
-          echo "GITHUB_REF: $GITHUB_REF"
-          echo "BUILD_NUMBER: $BUILD_NUMBER"
-          echo "VERSION: $VERSION"
-          echo "IS_RELEASE: $IS_RELEASE"
+          echo "GITHUB_REF_TYPE: ${GITHUB_REF_TYPE}"
+          echo "GITHUB_REF_NAME: ${GITHUB_REF_NAME}"
+          echo "GITHUB_REF: ${GITHUB_REF}"
+          echo "BUILD_NUMBER: ${BUILD_NUMBER}"
+          echo "VERSION: ${VERSION}"
+          echo "IS_RELEASE: ${IS_RELEASE}"
 
       - name: Setup Xcode
         uses: maxim-lobanov/setup-xcode@v1
@@ -203,13 +194,21 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          fetch-depth: 0 # Need full history for changelog
+          fetch-depth: 0
 
-      - name: Set version variables
+      - name: Set version and beta variables
         run: |
-          echo "VERSION=$(echo ${{ github.ref_name }} | sed 's/v//')" >> $GITHUB_ENV
-          echo "IS_BETA=$(echo ${{ github.ref_name }} | grep -q 'beta' && echo 'true' || echo 'false')" >> $GITHUB_ENV
-          echo "TAG=$(echo ${{ github.ref_name }})" >> $GITHUB_ENV
+          # Extract version and determine if beta
+          VERSION=$(echo "${{ github.ref_name }}" | sed 's/v//')
+          if echo "${{ github.ref_name }}" | grep -q 'beta'; then
+            IS_BETA=true
+          else
+            IS_BETA=false
+          fi
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "IS_BETA=$IS_BETA" >> $GITHUB_ENV
+          echo "TAG=${{ github.ref_name }}" >> $GITHUB_ENV
+          echo "Debug: VERSION=$VERSION, IS_BETA=$IS_BETA, TAG=${{ github.ref_name }}"
 
       - name: Download Notarized App
         uses: actions/download-artifact@v4
@@ -227,7 +226,9 @@ jobs:
 
       - name: Calculate SHA256
         run: |
-          echo "ZIP_SHA=$(shasum -a 256 ${{ env.APP_NAME }}-${{ env.VERSION }}.zip | cut -d' ' -f1)" >> $GITHUB_ENV
+          SHA=$(shasum -a 256 "${{ env.APP_NAME }}-${{ env.VERSION }}.zip" | cut -d' ' -f1)
+          echo "ZIP_SHA=$SHA" >> $GITHUB_ENV
+          echo "Debug: Calculated ZIP_SHA=$SHA"
 
       - name: Read Release Notes
         id: release_notes
@@ -237,14 +238,12 @@ jobs:
             echo "Error: Release notes not found at $NOTES_PATH"
             exit 1
           fi
-
-          # Escape the content for GitHub Actions output
+          # Prepare escaped version for XML
           CONTENT=$(cat "$NOTES_PATH" | perl -p -e 's/%/%25/g' | perl -p -e 's/\n/%0A/g' | perl -p -e 's/\r/%0D/g')
           echo "content=$CONTENT" >> $GITHUB_OUTPUT
-
-          # Also store raw content for the release
+          # Also store raw notes for release body and changelog
           echo "RELEASE_NOTES<<EOF" >> $GITHUB_ENV
-          cat "$NOTES_PATH" >> $GITHUB_ENV
+          cat "$NOTES_PATH"
           echo "EOF" >> $GITHUB_ENV
 
       - name: Generate Sparkle Signature
@@ -256,75 +255,75 @@ jobs:
 
       - name: Update Appcast
         run: |
-          IS_BETA="${{ env.IS_BETA }}"
-          APPCAST_NAME="appcast$([ "$IS_BETA" == "true" ] && echo "_beta").xml"
-          APPCAST_FILE="docs/$APPCAST_NAME"
-
-          # Determine feed URL explicitly
-          if [ "$IS_BETA" == "true" ]; then
-            FEED_URL="${{ env.BETA_FEED_URL }}"
+          # Determine appcast file based on beta flag
+          APPCAST_NAME="appcast"
+          if [ "${IS_BETA}" = "true" ]; then
+            APPCAST_NAME="appcast_beta.xml"
           else
-            FEED_URL="${{ env.PROD_FEED_URL }}"
+            APPCAST_NAME="appcast.xml"
           fi
+          APPCAST_FILE="docs/${APPCAST_NAME}"
 
+          # Debug logs
+          echo "Updating appcast: $APPCAST_FILE"
+          echo "Using URL:" $( [ "${IS_BETA}" = "true" ] && echo "${BETA_FEED_URL}" || echo "${PROD_FEED_URL}" )
+          echo "Using signature: ${{ steps.generate_signature.outputs.signature }}"
+          echo "ZIP_SHA: ${ZIP_SHA}"
+
+          # Use unindented heredoc for proper XML formatting
           cat > "$APPCAST_FILE" <<-EOF
           <?xml version="1.0" encoding="utf-8"?>
           <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
-              <channel>
-                  <title>${{ env.APP_NAME }} $([ "$IS_BETA" == "true" ] && echo "Beta ")Appcast</title>
-                  <link>$FEED_URL</link>
-                  <description>${{ env.APP_NAME }} $([ "$IS_BETA" == "true" ] && echo "Beta ")Updates</description>
-                  <language>en</language>
-                  <item>
-                      <title>${{ env.APP_NAME }} ${{ env.VERSION }}</title>
-                      <sparkle:version>${{ env.VERSION }}</sparkle:version>
-                      <sparkle:shortVersionString>${{ env.VERSION }}</sparkle:shortVersionString>
-                      <description><![CDATA[${{ env.RELEASE_NOTES }}]]></description>
-                      <pubDate>$(date -R)</pubDate>
-                      <enclosure
-                          url="https://github.com/${{ github.repository }}/releases/download/${{ env.TAG }}/${{ env.APP_NAME }}-${{ env.VERSION }}.zip"
-                          <sparkle:version>${{ env.BUILD_NUMBER }}</sparkle:version>
-                          <sparkle:shortVersionString>${{ env.VERSION }}</sparkle:shortVersionString>
-                          type="application/octet-stream"
-                          ${{ steps.generate_signature.outputs.signature }}
-                          sparkle:sha256="${{ env.ZIP_SHA }}"
-                      />
-                  </item>
-              </channel>
+            <channel>
+              <title>${APP_NAME} $([ "${IS_BETA}" = "true" ] && echo "Beta " )Appcast</title>
+              <link>$([ "${IS_BETA}" = "true" ] && echo "${BETA_FEED_URL}" || echo "${PROD_FEED_URL}")</link>
+              <description>${APP_NAME} $([ "${IS_BETA}" = "true" ] && echo "Beta " )Updates</description>
+              <language>en</language>
+              <item>
+                <title>${APP_NAME} ${VERSION}</title>
+                <sparkle:version>${VERSION}</sparkle:version>
+                <sparkle:shortVersionString>${VERSION}</sparkle:shortVersionString>
+                <description><![CDATA[${RELEASE_NOTES}]]></description>
+                <pubDate>$(date -R)</pubDate>
+                <enclosure
+                  url="https://github.com/${{ github.repository }}/releases/download/${{ env.TAG }}/${APP_NAME}-${VERSION}.zip"
+                  sparkle:version="${VERSION}"
+                  sparkle:shortVersionString="${VERSION}"
+                  type="application/octet-stream"
+                  ${{ steps.generate_signature.outputs.signature }}
+                  sparkle:sha256="${ZIP_SHA}"
+                />
+              </item>
+            </channel>
           </rss>
           EOF
 
-          echo "Created appcast file at $APPCAST_FILE with FEED_URL=$FEED_URL"
-          echo "IS_BETA=$IS_BETA"
-          cat "$APPCAST_FILE"
+          # Validate the XML
+          xmllint --noout "$APPCAST_FILE" || { echo "Error: Invalid XML format in appcast"; exit 1; }
 
       - name: Update CHANGELOG.md
         run: |
-          # Create temporary file
           TEMP_FILE=$(mktemp)
-
-          # Add new release notes with header
-          echo "# ${{ env.TAG }} ($(date +'%Y-%m-%d'))" > "$TEMP_FILE"
+          echo "# ${TAG} ($(date +'%Y-%m-%d'))" > "$TEMP_FILE"
           echo "" >> "$TEMP_FILE"
-          echo "${{ env.RELEASE_NOTES }}" >> "$TEMP_FILE"
+          echo "${RELEASE_NOTES}" >> "$TEMP_FILE"
           echo "" >> "$TEMP_FILE"
-
-          # Append existing changelog if it exists
           if [ -f "CHANGELOG.md" ]; then
             cat "CHANGELOG.md" >> "$TEMP_FILE"
           fi
-
-          # Replace original changelog
           mv "$TEMP_FILE" "CHANGELOG.md"
 
       - name: Commit and Push Changes
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git add CHANGELOG.md
-          git add docs/appcast*.xml
-          git commit -m "docs: update CHANGELOG.md and appcast for ${{ env.TAG }}"
-          git push origin HEAD:main
+          git add CHANGELOG.md docs/appcast*.xml
+          git commit -m "docs: update CHANGELOG.md and appcast for ${TAG}" || echo "Nothing to commit"
+          # Instead of pushing directly to protected main, create a branch and push for a PR
+          BRANCH="release-docs-${TAG}"
+          git checkout -b "$BRANCH"
+          git push origin "$BRANCH"
+          echo "Created branch $BRANCH. Please open a PR manually if required."
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
@@ -344,6 +343,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./docs
           keep_files: true
+
   notify:
     needs: [build, sign, notarize]
     if: always()
