@@ -8,6 +8,10 @@
     <h6 align="center" style="padding: 0; margin: 0; font-family: ui-monospace, monospace; font-weight: 400;">Right at your fingertips</h6>
 </p>
 
+<p align="center">
+    <a href="https://swiftkey.app"><img src="docs/demo.gif" style="filter: drop-shadow(0px 2px 4px rgba(80, 50, 6, 0.2));"></a>
+</p>
+
 ## Overview
 
 SwiftKey is a powerful macOS productivity tool that provides quick access to applications, shortcuts, and custom actions through customizable keyboard shortcuts and an elegant overlay interface.
