@@ -79,7 +79,7 @@ struct GeneralSettingsView: View {
                         .textSelection(.enabled)
                     
                     if let configError = error as? ConfigError, 
-                       case let .invalidYamlFormat(message, line, column) = configError,
+                       case let .invalidYamlFormat(_, line, column) = configError,
                        line > 0 {
                         Text("Line \(line), Column \(column)")
                             .font(.system(size: 11))

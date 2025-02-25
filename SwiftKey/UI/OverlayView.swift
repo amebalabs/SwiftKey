@@ -124,8 +124,7 @@ struct OverlayView: View {
     }
 
     private func handleKey(key: String, modifierFlags: NSEvent.ModifierFlags?) {
-        let keyController = KeyPressController(menuState: state, settingsStore: settings)
-        keyController.handleKeyAsync(key, modifierFlags: modifierFlags) { result in
+        KeyboardManager.shared.handleKey(key: key, modifierFlags: modifierFlags) { result in
             switch result {
             case .escape:
                 NotificationCenter.default.post(name: .resetMenuState, object: nil)

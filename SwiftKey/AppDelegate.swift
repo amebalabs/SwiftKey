@@ -12,6 +12,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Dependency
     var settings: SettingsStore!
     var menuState: MenuState!
     var configManager: ConfigManager!
+    var keyboardManager: KeyboardManager!
     var deepLinkHandler: DeepLinkHandler!
 
     // Local state
@@ -30,6 +31,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Dependency
         self.settings = container.settingsStore
         self.menuState = container.menuState
         self.configManager = container.configManager
+        self.keyboardManager = container.keyboardManager
         self.deepLinkHandler = container.deepLinkHandler
     }
 
@@ -41,10 +43,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Dependency
         let container = DependencyContainer.shared
         injectDependencies(container)
 
-        setupDefaultConfigFile()
-
-        // Register hotkeys based on initial menu state
-        registerMenuHotkeys(menuState.rootMenu)
+        // Register hotkeys based on initial menu state using KeyboardManager
+        keyboardManager.registerMenuHotkeys(menuState.rootMenu)
         menuState.reset()
 
         let contentView = OverlayView(state: menuState).environmentObject(settings)
@@ -240,111 +240,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Dependency
 }
 
 extension AppDelegate {
-    private func registerMenuHotkeys(_ menu: [MenuItem]) {
-        if menu == menuState.rootMenu {
-            hotkeyHandlers.removeAll()
-        }
-        for item in menu {
-            if let hotkeyStr = item.hotkey, let shortcut = KeyboardShortcuts.Shortcut(hotkeyStr) {
-                let name = KeyboardShortcuts.Name(item.id.uuidString)
-                KeyboardShortcuts.setShortcut(shortcut, for: name)
-                KeyboardShortcuts.onKeyDown(for: name) { [weak self] in
-                    guard let self = self else { return }
-                    if item.submenu != nil {
-                        DispatchQueue.main.async {
-                            self.navigateToMenuItem(item)
-                        }
-                    } else if let action = item.actionClosure {
-                        DispatchQueue.global(qos: .userInitiated).async {
-                            action()
-                        }
-                    }
-                }
-                hotkeyHandlers[item.id.uuidString] = name
-            }
-            if let submenu = item.submenu {
-                registerMenuHotkeys(submenu)
-            }
-        }
-    }
-
-    private func navigateToMenuItem(_ item: MenuItem) {
-        menuState.reset()
-        if let path = findPathToMenuItem(item, in: menuState.rootMenu) {
-            for (index, menuItem) in path.enumerated() {
-                if index < path.count {
-                    menuState.breadcrumbs.append(menuItem.title)
-                    if let submenu = menuItem.submenu {
-                        menuState.menuStack.append(submenu)
-                    }
-                }
-            }
-            overlayWindow?.orderOut(nil)
-            overlayWindow?.center()
-            overlayWindow?.makeKeyAndOrderFront(nil)
-            NSApp.activate(ignoringOtherApps: true)
-        }
-    }
-
-    private func findPathToMenuItem(
-        _ target: MenuItem,
-        in menu: [MenuItem],
-        currentPath: [MenuItem] = []
-    ) -> [MenuItem]? {
-        for item in menu {
-            if item.id == target.id {
-                return currentPath + [item]
-            }
-            if let submenu = item.submenu, let path = findPathToMenuItem(
-                target,
-                in: submenu,
-                currentPath: currentPath + [item]
-            ) {
-                return path
-            }
-        }
-        return nil
-    }
-}
-
-extension AppDelegate {
-    func setupDefaultConfigFile() {
-        guard settings.configFilePath.isEmpty else { return }
-
-        let fileManager = FileManager.default
-        if let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first {
-            let configFileURL = documentsURL.appendingPathComponent("menu.yaml")
-
-            if !fileManager.fileExists(atPath: configFileURL.path) {
-                if let bundleConfigURL = Bundle.main.url(forResource: "menu", withExtension: "yaml") {
-                    do {
-                        try fileManager.copyItem(at: bundleConfigURL, to: configFileURL)
-                        print("Copied default config from bundle")
-                    } catch {
-                        print("Error copying default config from bundle: \(error)")
-                    }
-                } else {
-                    let defaultContent = "# Default menu configuration\n"
-                    do {
-                        try defaultContent.write(to: configFileURL, atomically: true, encoding: .utf8)
-                        print("Created empty default config file")
-                    } catch {
-                        print("Error writing default config file: \(error)")
-                    }
-                }
-            }
-
-            settings.configFilePath = configFileURL.path
-            settings.configFileBookmark = try? configFileURL.bookmarkData(
-                options: .withSecurityScope,
-                includingResourceValuesForKeys: nil,
-                relativeTo: nil
-            )
-
-            print("Default config file set to: \(configFileURL.path)")
-        }
-    }
-
     func showOnboardingWindow() {
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 400, height: 300),
                               styleMask: [.titled, .closable],

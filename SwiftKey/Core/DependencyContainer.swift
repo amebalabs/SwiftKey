@@ -10,6 +10,7 @@ class DependencyContainer {
     let menuState: MenuState
     let sparkleUpdater: SparkleUpdater
     let deepLinkHandler: DeepLinkHandler
+    let keyboardManager: KeyboardManager
     
     private var cancellables = Set<AnyCancellable>()
     
@@ -18,7 +19,8 @@ class DependencyContainer {
         settingsStore: SettingsStore? = nil,
         menuState: MenuState = MenuState(),
         sparkleUpdater: SparkleUpdater = SparkleUpdater.shared,
-        deepLinkHandler: DeepLinkHandler = DeepLinkHandler.shared
+        deepLinkHandler: DeepLinkHandler = DeepLinkHandler.shared,
+        keyboardManager: KeyboardManager = KeyboardManager.shared
     ) {
         // Create a new SettingsStore if one wasn't provided
         let settings = settingsStore ?? SettingsStore(sparkleUpdater: sparkleUpdater)
@@ -27,6 +29,7 @@ class DependencyContainer {
         self.menuState = menuState
         self.sparkleUpdater = sparkleUpdater
         self.deepLinkHandler = deepLinkHandler
+        self.keyboardManager = keyboardManager
 
         // Inject dependencies into components in the correct order
         // First inject into services that don't depend on others
@@ -37,6 +40,7 @@ class DependencyContainer {
         configManager.injectDependencies(self)
         menuState.injectDependencies(self)
         deepLinkHandler.injectDependencies(self)
+        keyboardManager.injectDependencies(self)
 
         // Set up services that need post-injection initialization
         configManager.setupAfterDependenciesInjected()
@@ -51,8 +55,13 @@ class DependencyContainer {
         configManager.menuItemsPublisher
             .receive(on: RunLoop.main)
             .sink { [weak self] items in
-                self?.menuState.rootMenu = items
+                guard let self = self else { return }
+                self.menuState.rootMenu = items
                 print("DependencyContainer: Updated menu items: \(items.count) items")
+                
+                // Re-register keyboard shortcuts whenever menu items are updated
+                self.keyboardManager.registerMenuHotkeys(items)
+                print("DependencyContainer: Re-registered keyboard shortcuts for menu items")
             }
             .store(in: &cancellables)
 

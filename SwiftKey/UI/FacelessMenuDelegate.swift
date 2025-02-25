@@ -9,31 +9,32 @@ class FacelessMenuController: DependencyInjectable {
     var animationTimer: Timer?
     var indicatorState: Bool = false
     var sessionActive: Bool = false
-    var keyPressController: KeyPressController
-
     // Dependencies
     var menuState: MenuState
     var settingsStore: SettingsStore?
+    var keyboardManager: KeyboardManager?
 
     init(
         rootMenu: [MenuItem],
         statusItem: NSStatusItem,
         resetDelay: TimeInterval,
         menuState: MenuState,
-        settingsStore: SettingsStore? = nil
+        settingsStore: SettingsStore? = nil,
+        keyboardManager: KeyboardManager? = KeyboardManager.shared
     ) {
         self.rootMenu = rootMenu
         self.statusItem = statusItem
         self.resetDelay = resetDelay
         self.menuState = menuState
         self.settingsStore = settingsStore
-        self.keyPressController = KeyPressController(menuState: menuState, settingsStore: settingsStore)
+        self.keyboardManager = keyboardManager
         updateStatusItem()
     }
 
     func injectDependencies(_ container: DependencyContainer) {
         self.menuState = container.menuState
         self.settingsStore = container.settingsStore
+        self.keyboardManager = container.keyboardManager
     }
 
     var currentMenu: [MenuItem] {
@@ -96,7 +97,8 @@ class FacelessMenuController: DependencyInjectable {
             guard let self = self,
                   let key = englishCharactersForKeyEvent(event: event),
                   !key.isEmpty else { return event }
-            self.keyPressController.handleKeyAsync(key) { result in
+            
+            self.keyboardManager?.handleKey(key: key) { result in
                 switch result {
                 case .escape:
                     self.endSession()
