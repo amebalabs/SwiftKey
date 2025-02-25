@@ -107,14 +107,21 @@ struct MenuItem: Identifiable, Codable, Equatable {
             return {
                 do {
                     let out = try runScript(to: command, env: [:])
-
-                    notifyUser(title: "Finished running \(title)", message: out.out)
+                    
+                    // Only show notification with output if it's not empty
+                    let message = out.out.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 
+                                 "Command completed successfully" : out.out
+                    notifyUser(title: "Finished running \(title)", message: message)
                 } catch {
-                    guard let error = error as? ShellOutError else {
-                        notifyUser(title: "Error running \(title)", message: "Unknown error")
-                        return
+                    if let shellError = error as? ShellOutError {
+                        let errorMessage = shellError.message.isEmpty ? 
+                                          "Command failed with exit code \(shellError.terminationStatus)" : 
+                                          shellError.message
+                        notifyUser(title: "Error running \(title)", message: errorMessage)
+                    } else {
+                        // Handle other types of errors
+                        notifyUser(title: "Error running \(title)", message: "Unknown error: \(error.localizedDescription)")
                     }
-                    notifyUser(title: "Error running \(title)", message: error.message)
                 }
             }
         }
@@ -123,59 +130,103 @@ struct MenuItem: Identifiable, Codable, Equatable {
 }
 
 extension MenuItem {
+    // Static cache for storing already loaded images
+    private static var imageCache = [String: Image]()
+    private static var nsImageCache = [String: NSImage]()
+    
     var iconImage: Image {
+        // Generate a unique cache key based on the action or icon
+        let cacheKey = generateIconCacheKey()
+        
+        // Return cached image if available
+        if let cachedImage = Self.imageCache[cacheKey] {
+            return cachedImage
+        }
+        
+        // Otherwise generate the image
+        let resultImage: Image
+        
         if let icon, !icon.isEmpty {
-            return Image(systemName: icon)
+            resultImage = Image(systemName: icon)
         } else if let action = action {
             if action.hasPrefix("launch://") {
                 let appPath = String(action.dropFirst("launch://".count))
-                if let nsImage = getAppIcon(appPath: appPath) {
-                    return Image(nsImage: nsImage)
+                if let nsImage = getCachedAppIcon(appPath: appPath) {
+                    resultImage = Image(nsImage: nsImage)
                 } else {
-                    return Image(systemName: "questionmark")
+                    resultImage = Image(systemName: "questionmark")
                 }
             } else if action.hasPrefix("open://") {
                 let urlString = String(action.dropFirst("open://".count))
-                if let url = URL(string: urlString),
+                let urlCacheKey = "url:\(urlString)"
+                
+                if let cachedNSImage = Self.nsImageCache[urlCacheKey] {
+                    resultImage = Image(nsImage: cachedNSImage)
+                } else if let url = URL(string: urlString),
                    let appURL = NSWorkspace.shared.urlForApplication(toOpen: url),
                    case let nsImage = NSWorkspace.shared.icon(forFile: appURL.path)
                 {
-                    return Image(nsImage: nsImage)
+                    Self.nsImageCache[urlCacheKey] = nsImage
+                    resultImage = Image(nsImage: nsImage)
                 } else {
-                    return Image(systemName: "link")
+                    resultImage = Image(systemName: "link")
                 }
             } else if action.hasPrefix("shortcut://") {
-                if let appURL = NSWorkspace.shared.urlForApplication(
+                let shortcutsCacheKey = "shortcuts"
+                
+                if let cachedNSImage = Self.nsImageCache[shortcutsCacheKey] {
+                    resultImage = Image(nsImage: cachedNSImage)
+                } else if let appURL = NSWorkspace.shared.urlForApplication(
                     withBundleIdentifier: "com.apple.shortcuts"
                 ),
                     case let nsImage = NSWorkspace.shared.icon(forFile: appURL.path)
                 {
-                    return Image(nsImage: nsImage)
+                    Self.nsImageCache[shortcutsCacheKey] = nsImage
+                    resultImage = Image(nsImage: nsImage)
                 } else {
-                    return Image(systemName: "bolt.fill")
+                    resultImage = Image(systemName: "bolt.fill")
                 }
             } else {
-                return Image(systemName: "questionmark")
+                resultImage = Image(systemName: "questionmark")
             }
         } else {
-            return Image(systemName: "questionmark")
+            resultImage = Image(systemName: "questionmark")
+        }
+        
+        // Cache the result before returning
+        Self.imageCache[cacheKey] = resultImage
+        return resultImage
+    }
+    
+    // Helper function to generate a unique cache key
+    private func generateIconCacheKey() -> String {
+        if let icon, !icon.isEmpty {
+            return "sf:\(icon)"
+        } else if let action = action {
+            return "action:\(action)"
+        } else {
+            return "default"
         }
     }
-}
-
-func loadMenuConfig() -> [MenuItem]? {
-    guard let configURL = AppShared.resolveConfigFileURL() else {
-        print("Configuration file URL not available.")
+    
+    private func getCachedAppIcon(appPath: String) -> NSImage? {
+        let cacheKey = "app:\(appPath)"
+        
+        if let cachedIcon = Self.nsImageCache[cacheKey] {
+            return cachedIcon
+        }
+        
+        if let loadedIcon = getAppIcon(appPath: appPath) {
+            Self.nsImageCache[cacheKey] = loadedIcon
+            return loadedIcon
+        }
+        
         return nil
     }
-
-    do {
-        let yamlString = try String(contentsOf: configURL, encoding: .utf8)
-        let decoder = YAMLDecoder()
-        let config = try decoder.decode([MenuItem].self, from: yamlString)
-        return config
-    } catch {
-        print("Error loading YAML config: \(error)")
-        return nil
+    
+    static func clearImageCache() {
+        imageCache.removeAll()
+        nsImageCache.removeAll()
     }
 }
+

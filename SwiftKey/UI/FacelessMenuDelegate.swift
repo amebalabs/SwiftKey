@@ -1,6 +1,6 @@
 import AppKit
 
-class FacelessMenuController {
+class FacelessMenuController: DependencyInjectable {
     let rootMenu: [MenuItem]
     var resetDelay: TimeInterval
     var statusItem: NSStatusItem
@@ -9,18 +9,36 @@ class FacelessMenuController {
     var animationTimer: Timer?
     var indicatorState: Bool = false
     var sessionActive: Bool = false
-    var keyPressController: KeyPressController
+    // Dependencies
+    var menuState: MenuState
+    var settingsStore: SettingsStore?
+    var keyboardManager: KeyboardManager?
 
-    init(rootMenu: [MenuItem], statusItem: NSStatusItem, resetDelay: TimeInterval) {
+    init(
+        rootMenu: [MenuItem],
+        statusItem: NSStatusItem,
+        resetDelay: TimeInterval,
+        menuState: MenuState,
+        settingsStore: SettingsStore? = nil,
+        keyboardManager: KeyboardManager? = KeyboardManager.shared
+    ) {
         self.rootMenu = rootMenu
         self.statusItem = statusItem
         self.resetDelay = resetDelay
-        self.keyPressController = KeyPressController(menuState: MenuState.shared)
+        self.menuState = menuState
+        self.settingsStore = settingsStore
+        self.keyboardManager = keyboardManager
         updateStatusItem()
     }
 
+    func injectDependencies(_ container: DependencyContainer) {
+        self.menuState = container.menuState
+        self.settingsStore = container.settingsStore
+        self.keyboardManager = container.keyboardManager
+    }
+
     var currentMenu: [MenuItem] {
-        MenuState.shared.menuStack.last ?? rootMenu
+        menuState.menuStack.last ?? rootMenu
     }
 
     func updateStatusItem() {
@@ -79,7 +97,8 @@ class FacelessMenuController {
             guard let self = self,
                   let key = englishCharactersForKeyEvent(event: event),
                   !key.isEmpty else { return event }
-            self.keyPressController.handleKeyAsync(key) { result in
+            
+            self.keyboardManager?.handleKey(key: key) { result in
                 switch result {
                 case .escape:
                     self.endSession()
@@ -116,8 +135,8 @@ class FacelessMenuController {
         animationTimer = nil
         sessionTimer?.invalidate()
         sessionTimer = nil
-        MenuState.shared.menuStack = []
-        MenuState.shared.breadcrumbs = []
+        menuState.menuStack = []
+        menuState.breadcrumbs = []
         updateStatusItem()
     }
 }

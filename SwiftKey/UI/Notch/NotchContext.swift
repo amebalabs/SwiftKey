@@ -2,15 +2,23 @@ import Cocoa
 import Foundation
 import SwiftUI
 
-class NotchContext {
+class NotchContext: DependencyInjectable {
     let screen: NSScreen
     let headerLeadingView: AnyView
     let headerTrailingView: AnyView
     let bodyView: AnyView
     let animated: Bool
     private var viewModel: NotchViewModel?
+
+    // Dependencies
+    var settingsStore: SettingsStore?
+
     var presented: Bool {
         viewModel?.status == .opened
+    }
+
+    func injectDependencies(_ container: DependencyContainer) {
+        self.settingsStore = container.settingsStore
     }
 
     init(screen: NSScreen, headerLeadingView: AnyView, headerTrailingView: AnyView, bodyView: AnyView, animated: Bool) {
@@ -25,11 +33,21 @@ class NotchContext {
         headerLeadingView: some View,
         headerTrailingView: some View,
         bodyView: some View,
-        animated: Bool = true
+        animated: Bool = true,
+        settingsStore: SettingsStore? = nil
     ) {
         let screens = NSScreen.screens
         var chosenScreen: NSScreen?
-        switch SettingsStore.shared.overlayScreenOption {
+
+        let screenOption: SettingsStore.OverlayScreenOption
+
+        if let settings = settingsStore {
+            screenOption = settings.overlayScreenOption
+        } else {
+            screenOption = .primary
+        }
+
+        switch screenOption {
         case .primary:
             chosenScreen = screens.first
         case .mouse:
@@ -44,6 +62,8 @@ class NotchContext {
             bodyView: AnyView(bodyView),
             animated: animated
         )
+
+        self.settingsStore = settingsStore
     }
 
     func open(forInterval interval: TimeInterval = 0) {

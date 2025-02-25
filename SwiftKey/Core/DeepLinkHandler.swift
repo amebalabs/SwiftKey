@@ -2,8 +2,15 @@ import AppKit
 import Foundation
 import SwiftUI
 
-class DeepLinkHandler {
+class DeepLinkHandler: DependencyInjectable {
     static let shared = DeepLinkHandler()
+
+    // Dependencies
+    var menuState: MenuState?
+
+    func injectDependencies(_ container: DependencyContainer) {
+        self.menuState = container.menuState
+    }
 
     func handle(url: URL) {
         guard url.scheme?.lowercased() == "swiftkey" else { return }
@@ -16,16 +23,21 @@ class DeepLinkHandler {
             return
         }
         let pathKeys = pathQuery.components(separatedBy: ",")
-        let menuState = MenuState.shared
-        menuState.reset()
-        var currentMenu = menuState.rootMenu
+
+        guard let state = self.menuState else {
+            print("DeepLinkHandler: MenuState not properly injected")
+            return
+        }
+
+        state.reset()
+        var currentMenu = state.rootMenu
         var lastFound: MenuItem?
         for key in pathKeys {
             if let found = currentMenu.first(where: { $0.key == key }) {
                 lastFound = found
                 if let submenu = found.submenu {
-                    menuState.breadcrumbs.append(found.title)
-                    menuState.menuStack.append(submenu)
+                    state.breadcrumbs.append(found.title)
+                    state.menuStack.append(submenu)
                     currentMenu = submenu
                 } else {
                     break
