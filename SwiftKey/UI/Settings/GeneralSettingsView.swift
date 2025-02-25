@@ -113,5 +113,5 @@ struct GeneralSettingsView: View {
 }
 
 #Preview {
-    GeneralSettingsView().environmentObject(SettingsStore.shared)
+    GeneralSettingsView().environmentObject(SettingsStore())
 }

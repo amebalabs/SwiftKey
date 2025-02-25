@@ -124,7 +124,7 @@ struct OverlayView: View {
     }
 
     private func handleKey(key: String, modifierFlags: NSEvent.ModifierFlags?) {
-        let keyController = KeyPressController(menuState: state)
+        let keyController = KeyPressController(menuState: state, settingsStore: settings)
         keyController.handleKeyAsync(key, modifierFlags: modifierFlags) { result in
             switch result {
             case .escape:
@@ -227,5 +227,7 @@ struct HorizontalMenuItemView: View {
 }
 
 #Preview {
-    OverlayView(state: MenuState.shared).environmentObject(SettingsStore.shared)
+    let settingsStore = SettingsStore()
+    let menuState = MenuState()
+    return OverlayView(state: menuState).environmentObject(settingsStore)
 }

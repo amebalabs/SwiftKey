@@ -1,7 +1,18 @@
 import SwiftUI
 
-class SettingsStore: ObservableObject {
-    public static let shared = SettingsStore()
+class SettingsStore: ObservableObject, DependencyInjectable {
+    // Dependencies
+    private var sparkleUpdater: SparkleUpdater?
+
+    init(sparkleUpdater: SparkleUpdater? = nil) {
+        self.sparkleUpdater = sparkleUpdater
+    }
+
+    func injectDependencies(_ container: DependencyContainer) {
+        // Inject dependencies from the container
+        self.sparkleUpdater = container.sparkleUpdater
+    }
+
     public enum OverlayStyle: String, CaseIterable {
         case panel = "Default"
         case hud = "Compact: HUD"
@@ -25,21 +36,34 @@ class SettingsStore: ObservableObject {
     @AppStorage("AutomaticallyCheckForUpdates")
     public var automaticallyCheckForUpdates: Bool = true {
         didSet {
-            SparkleUpdater.shared.automaticallyChecksForUpdates = automaticallyCheckForUpdates
+            // Use injected sparkleUpdater if available, otherwise fall back to singleton
+            if let updater = sparkleUpdater {
+                updater.automaticallyChecksForUpdates = automaticallyCheckForUpdates
+            } else {
+                SparkleUpdater.shared.automaticallyChecksForUpdates = automaticallyCheckForUpdates
+            }
         }
     }
 
     @AppStorage("AutomaticallyDownloadUpdates")
     public var automaticallyDownloadUpdates: Bool = false {
         didSet {
-            SparkleUpdater.shared.automaticallyDownloadsUpdates = automaticallyDownloadUpdates
+            if let updater = sparkleUpdater {
+                updater.automaticallyDownloadsUpdates = automaticallyDownloadUpdates
+            } else {
+                SparkleUpdater.shared.automaticallyDownloadsUpdates = automaticallyDownloadUpdates
+            }
         }
     }
 
     @AppStorage("EnableBetaUpdates")
     public var enableBetaUpdates: Bool = false {
         didSet {
-            SparkleUpdater.shared.configureFeedURLs()
+            if let updater = sparkleUpdater {
+                updater.configureFeedURLs()
+            } else {
+                SparkleUpdater.shared.configureFeedURLs()
+            }
         }
     }
 

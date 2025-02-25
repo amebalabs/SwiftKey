@@ -4,29 +4,53 @@ import Combine
 import KeyboardShortcuts
 import SwiftUI
 
-class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
+class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, DependencyInjectable {
     static var shared: AppDelegate!
-    var settings = SettingsStore.shared
+
+    // Dependencies (will be injected)
+    var container: DependencyContainer!
+    var settings: SettingsStore!
+    var menuState: MenuState!
+    var configManager: ConfigManager!
+    var deepLinkHandler: DeepLinkHandler!
+
+    // Local state
     var overlayWindow: OverlayWindow?
     var notchContext: NotchContext?
     var hotKeyRef: EventHotKeyRef?
     var lastHideTime: Date?
     var statusItem: NSStatusItem?
     var facelessMenuController: FacelessMenuController?
-    var menuState = MenuState.shared
     var defaultsObserver: AnyCancellable?
     var hotkeyHandlers: [String: KeyboardShortcuts.Name] = [:]
     private var sparkle: SparkleUpdater?
+
+    func injectDependencies(_ container: DependencyContainer) {
+        self.container = container
+        self.settings = container.settingsStore
+        self.menuState = container.menuState
+        self.configManager = container.configManager
+        self.deepLinkHandler = container.deepLinkHandler
+    }
+
     func applicationDidFinishLaunching(_: Notification) {
         AppDelegate.shared = self
         sparkle = SparkleUpdater.shared
+
+        // Set up dependency container
+        let container = DependencyContainer.shared
+        injectDependencies(container)
+
         setupDefaultConfigFile()
-        menuState.rootMenu = loadMenuConfig() ?? []
+
+        // Register hotkeys based on initial menu state
         registerMenuHotkeys(menuState.rootMenu)
         menuState.reset()
-        let contentView = OverlayView(state: menuState).environmentObject(SettingsStore.shared)
+
+        let contentView = OverlayView(state: menuState).environmentObject(settings)
         overlayWindow = OverlayWindow.makeWindow(view: contentView)
         overlayWindow?.delegate = self
+
         if settings.facelessMode {
             if statusItem == nil {
                 statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -39,12 +63,15 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 facelessMenuController = FacelessMenuController(
                     rootMenu: menuState.rootMenu,
                     statusItem: statusItem,
-                    resetDelay: settings.menuStateResetDelay == 0 ? 2 : settings.menuStateResetDelay
+                    resetDelay: settings.menuStateResetDelay == 0 ? 2 : settings.menuStateResetDelay,
+                    menuState: menuState,
+                    settingsStore: settings
                 )
             } else {
                 facelessMenuController?.resetDelay = settings.menuStateResetDelay
             }
         }
+
         hotKeyRef = registerHotKey()
         KeyboardShortcuts.onKeyDown(for: .toggleApp) { [self] in
             toggleSession()
@@ -54,11 +81,14 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 hideWindow()
             }
         }
+
         if settings.needsOnboarding {
             showOnboardingWindow()
         }
+
         defaultsObserver = NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)
             .sink { [weak self] _ in self?.applySettings() }
+
         NotificationCenter.default.addObserver(self, selector: #selector(hideWindow), name: .hideOverlay, object: nil)
         NotificationCenter.default.addObserver(
             self,
@@ -70,7 +100,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     func application(_ application: NSApplication, open urls: [URL]) {
         for url in urls {
-            DeepLinkHandler.shared.handle(url: url)
+            deepLinkHandler.handle(url: url)
         }
     }
 
@@ -88,7 +118,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 let controller = FacelessMenuController(
                     rootMenu: menuState.rootMenu,
                     statusItem: statusItem,
-                    resetDelay: settings.menuStateResetDelay
+                    resetDelay: settings.menuStateResetDelay, menuState: menuState
                 )
                 facelessMenuController = controller
             } else {
@@ -105,6 +135,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     @objc func statusItemClicked() {
+        configManager.refreshIfNeeded()
+
         if let controller = facelessMenuController {
             if controller.sessionActive {
                 controller.endSession()
@@ -115,15 +147,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     func toggleSession() {
-        if let configURL = SettingsStore.shared.configFileResolvedURL {
-            if ConfigMonitor.shared.hasConfigChanged(at: configURL) {
-                if let updatedMenu = loadMenuConfig() {
-                    menuState.rootMenu = updatedMenu
-                    registerMenuHotkeys(menuState.rootMenu)
-                    print("Configuration file changed; reloaded config.")
-                }
-            }
-        }
+        configManager.refreshIfNeeded()
+
         switch settings.overlayStyle {
         case .faceless:
             facelessMenuController?.endSession()
@@ -135,9 +160,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                     headerTrailingView: EmptyView(),
                     bodyView: AnyView(
                         MinimalHUDView(state: self.menuState)
-                            .environmentObject(SettingsStore.shared)
+                            .environmentObject(settings)
                     ),
-                    animated: true
+                    animated: true,
+                    settingsStore: settings
                 )
             }
             if notchContext?.presented == true {
@@ -203,7 +229,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     private func chosenScreen() -> NSScreen? {
         let screens = NSScreen.screens
-        switch SettingsStore.shared.overlayScreenOption {
+        switch settings.overlayScreenOption {
         case .primary:
             return screens.first
         case .mouse:
@@ -284,13 +310,16 @@ extension AppDelegate {
 extension AppDelegate {
     func setupDefaultConfigFile() {
         guard settings.configFilePath.isEmpty else { return }
+
         let fileManager = FileManager.default
         if let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first {
             let configFileURL = documentsURL.appendingPathComponent("menu.yaml")
+
             if !fileManager.fileExists(atPath: configFileURL.path) {
                 if let bundleConfigURL = Bundle.main.url(forResource: "menu", withExtension: "yaml") {
                     do {
                         try fileManager.copyItem(at: bundleConfigURL, to: configFileURL)
+                        print("Copied default config from bundle")
                     } catch {
                         print("Error copying default config from bundle: \(error)")
                     }
@@ -298,15 +327,20 @@ extension AppDelegate {
                     let defaultContent = "# Default menu configuration\n"
                     do {
                         try defaultContent.write(to: configFileURL, atomically: true, encoding: .utf8)
+                        print("Created empty default config file")
                     } catch {
                         print("Error writing default config file: \(error)")
                     }
                 }
             }
+
             settings.configFilePath = configFileURL.path
-            settings.configFileBookmark = try? configFileURL.bookmarkData(options: .withSecurityScope,
-                                                               includingResourceValuesForKeys: nil,
-                                                               relativeTo: nil)
+            settings.configFileBookmark = try? configFileURL.bookmarkData(
+                options: .withSecurityScope,
+                includingResourceValuesForKeys: nil,
+                relativeTo: nil
+            )
+
             print("Default config file set to: \(configFileURL.path)")
         }
     }
@@ -322,6 +356,7 @@ extension AppDelegate {
             window?.orderOut(nil)
             self.toggleSession()
         })
+        .environmentObject(settings)
         window.contentView = NSHostingView(rootView: onboardingView)
         window.makeKeyAndOrderFront(nil)
     }

@@ -13,11 +13,17 @@ enum KeyPressResult: Equatable {
     case none
 }
 
-class KeyPressController {
+class KeyPressController: DependencyInjectable {
     var menuState: MenuState
+    var settingsStore: SettingsStore?
 
-    init(menuState: MenuState) {
+    init(menuState: MenuState, settingsStore: SettingsStore? = nil) {
         self.menuState = menuState
+        self.settingsStore = settingsStore
+    }
+
+    func injectDependencies(_ container: DependencyContainer) {
+        self.settingsStore = container.settingsStore
     }
 
     func handleKeyAsync(
@@ -88,7 +94,8 @@ class KeyPressController {
                 action()
             }
             // sticky menus are only for full panel mode for now
-            if item.sticky == false, SettingsStore.shared.overlayStyle == .panel {
+            let overlayStyle = settingsStore?.overlayStyle ?? .panel
+            if item.sticky == false, overlayStyle == .panel {
                 completion(.none)
             } else {
                 completion(.actionExecuted)

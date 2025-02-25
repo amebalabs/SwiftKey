@@ -1,6 +1,6 @@
 import AppKit
 
-class FacelessMenuController {
+class FacelessMenuController: DependencyInjectable {
     let rootMenu: [MenuItem]
     var resetDelay: TimeInterval
     var statusItem: NSStatusItem
@@ -11,16 +11,33 @@ class FacelessMenuController {
     var sessionActive: Bool = false
     var keyPressController: KeyPressController
 
-    init(rootMenu: [MenuItem], statusItem: NSStatusItem, resetDelay: TimeInterval) {
+    // Dependencies
+    var menuState: MenuState
+    var settingsStore: SettingsStore?
+
+    init(
+        rootMenu: [MenuItem],
+        statusItem: NSStatusItem,
+        resetDelay: TimeInterval,
+        menuState: MenuState,
+        settingsStore: SettingsStore? = nil
+    ) {
         self.rootMenu = rootMenu
         self.statusItem = statusItem
         self.resetDelay = resetDelay
-        self.keyPressController = KeyPressController(menuState: MenuState.shared)
+        self.menuState = menuState
+        self.settingsStore = settingsStore
+        self.keyPressController = KeyPressController(menuState: menuState, settingsStore: settingsStore)
         updateStatusItem()
     }
 
+    func injectDependencies(_ container: DependencyContainer) {
+        self.menuState = container.menuState
+        self.settingsStore = container.settingsStore
+    }
+
     var currentMenu: [MenuItem] {
-        MenuState.shared.menuStack.last ?? rootMenu
+        menuState.menuStack.last ?? rootMenu
     }
 
     func updateStatusItem() {
@@ -116,8 +133,8 @@ class FacelessMenuController {
         animationTimer = nil
         sessionTimer?.invalidate()
         sessionTimer = nil
-        MenuState.shared.menuStack = []
-        MenuState.shared.breadcrumbs = []
+        menuState.menuStack = []
+        menuState.breadcrumbs = []
         updateStatusItem()
     }
 }
