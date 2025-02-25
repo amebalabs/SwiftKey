@@ -3,7 +3,7 @@ import Combine
 import Foundation
 import Yams
 
-class ConfigManager: DependencyInjectable {
+class ConfigManager: DependencyInjectable, ObservableObject {
 
     static let shared = ConfigManager()
 
@@ -41,7 +41,22 @@ class ConfigManager: DependencyInjectable {
     func setupAfterDependenciesInjected() {
         guard !didSetupDependencies else { return }
         didSetupDependencies = true
-        loadConfig()
+        
+        print("ConfigManager: Setting up after dependencies injected")
+        
+        // Load config and make sure it's processed
+        DispatchQueue.main.async { [weak self] in
+            self?.loadConfig()
+            
+            // If no config was loaded yet, try again with a delay
+            // This helps with first launch scenarios
+            if let self = self, self.menuItems.isEmpty {
+                print("ConfigManager: Menu items empty after initial load, retrying...")
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    self.loadConfig()
+                }
+            }
+        }
     }
 
     // MARK: - Public Methods
@@ -50,6 +65,12 @@ class ConfigManager: DependencyInjectable {
     func loadConfig() {
         print("ConfigManager: loadConfig() called")
 
+        // Make sure dependencies are ready
+        guard settingsStore != nil else {
+            print("ConfigManager: SettingsStore not yet injected, delaying load")
+            return
+        }
+        
         guard let configURL = resolveConfigFileURL() else {
             print("ConfigManager: Failed to resolve config file URL")
             self.lastError = ConfigError.fileNotFound
@@ -95,12 +116,73 @@ class ConfigManager: DependencyInjectable {
         let config: [MenuItem]
 
         do {
+            // First try to decode as a generic YAML to check structure
+            if let yamlObject = try Yams.load(yaml: yamlString) {
+                // Validate that the YAML is an array at the root level
+                guard yamlObject is [Any] else {
+                    print("ConfigManager: Invalid YAML format - root should be an array")
+                    self.lastError = ConfigError.invalidYamlFormat(
+                        message: "Root element must be an array of menu items",
+                        line: 1,
+                        column: 1
+                    )
+                    return
+                }
+            }
+            
+            // Now try to decode to the actual model
             config = try decoder.decode([MenuItem].self, from: yamlString)
             print("ConfigManager: Successfully decoded \(config.count) menu items")
-        } catch let yamlError {
-            // Process YAML parsing errors with more detail
-            print("ConfigManager: YAML parsing error: \(yamlError.localizedDescription)")
-            self.lastError = ConfigError.parsingFailed(underlying: yamlError)
+        } catch let yamlError as YamlError {
+            // Detailed handling for Yams parsing errors
+            let lineInfo = extractLineInfo(from: yamlError)
+            print("ConfigManager: YAML parsing error at \(lineInfo.line):\(lineInfo.column): \(yamlError.localizedDescription)")
+            self.lastError = ConfigError.invalidYamlFormat(
+                message: yamlError.localizedDescription,
+                line: lineInfo.line,
+                column: lineInfo.column
+            )
+            return
+        } catch let decodingError as DecodingError {
+            // Detailed handling for Swift Decodable errors
+            print("ConfigManager: Decoding error: \(decodingError.localizedDescription)")
+            
+            switch decodingError {
+            case let .keyNotFound(key, context):
+                print("ConfigManager: Missing required key '\(key.stringValue)' in context: \(context.debugDescription)")
+                self.lastError = ConfigError.missingRequiredField(
+                    field: key.stringValue,
+                    context: context.debugDescription
+                )
+            case let .typeMismatch(type, context):
+                print("ConfigManager: Type mismatch for \(type) in context: \(context.debugDescription)")
+                let fieldName = context.codingPath.last?.stringValue ?? "unknown"
+                self.lastError = ConfigError.typeMismatch(
+                    field: fieldName,
+                    context: context.debugDescription
+                )
+            case let .valueNotFound(type, context):
+                print("ConfigManager: Value not found for \(type) in context: \(context.debugDescription)")
+                let fieldName = context.codingPath.last?.stringValue ?? "unknown"
+                self.lastError = ConfigError.missingRequiredField(
+                    field: fieldName,
+                    context: context.debugDescription
+                )
+            case .dataCorrupted(let context):
+                print("ConfigManager: Data corrupted in context: \(context.debugDescription)")
+                self.lastError = ConfigError.invalidYamlFormat(
+                    message: context.debugDescription,
+                    line: 0,
+                    column: 0
+                )
+            @unknown default:
+                self.lastError = ConfigError.parsingFailed(underlying: decodingError)
+            }
+            return
+        } catch let otherError {
+            // Fallback for other errors
+            print("ConfigManager: YAML parsing error: \(otherError.localizedDescription)")
+            self.lastError = ConfigError.parsingFailed(underlying: otherError)
             return
         }
 
@@ -108,6 +190,19 @@ class ConfigManager: DependencyInjectable {
         if config.isEmpty {
             print("ConfigManager: Config is empty, no menu items found")
             self.lastError = ConfigError.emptyConfiguration
+            return
+        }
+        
+        // Validate the menu items structure
+        do {
+            try validateMenuItems(config)
+        } catch let validationError as ConfigError {
+            print("ConfigManager: Menu item validation failed: \(validationError.localizedDescription)")
+            self.lastError = validationError
+            return
+        } catch {
+            print("ConfigManager: Unexpected validation error: \(error.localizedDescription)")
+            self.lastError = ConfigError.unknown(underlying: error)
             return
         }
 
@@ -311,6 +406,119 @@ class ConfigManager: DependencyInjectable {
             print("ConfigManager: Failed to create fallback config: \(error)")
             return nil
         }
+    }
+    
+    // MARK: - YAML Validation Helpers
+    
+    /// Extracts line and column information from a YAML error
+    private func extractLineInfo(from error: YamlError) -> (line: Int, column: Int) {
+        // Default values
+        var line = 0
+        var column = 0
+        
+        // Try to extract line/column info from error description
+        let errorDescription = error.localizedDescription
+        
+        // Look for line:column pattern in the error description
+        let lineColumnPattern = #"line (\d+), column (\d+)"#
+        if let regex = try? NSRegularExpression(pattern: lineColumnPattern),
+           let match = regex.firstMatch(in: errorDescription, range: NSRange(errorDescription.startIndex..., in: errorDescription)) {
+            
+            if let lineRange = Range(match.range(at: 1), in: errorDescription),
+               let columnRange = Range(match.range(at: 2), in: errorDescription) {
+                line = Int(errorDescription[lineRange]) ?? 0
+                column = Int(errorDescription[columnRange]) ?? 0
+            }
+        }
+        
+        // For specific mark errors, we could check if there's a better way 
+        // to extract line information directly from the Yams library
+        // For now, we'll rely on the regex extraction above
+        
+        return (line, column)
+    }
+    
+    /// Validates menu items recursively
+    private func validateMenuItems(_ items: [MenuItem]) throws {
+        for (index, item) in items.enumerated() {
+            // Validate key format (should be a single character)
+            if item.key.count != 1 {
+                throw ConfigError.invalidYamlFormat(
+                    message: "Key must be a single character, found '\(item.key)'",
+                    line: 0,
+                    column: 0
+                )
+            }
+            
+            // Validate title is not empty
+            if item.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                throw ConfigError.invalidYamlFormat(
+                    message: "Title cannot be empty for key '\(item.key)'",
+                    line: 0,
+                    column: 0
+                )
+            }
+            
+            // Validate that if there's no submenu, there must be an action
+            if item.submenu == nil && item.action == nil {
+                throw ConfigError.invalidYamlFormat(
+                    message: "Menu item '\(item.title)' (key: \(item.key)) must have either a submenu or an action",
+                    line: 0,
+                    column: 0
+                )
+            }
+            
+            // Validate action format if present
+            if let action = item.action {
+                if !isValidActionFormat(action) {
+                    throw ConfigError.invalidYamlFormat(
+                        message: "Invalid action format: '\(action)' for key '\(item.key)'",
+                        line: 0,
+                        column: 0
+                    )
+                }
+            }
+            
+            // Validate hotkey format if present
+            if let hotkey = item.hotkey, !isValidHotkeyFormat(hotkey) {
+                throw ConfigError.invalidYamlFormat(
+                    message: "Invalid hotkey format: '\(hotkey)' for key '\(item.key)'",
+                    line: 0,
+                    column: 0
+                )
+            }
+            
+            // Recursively validate submenu if present
+            if let submenu = item.submenu {
+                try validateMenuItems(submenu)
+            }
+        }
+    }
+    
+    /// Validates the action string format
+    private func isValidActionFormat(_ action: String) -> Bool {
+        let validPrefixes = ["launch://", "open://", "shell://", "shortcut://", "dynamic://"]
+        return validPrefixes.contains { action.hasPrefix($0) }
+    }
+    
+    /// Validates the hotkey format
+    private func isValidHotkeyFormat(_ hotkey: String) -> Bool {
+        // Simple validation for now - can be made more sophisticated
+        let components = hotkey.components(separatedBy: "+")
+        
+        // Hotkey must have at least one component
+        guard !components.isEmpty else { return false }
+        
+        // Check for valid modifiers
+        let validModifiers = ["cmd", "ctrl", "alt", "shift"]
+        // At least all but the last component should be valid modifiers
+        for i in 0..<(components.count - 1) {
+            if !validModifiers.contains(components[i].lowercased()) {
+                return false
+            }
+        }
+        
+        return true
     }
 }
 

@@ -5,22 +5,6 @@ import SwiftUI
 class AppShared: NSObject {
     // MARK: - Static Helpers
 
-    static func changeConfigFile() {
-        ConfigManager.shared.changeConfigFile()
-    }
-
-    static func openConfigFile() {
-        ConfigManager.shared.openConfigFile()
-    }
-
-    static func reloadConfig() {
-        ConfigManager.shared.loadConfig()
-    }
-
-    static func resolveConfigFileURL() -> URL? {
-        return ConfigManager.shared.resolveConfigFileURL()
-    }
-
     static func showAbout() {
         NSApp.orderFrontStandardAboutPanel()
     }
