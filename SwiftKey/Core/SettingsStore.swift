@@ -72,7 +72,9 @@ class SettingsStore: ObservableObject, DependencyInjectable {
     }
 
     var configFileResolvedURL: URL? {
-        guard let path = configFilePath as NSString? else { return nil }
+        guard let path = configFilePath as NSString?, path != "" else {
+            return nil
+        }
         return URL(fileURLWithPath: path.expandingTildeInPath).resolvingSymlinksInPath()
     }
 

@@ -215,6 +215,15 @@ class ConfigManager: DependencyInjectable, ObservableObject {
         }
     }
 
+    fileprivate func createSecureBookmark(_ url: URL) throws {
+            let bookmarkData = try url.bookmarkData(
+                options: .withSecurityScope,
+                includingResourceValuesForKeys: nil,
+                relativeTo: nil
+            )
+            settingsStore.configFileBookmark = bookmarkData
+    }
+    
     /// Changes the configuration file to a new location
     func changeConfigFile() {
         let dialog = NSOpenPanel()
@@ -229,12 +238,7 @@ class ConfigManager: DependencyInjectable, ObservableObject {
 
         // Create a security-scoped bookmark
         do {
-            let bookmarkData = try url.bookmarkData(
-                options: .withSecurityScope,
-                includingResourceValuesForKeys: nil,
-                relativeTo: nil
-            )
-            settingsStore.configFileBookmark = bookmarkData
+            try createSecureBookmark(url)
         } catch {
             print("Error creating bookmark: \(error)")
             self.lastError = error
@@ -342,6 +346,7 @@ class ConfigManager: DependencyInjectable, ObservableObject {
     private func createDefaultConfigIfNeeded() -> URL? {
         guard let documentsDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
             print("ConfigManager: Could not access Documents directory")
+            assert(true)
             return nil
         }
 
@@ -349,13 +354,15 @@ class ConfigManager: DependencyInjectable, ObservableObject {
 
         if FileManager.default.fileExists(atPath: configURL.path) {
             print("ConfigManager: Found existing config at \(configURL.path)")
+            try? createSecureBookmark(configURL)
             return configURL
         }
         
         // Get the default config from the app bundle
         guard let bundledConfigURL = Bundle.main.url(forResource: "menu", withExtension: "yaml") else {
             print("ConfigManager: Could not find bundled menu.yaml")
-            return createFallbackConfig(at: configURL)
+            assert(true)
+            return nil
         }
         
         do {
@@ -363,50 +370,15 @@ class ConfigManager: DependencyInjectable, ObservableObject {
             print("ConfigManager: Copied bundled config to \(configURL.path)")
             
             settingsStore.configFilePath = configURL.path
-            
+            try? createSecureBookmark(configURL)
             return configURL
         } catch {
             print("ConfigManager: Failed to copy bundled config: \(error)")
-            return createFallbackConfig(at: configURL)
         }
+        assert(true)
+        return nil
     }
     
-    /// Creates a minimal fallback config if the bundled config can't be used
-    private func createFallbackConfig(at url: URL) -> URL? {
-        let fallbackConfig = """
-        # Minimal SwiftKey configuration
-        
-        - key: "c"
-          title: "Launch Calculator"
-          action: "launch:///System/Applications/Calculator.app"
-          
-        - key: "n"
-          title: "Launch Notes"
-          action: "launch:///System/Applications/Notes.app"
-          
-        - key: "s"
-          title: "Settings"
-          submenu:
-            - key: "1"
-              title: "Open SwiftKey Settings"
-              action: "shell://open -a SwiftKey --args --preferences"
-            - key: "2" 
-              title: "Open System Settings"
-              action: "launch:///System/Applications/System Settings.app"
-        """
-        
-        do {
-            try fallbackConfig.write(to: url, atomically: true, encoding: .utf8)
-            print("ConfigManager: Created fallback config at \(url.path)")
-            
-            settingsStore.configFilePath = url.path
-            
-            return url
-        } catch {
-            print("ConfigManager: Failed to create fallback config: \(error)")
-            return nil
-        }
-    }
     
     // MARK: - YAML Validation Helpers
     
@@ -431,16 +403,12 @@ class ConfigManager: DependencyInjectable, ObservableObject {
             }
         }
         
-        // For specific mark errors, we could check if there's a better way 
-        // to extract line information directly from the Yams library
-        // For now, we'll rely on the regex extraction above
-        
         return (line, column)
     }
     
     /// Validates menu items recursively
     private func validateMenuItems(_ items: [MenuItem]) throws {
-        for (index, item) in items.enumerated() {
+        for item in items {
             // Validate key format (should be a single character)
             if item.key.count != 1 {
                 throw ConfigError.invalidYamlFormat(
