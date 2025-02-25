@@ -107,14 +107,21 @@ struct MenuItem: Identifiable, Codable, Equatable {
             return {
                 do {
                     let out = try runScript(to: command, env: [:])
-
-                    notifyUser(title: "Finished running \(title)", message: out.out)
+                    
+                    // Only show notification with output if it's not empty
+                    let message = out.out.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 
+                                 "Command completed successfully" : out.out
+                    notifyUser(title: "Finished running \(title)", message: message)
                 } catch {
-                    guard let error = error as? ShellOutError else {
-                        notifyUser(title: "Error running \(title)", message: "Unknown error")
-                        return
+                    if let shellError = error as? ShellOutError {
+                        let errorMessage = shellError.message.isEmpty ? 
+                                          "Command failed with exit code \(shellError.terminationStatus)" : 
+                                          shellError.message
+                        notifyUser(title: "Error running \(title)", message: errorMessage)
+                    } else {
+                        // Handle other types of errors
+                        notifyUser(title: "Error running \(title)", message: "Unknown error: \(error.localizedDescription)")
                     }
-                    notifyUser(title: "Error running \(title)", message: error.message)
                 }
             }
         }

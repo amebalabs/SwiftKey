@@ -20,10 +20,37 @@ func getEnvExportString(env: [String: String]) -> String {
 ) throws
     -> (out: String, err: String?)
 {
+    // Pre-execution validation
+    let trimmedCommand = command.trimmingCharacters(in: .whitespacesAndNewlines)
+    
+    // Ensure command is not empty
+    guard !trimmedCommand.isEmpty else {
+        throw ShellOutError(
+            terminationStatus: 1,
+            errorData: "Empty command provided".data(using: .utf8) ?? Data(),
+            outputData: Data()
+        )
+    }
+    
+    // Runtime security check - redundant with config-time check but provides defense in depth
+    let blacklistedPrefixes = ["rm -rf /", "sudo ", "> /", ">> /", "mkfs", "dd if="]
+    for prefix in blacklistedPrefixes {
+        if trimmedCommand.hasPrefix(prefix) || trimmedCommand.contains(" " + prefix) {
+            throw ShellOutError(
+                terminationStatus: 126,
+                errorData: "Potentially dangerous command rejected".data(using: .utf8) ?? Data(),
+                outputData: Data()
+            )
+        }
+    }
+    
+    // Set up execution environment
     let swiftbarEnv = sharedEnv.systemEnvStr.merging(env) { current, _ in current }
     process.environment = swiftbarEnv.merging(ProcessInfo.processInfo.environment) { current, _ in current }
+    
+    // Execute command with enhanced error handling
     return try process.launchScript(
-        with: command,
+        with: trimmedCommand,
         args: args,
         runInBash: runInBash,
         streamOutput: streamOutput,

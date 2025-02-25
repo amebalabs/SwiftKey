@@ -465,8 +465,61 @@ class ConfigManager: DependencyInjectable, ObservableObject {
     
     /// Validates the action string format
     private func isValidActionFormat(_ action: String) -> Bool {
-        let validPrefixes = ["launch://", "open://", "shell://", "shortcut://", "dynamic://"]
+        if action.hasPrefix("shell://") {
+            switch validateShellCommand(action) {
+            case .success:
+                return true
+            case .failure:
+                return false
+            }
+        }
+        
+        let validPrefixes = ["launch://", "open://", "shortcut://", "dynamic://"]
         return validPrefixes.contains { action.hasPrefix($0) }
+    }
+    
+    /// Validates shell commands for security and proper format
+    private func validateShellCommand(_ command: String) -> Result<Void, ConfigError> {
+        // Strip the "shell://" prefix
+        let shellCmd = String(command.dropFirst("shell://".count)).trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        // Check for empty commands
+        if shellCmd.isEmpty {
+            return .failure(ConfigError.invalidShellCommand(
+                message: "Shell command cannot be empty",
+                command: command
+            ))
+        }
+        
+        // Check for blacklisted commands
+        let blacklistedPrefixes = ["rm -rf /", "sudo ", "> /", ">> /", "mkfs", "dd if=", ":(){ :|:& };:"]
+        for prefix in blacklistedPrefixes {
+            if shellCmd.hasPrefix(prefix) || shellCmd.contains(" " + prefix) {
+                return .failure(ConfigError.invalidShellCommand(
+                    message: "Shell command contains potentially dangerous operation",
+                    command: command
+                ))
+            }
+        }
+        
+        // Check command length to prevent very long commands
+        if shellCmd.count > 1000 {
+            return .failure(ConfigError.invalidShellCommand(
+                message: "Shell command exceeds maximum allowed length (1000 characters)",
+                command: command
+            ))
+        }
+        
+        // Check for proper quoting
+        let quoteCount = shellCmd.filter { $0 == "\"" || $0 == "'" }.count
+        if quoteCount % 2 != 0 {
+            return .failure(ConfigError.invalidShellCommand(
+                message: "Shell command has unbalanced quotes",
+                command: command
+            ))
+        }
+        
+        return .success(())
     }
     
     /// Validates the hotkey format
@@ -502,6 +555,7 @@ enum ConfigError: Error {
     case missingRequiredField(field: String, context: String)
     case typeMismatch(field: String, context: String)
     case parsingFailed(underlying: Error)
+    case invalidShellCommand(message: String, command: String)
     case unknown(underlying: Error)
 }
 
@@ -526,6 +580,8 @@ extension ConfigError: LocalizedError {
             return "Type mismatch for field '\(field)' in the configuration."
         case let .parsingFailed(error):
             return "Failed to parse the configuration: \(error.localizedDescription)"
+        case let .invalidShellCommand(message, command):
+            return "Invalid shell command: \(message) in '\(command)'"
         case let .unknown(error):
             return "Unknown error processing configuration: \(error.localizedDescription)"
         }
