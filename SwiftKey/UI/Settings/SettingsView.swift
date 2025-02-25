@@ -5,8 +5,6 @@ struct SettingsView: View {
         case general, about
     }
 
-    @ObservedObject var menuState = MenuState.shared
-
     var body: some View {
         TabView {
             GeneralSettingsView()
@@ -24,5 +22,5 @@ struct SettingsView: View {
 }
 
 #Preview {
-    SettingsView().environmentObject(SettingsStore.shared)
+    SettingsView().environmentObject(SettingsStore())
 }

@@ -118,11 +118,13 @@ struct OverlayView: View {
         .onReceive(NotificationCenter.default.publisher(for: .resetMenuState)) { _ in
             state.reset()
         }
+        .onReceive(NotificationCenter.default.publisher(for: .hideOverlay)) { _ in
+            altMode = false
+        }
     }
 
     private func handleKey(key: String, modifierFlags: NSEvent.ModifierFlags?) {
-        let keyController = KeyPressController(menuState: state)
-        keyController.handleKeyAsync(key, modifierFlags: modifierFlags) { result in
+        KeyboardManager.shared.handleKey(key: key, modifierFlags: modifierFlags) { result in
             switch result {
             case .escape:
                 NotificationCenter.default.post(name: .resetMenuState, object: nil)
@@ -153,7 +155,7 @@ struct OverlayView: View {
 struct VerticalMenuItemView: View {
     let item: MenuItem
     @Binding var altMode: Bool
-    
+
     var body: some View {
         HStack(spacing: 16) {
             item.iconImage
@@ -161,19 +163,19 @@ struct VerticalMenuItemView: View {
                 .scaledToFit()
                 .frame(width: 40, height: 40)
                 .opacity(0.9)
-            
+
             VStack(alignment: .leading, spacing: 4) {
                 Text(item.title)
                     .font(.system(size: 14, weight: .medium))
                     .foregroundColor(.primary)
-                
+
                 Text(item.key)
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundColor(.secondary)
             }
-            
+
             Spacer()
-            
+
             if item.submenu != nil {
                 Image(systemName: "chevron.right")
                     .font(.system(size: 14, weight: .medium))
@@ -185,8 +187,8 @@ struct VerticalMenuItemView: View {
         .background(
             RoundedRectangle(cornerRadius: 8)
                 .fill(altMode && item.submenu != nil ?
-                      Color.red.opacity(0.2) :
-                        Color.primary.opacity(0.05))
+                    Color.red.opacity(0.2) :
+                    Color.primary.opacity(0.05))
         )
         .contentShape(Rectangle())
     }
@@ -224,5 +226,7 @@ struct HorizontalMenuItemView: View {
 }
 
 #Preview {
-    OverlayView(state: MenuState.shared).environmentObject(SettingsStore.shared)
+    let settingsStore = SettingsStore()
+    let menuState = MenuState()
+    return OverlayView(state: menuState).environmentObject(settingsStore)
 }

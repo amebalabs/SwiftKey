@@ -1,9 +1,257 @@
 import AppKit
+import Combine
 import KeyboardShortcuts
+import Yams
+
+// MARK: - KeyboardShortcut Names
 
 extension KeyboardShortcuts.Name {
     static let toggleApp = Self("toggleApp")
 }
+
+// MARK: - KeyboardManager
+
+class KeyboardManager: DependencyInjectable, ObservableObject {
+    // Singleton instance
+    static let shared = KeyboardManager()
+    
+    // Dependencies
+    var menuState: MenuState!
+    var settingsStore: SettingsStore!
+    var configManager: ConfigManager!
+    
+    // Event publishers
+    let keyPressSubject = PassthroughSubject<KeyEvent, Never>()
+    var keyPressPublisher: AnyPublisher<KeyEvent, Never> {
+        keyPressSubject.eraseToAnyPublisher()
+    }
+    
+    // Global key handlers map for menu hotkeys
+    private var hotkeyHandlers: [String: KeyboardShortcuts.Name] = [:]
+    
+    // MARK: - Initialization
+    
+    
+    init() {
+        // Setup will happen after dependencies are injected
+    }
+    
+    func injectDependencies(_ container: DependencyContainer) {
+        self.menuState = container.menuState
+        self.settingsStore = container.settingsStore
+        self.configManager = container.configManager
+        
+        print("KeyboardManager: Dependencies injected successfully")
+    }
+    
+    // MARK: - Key Handling
+    
+    func handleKey(key: String, modifierFlags: NSEvent.ModifierFlags? = nil, completion: @escaping (KeyPressResult) -> Void) {
+        print("KeyboardManager: Key pressed: \(key)")
+        let normalizedKey = key
+        menuState.currentKey = normalizedKey
+        
+        // Common navigation keys
+        if normalizedKey == "escape" {
+            completion(.escape)
+            return
+        }
+        if normalizedKey == "cmd+up" {
+            if !menuState.menuStack.isEmpty { menuState.menuStack.removeLast() }
+            if !menuState.breadcrumbs.isEmpty { menuState.breadcrumbs.removeLast() }
+            completion(.up)
+            return
+        }
+        if normalizedKey == "?" {
+            completion(.help)
+            return
+        }
+        
+        // Find matching menu item
+        guard let item = menuState.currentMenu.first(where: { $0.key == normalizedKey }) else {
+            completion(.error(key: key))
+            return
+        }
+        
+        // Handle dynamic menus
+        if let actionString = item.action, actionString.hasPrefix("dynamic://") {
+            completion(.dynamicLoading)
+            loadDynamicMenu(for: item) { result in
+                DispatchQueue.main.async {
+                    completion(result)
+                }
+            }
+            return
+        }
+        
+        // Handle submenu navigation
+        if let submenu = item.submenu {
+            // Batch execution mode (Alt key or batch flag)
+            if modifierFlags?.isOption == true || item.batch == true {
+                executeBatchActions(in: submenu)
+                completion(.actionExecuted)
+                return
+            }
+            
+            // Normal submenu navigation
+            menuState.breadcrumbs.append(item.title)
+            menuState.menuStack.append(submenu)
+            completion(.submenuPushed(title: item.title))
+            return
+        }
+        
+        // Execute action
+        if let action = item.actionClosure {
+            DispatchQueue.global(qos: .userInitiated).async {
+                action()
+            }
+            
+            // Handle sticky flag for panel mode
+            let overlayStyle = settingsStore?.overlayStyle ?? .panel
+            if item.sticky == false, overlayStyle == .panel {
+                completion(.none)
+            } else {
+                completion(.actionExecuted)
+            }
+            return
+        }
+        
+        completion(.none)
+    }
+    
+    // MARK: - Dynamic Menu Loading
+    
+    private func loadDynamicMenu(for item: MenuItem, completion: @escaping (KeyPressResult) -> Void) {
+        guard let actionString = item.action, actionString.hasPrefix("dynamic://") else {
+            completion(.error(key: item.key))
+            return
+        }
+        
+        let command = String(actionString.dropFirst("dynamic://".count))
+        
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self = self else { return }
+            
+            do {
+                let result = try runScript(to: command, args: [])
+                let output = result.out
+                let decoder = YAMLDecoder()
+                let submenu = try decoder.decode([MenuItem].self, from: output)
+                
+                DispatchQueue.main.async {
+                    self.menuState.breadcrumbs.append(item.title)
+                    self.menuState.menuStack.append(submenu)
+                    completion(.submenuPushed(title: item.title))
+                }
+            } catch {
+                print("Dynamic menu error: \(error)")
+                completion(.error(key: item.key))
+            }
+        }
+    }
+    
+    // MARK: - Batch Actions
+    
+    private func executeBatchActions(in submenu: [MenuItem]) {
+        DispatchQueue.global(qos: .userInitiated).async {
+            for menu in submenu where menu.actionClosure != nil {
+                guard menu.action?.hasPrefix("dynamic://") == false else { continue }
+                menu.actionClosure!()
+            }
+        }
+    }
+    
+    // MARK: - Hotkey Registration
+    
+    func registerMenuHotkeys(_ menu: [MenuItem]) {
+        // Clear existing hotkeys if we're registering for the root menu
+        if menu == menuState.rootMenu {
+            hotkeyHandlers.removeAll()
+        }
+        
+        for item in menu {
+            if let hotkeyStr = item.hotkey, let shortcut = KeyboardShortcuts.Shortcut(hotkeyStr) {
+                let name = KeyboardShortcuts.Name(item.id.uuidString)
+                KeyboardShortcuts.setShortcut(shortcut, for: name)
+                
+                KeyboardShortcuts.onKeyDown(for: name) { [weak self] in
+                    guard let self = self else { return }
+                    
+                    if item.submenu != nil {
+                        DispatchQueue.main.async {
+                            self.navigateToMenuItem(item)
+                        }
+                    } else if let action = item.actionClosure {
+                        DispatchQueue.global(qos: .userInitiated).async {
+                            action()
+                        }
+                    }
+                }
+                
+                hotkeyHandlers[item.id.uuidString] = name
+            }
+            
+            // Recursively register hotkeys for submenus
+            if let submenu = item.submenu {
+                registerMenuHotkeys(submenu)
+            }
+        }
+    }
+    
+    private func navigateToMenuItem(_ item: MenuItem) {
+        menuState.reset()
+        
+        if let path = findPathToMenuItem(item, in: menuState.rootMenu) {
+            for (index, menuItem) in path.enumerated() {
+                if index < path.count {
+                    menuState.breadcrumbs.append(menuItem.title)
+                    if let submenu = menuItem.submenu {
+                        menuState.menuStack.append(submenu)
+                    }
+                }
+            }
+            
+            // Show overlay with the correct menu
+            AppDelegate.shared.presentOverlay()
+        }
+    }
+    
+    private func findPathToMenuItem(
+        _ target: MenuItem,
+        in menu: [MenuItem],
+        currentPath: [MenuItem] = []
+    ) -> [MenuItem]? {
+        for item in menu {
+            if item.id == target.id {
+                return currentPath + [item]
+            }
+            
+            if let submenu = item.submenu, 
+               let path = findPathToMenuItem(
+                  target,
+                  in: submenu,
+                  currentPath: currentPath + [item]
+               ) {
+                return path
+            }
+        }
+        return nil
+    }
+}
+
+// MARK: - KeyEvent Data Structure
+
+struct KeyEvent {
+    let key: String
+    let modifiers: NSEvent.ModifierFlags?
+    
+    init(key: String, modifiers: NSEvent.ModifierFlags? = nil) {
+        self.key = key
+        self.modifiers = modifiers
+    }
+}
+
+// MARK: - KeyboardShortcuts Extension
 
 extension KeyboardShortcuts.Shortcut {
     init?(_ string: String) {

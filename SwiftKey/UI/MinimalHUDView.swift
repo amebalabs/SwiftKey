@@ -41,8 +41,7 @@ struct MinimalHUDView: View {
     }
 
     func handleKeyPress(_ key: String) {
-        let keyController = KeyPressController(menuState: state)
-        keyController.handleKeyAsync(key) { result in
+        KeyboardManager.shared.handleKey(key: key) { result in
             switch result {
             case .escape:
                 NotificationCenter.default.post(name: .hideOverlay, object: nil)

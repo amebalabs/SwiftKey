@@ -1,11 +1,18 @@
 import SwiftUI
 
-final class MenuState: ObservableObject {
-    public static let shared = MenuState()
+final class MenuState: ObservableObject, DependencyInjectable {
+    // Removed shared singleton in favor of dependency injection
+
     @Published var rootMenu: [MenuItem] = []
     @Published var menuStack: [[MenuItem]] = []
     @Published var breadcrumbs: [String] = []
     @Published var currentKey: String?
+
+    var configManager: ConfigManager?
+
+    func injectDependencies(_ container: DependencyContainer) {
+        self.configManager = container.configManager
+    }
 
     func reset() {
         menuStack = []

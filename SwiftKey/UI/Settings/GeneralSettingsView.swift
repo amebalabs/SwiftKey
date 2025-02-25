@@ -5,6 +5,7 @@ struct GeneralSettingsView: View {
     @EnvironmentObject var settings: SettingsStore
     @ObservedObject private var launchAtLogin = LaunchAtLogin.observable
     @StateObject private var updater = SparkleUpdater.shared
+    @ObservedObject private var configManager = ConfigManager.shared
 
     var body: some View {
         Form {
@@ -37,12 +38,12 @@ struct GeneralSettingsView: View {
             HStack {
                 Text("Configuration file:")
                 Button("Change...") {
-                    AppShared.changeConfigFile()
+                    configManager.changeConfigFile()
                 }
             }
             HStack(spacing: 8) {
-                if let _ = UserDefaults.standard.data(forKey: "ConfigFileBookmark") {
-                    if let url = AppShared.resolveConfigFileURL() {
+                if let _ = settings.configFileBookmark {
+                    if let url = configManager.resolveConfigFileURL() {
                         Text(url.path)
                             .font(.system(size: 11))
                             .foregroundColor(.secondary)
@@ -55,13 +56,60 @@ struct GeneralSettingsView: View {
                 }
 
                 Button(action: {
-                    AppShared.openConfigFile()
+                    configManager.openConfigFile()
                 }) {
                     Image(systemName: "doc.text")
                         .foregroundColor(.accentColor)
                 }
                 .buttonStyle(BorderlessButtonStyle())
                 .help("Reveal configuration file in Finder")
+            }
+            
+            // Show configuration error if present
+            if let error = configManager.lastError {
+                VStack(alignment: .leading, spacing: 5) {
+                    Text("Configuration Error")
+                        .font(.headline)
+                        .foregroundColor(.red)
+                    
+                    Text(error.localizedDescription)
+                        .font(.system(size: 12))
+                        .foregroundColor(.red)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .textSelection(.enabled)
+                    
+                    if let configError = error as? ConfigError, 
+                       case let .invalidYamlFormat(_, line, column) = configError,
+                       line > 0 {
+                        Text("Line \(line), Column \(column)")
+                            .font(.system(size: 11))
+                            .foregroundColor(.red)
+                    }
+                    
+                    HStack {
+                        Button("Reload Configuration") {
+                            configManager.loadConfig()
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.small)
+                        
+                        Button("Edit File") {
+                            configManager.openConfigFile()
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                    }
+                    .padding(.top, 5)
+                }
+                .padding(10)
+                .background(Color.red.opacity(0.1))
+                .cornerRadius(8)
+                .padding(.vertical, 5)
+            } else if configManager.menuItems.isEmpty {
+                Text("No menu items loaded. Please check your configuration file.")
+                    .font(.system(size: 12))
+                    .foregroundColor(.orange)
+                    .padding(.vertical, 5)
             }
 
             Divider()
@@ -113,5 +161,5 @@ struct GeneralSettingsView: View {
 }
 
 #Preview {
-    GeneralSettingsView().environmentObject(SettingsStore.shared)
+    GeneralSettingsView().environmentObject(SettingsStore())
 }

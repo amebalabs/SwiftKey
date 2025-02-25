@@ -1,6 +1,6 @@
 import Sparkle
 
-final class SparkleUpdater: ObservableObject {
+final class SparkleUpdater: ObservableObject, DependencyInjectable {
     private let controller: SPUStandardUpdaterController
     @Published var canCheckForUpdates = false
 
@@ -50,5 +50,9 @@ final class SparkleUpdater: ObservableObject {
     var automaticallyDownloadsUpdates: Bool {
         get { controller.updater.automaticallyDownloadsUpdates }
         set { controller.updater.automaticallyDownloadsUpdates = newValue }
+    }
+
+    func injectDependencies(_ container: DependencyContainer) {
+        // SparkleUpdater doesn't currently need any dependencies
     }
 }

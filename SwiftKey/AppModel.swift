@@ -163,19 +163,3 @@ extension MenuItem {
     }
 }
 
-func loadMenuConfig() -> [MenuItem]? {
-    guard let configURL = AppShared.resolveConfigFileURL() else {
-        print("Configuration file URL not available.")
-        return nil
-    }
-
-    do {
-        let yamlString = try String(contentsOf: configURL, encoding: .utf8)
-        let decoder = YAMLDecoder()
-        let config = try decoder.decode([MenuItem].self, from: yamlString)
-        return config
-    } catch {
-        print("Error loading YAML config: \(error)")
-        return nil
-    }
-}

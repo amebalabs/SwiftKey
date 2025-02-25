@@ -4,6 +4,7 @@ import SwiftUI
 struct OnboardingView: View {
     let onFinish: () -> Void
     @State private var isDismissing = false
+    @EnvironmentObject var settings: SettingsStore
 
     var body: some View {
         VStack(spacing: 20) {
@@ -29,7 +30,7 @@ struct OnboardingView: View {
                 withAnimation {
                     isDismissing = true
                 }
-                SettingsStore.shared.needsOnboarding = false
+                settings.needsOnboarding = false
                 onFinish()
             }) {
                 Text("Get Started")

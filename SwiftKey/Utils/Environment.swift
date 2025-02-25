@@ -25,7 +25,7 @@ class Environment {
         .swiftKey: "1",
         .swiftKeyVersion: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "",
         .swiftKeyBuild: Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "",
-        .swiftKeyConfigPath: SettingsStore.shared.configFilePath,
+//        .swiftKeyConfigPath: SettingsStore.shared.configFilePath,
         .osVersionMajor: String(ProcessInfo.processInfo.operatingSystemVersion.majorVersion),
         .osVersionMinor: String(ProcessInfo.processInfo.operatingSystemVersion.minorVersion),
         .osVersionPatch: String(ProcessInfo.processInfo.operatingSystemVersion.patchVersion),
