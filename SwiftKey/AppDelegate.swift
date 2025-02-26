@@ -214,6 +214,41 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Dependency
 
     func presentOverlay() {
         notchContext?.close()
+        
+        // Check if current menu consists of a single dynamic menu item
+        if menuState.hasSingleDynamicMenuItem, 
+           let item = menuState.singleDynamicMenuItem {
+            
+            print("Detected single dynamic menu item: \(item.title)")
+            
+            // Don't show the UI yet - first load the dynamic menu
+            DynamicMenuLoader.shared.loadDynamicMenu(for: item) { [weak self] submenu in
+                guard let self = self, let submenu = submenu else {
+                    DispatchQueue.main.async {
+                        print("Failed to load dynamic menu for: \(item.title)")
+                        self?.showOverlayWindow()
+                    }
+                    return
+                }
+                
+                DispatchQueue.main.async {
+                    // Update the menu state with the loaded submenu
+                    self.menuState.breadcrumbs.append(item.title)
+                    self.menuState.menuStack.append(submenu)
+                    
+                    // Now that the menu is loaded, present the UI
+                    self.showOverlayWindow()
+                }
+            }
+            return
+        }
+        
+        // Regular case - show the window directly
+        showOverlayWindow()
+    }
+    
+    /// Shows the overlay window positioned appropriately on screen
+    private func showOverlayWindow() {
         guard let window = overlayWindow, let screen = chosenScreen() else { return }
         let frame = window.frame
         let screenFrame = screen.visibleFrame

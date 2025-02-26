@@ -31,4 +31,18 @@ final class MenuState: ObservableObject, DependencyInjectable {
     var breadcrumbText: String {
         breadcrumbs.isEmpty ? "Home" : "Home > " + breadcrumbs.joined(separator: " > ")
     }
+    
+    /// Checks if the current menu consists of a single dynamic menu item
+    var hasSingleDynamicMenuItem: Bool {
+        let menu = currentMenu
+        return menu.count == 1 && 
+               menu[0].action?.hasPrefix("dynamic://") == true &&
+               menu[0].submenu == nil
+    }
+    
+    /// Returns the single dynamic menu item if it exists
+    var singleDynamicMenuItem: MenuItem? {
+        guard hasSingleDynamicMenuItem else { return nil }
+        return currentMenu.first
+    }
 }

@@ -57,18 +57,19 @@ class KeyPressController: DependencyInjectable {
 
         if let actionString = item.action, actionString.hasPrefix("dynamic://") {
             completion(.dynamicLoading)
-            let command = String(actionString.dropFirst("dynamic://".count))
-            DispatchQueue.global(qos: .userInitiated).async {
-                if let submenu = self.runDynamicMenu(command: command) {
-                    DispatchQueue.main.async {
-                        self.menuState.breadcrumbs.append(item.title)
-                        self.menuState.menuStack.append(submenu)
-                        completion(.submenuPushed(title: item.title))
-                    }
-                } else {
+            
+            DynamicMenuLoader.shared.loadDynamicMenu(for: item) { [weak self] submenu in
+                guard let self = self, let submenu = submenu else {
                     DispatchQueue.main.async {
                         completion(.error(key: item.key))
                     }
+                    return
+                }
+                
+                DispatchQueue.main.async {
+                    self.menuState.breadcrumbs.append(item.title)
+                    self.menuState.menuStack.append(submenu)
+                    completion(.submenuPushed(title: item.title))
                 }
             }
             return
@@ -105,16 +106,5 @@ class KeyPressController: DependencyInjectable {
         completion(.none)
     }
 
-    private func runDynamicMenu(command: String) -> [MenuItem]? {
-        do {
-            let result = try runScript(to: command, args: [])
-            let output = result.out
-            let decoder = YAMLDecoder()
-            let submenu = try decoder.decode([MenuItem].self, from: output)
-            return submenu
-        } catch {
-            print("Dynamic menu error: \(error)")
-            return nil
-        }
-    }
+    // Removed runDynamicMenu method, now using DynamicMenuLoader instead
 }
