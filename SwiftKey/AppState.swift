@@ -19,8 +19,23 @@ final class MenuState: ObservableObject, DependencyInjectable {
         breadcrumbs = []
     }
 
+    // Returns the current menu (raw, including hidden items)
     var currentMenu: [MenuItem] {
         menuStack.last ?? rootMenu
+    }
+    
+    // Returns menu items that should be visible in the UI
+    var visibleMenu: [MenuItem] {
+        let menu = currentMenu
+        
+        // Special case: if there's only one item in the menu and it's hidden, 
+        // we should still show it in overlay mode
+        if menu.count == 1 && menu[0].hidden == true && !breadcrumbs.isEmpty {
+            return menu
+        }
+        
+        // Normal case: filter out hidden items
+        return menu.filter { $0.hidden != true }
     }
 
     var isCurrentMenuSticky: Bool {

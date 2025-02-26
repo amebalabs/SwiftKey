@@ -8,7 +8,7 @@ struct OverlayView: View {
     @State private var altMode: Bool = false
 
     var currentMenu: [MenuItem] {
-        state.menuStack.last ?? state.rootMenu
+        state.visibleMenu
     }
 
     // MARK: - Screen-based size computations

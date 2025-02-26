@@ -88,6 +88,7 @@ SwiftKey uses YAML for configuration. Here's a basic example:
 - `stick` — Keep overlay open after execution (optional)
 - `notify` — Show notification after execution (optional)
 - `batch` — Execute all submenu items (optional). Alternative: hold ⌥ for batch execution.
+- `hidden` — Item is not shown in UI but can be triggered by key or hotkey (optional, defaults to false). Note: If a submenu contains only a single hidden item, it will still be shown.
 - `submenu` — Nested menu items (optional)
 - `hotkey` — Global keyboard shortcut (optional)
 
@@ -124,6 +125,22 @@ SwiftKey allows you to assign global hotkeys to any menu item. Hotkeys work even
         - key: "1"
           title: "Activity Monitor"
           action: "launch:///System/Applications/Activity Monitor.app"
+
+# Hidden item (not shown in UI but can be activated by key or hotkey)
+- key: "h"
+  title: "Hidden Action"
+  action: "shell://say 'Secret action activated'"
+  hidden: true
+  hotkey: "cmd+shift+h"
+
+# Submenu with a single hidden item (will be shown despite being hidden)
+- key: "s"
+  title: "Special Menu"
+  submenu:
+    - key: "x"
+      title: "Special Hidden Item"
+      action: "shell://say 'I am shown because I am the only item in this submenu'"
+      hidden: true
 ```
 
 Supported hotkey formats:
