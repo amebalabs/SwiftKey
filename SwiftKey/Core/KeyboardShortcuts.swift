@@ -121,31 +121,30 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
     
     // MARK: - Dynamic Menu Loading
     
-    private func loadDynamicMenu(for item: MenuItem, completion: @escaping (KeyPressResult) -> Void) {
-        guard let actionString = item.action, actionString.hasPrefix("dynamic://") else {
+    /// Loads a dynamic menu for the specified menu item
+    /// - Parameters:
+    ///   - item: The menu item containing a dynamic:// action
+    ///   - completion: Completion handler called with the result
+    func loadDynamicMenu(for item: MenuItem, completion: @escaping (KeyPressResult) -> Void) {
+        guard item.action?.hasPrefix("dynamic://") == true else {
             completion(.error(key: item.key))
             return
         }
         
-        let command = String(actionString.dropFirst("dynamic://".count))
+        completion(.dynamicLoading)
         
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            guard let self = self else { return }
-            
-            do {
-                let result = try runScript(to: command, args: [])
-                let output = result.out
-                let decoder = YAMLDecoder()
-                let submenu = try decoder.decode([MenuItem].self, from: output)
-                
+        DynamicMenuLoader.shared.loadDynamicMenu(for: item) { [weak self] submenu in
+            guard let self = self, let submenu = submenu else {
                 DispatchQueue.main.async {
-                    self.menuState.breadcrumbs.append(item.title)
-                    self.menuState.menuStack.append(submenu)
-                    completion(.submenuPushed(title: item.title))
+                    completion(.error(key: item.key))
                 }
-            } catch {
-                print("Dynamic menu error: \(error)")
-                completion(.error(key: item.key))
+                return
+            }
+            
+            DispatchQueue.main.async {
+                self.menuState.breadcrumbs.append(item.title)
+                self.menuState.menuStack.append(submenu)
+                completion(.submenuPushed(title: item.title))
             }
         }
     }

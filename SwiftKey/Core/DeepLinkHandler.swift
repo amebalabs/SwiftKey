@@ -59,9 +59,8 @@ class DeepLinkHandler: DependencyInjectable {
             // Open the overlay UI with the submenu open.
             if let appDelegate = AppDelegate.shared {
                 DispatchQueue.main.async {
-                    appDelegate.overlayWindow?.orderOut(nil)
-                    appDelegate.overlayWindow?.center()
-                    appDelegate.overlayWindow?.makeKeyAndOrderFront(nil)
+                    // Use presentOverlay method to handle any single dynamic menu items
+                    appDelegate.presentOverlay()
                     NSApp.activate(ignoringOtherApps: true)
                 }
             }
