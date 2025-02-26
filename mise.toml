@@ -1,0 +1,28 @@
+[tools]
+[tasks.build]
+description = "Build tasks"
+run = "xcodebuild -scheme 'SwiftKey' -configuration Release build"
+
+[tasks.format]
+description = "Code quality"
+run = "swiftformat ."
+
+[tasks.pre-commit]
+description = "Code quality"
+run = "./swiftformat.sh"
+
+[tasks.cleanbuild]
+description = "Development helpers"
+run = "xcodebuild -scheme 'SwiftKey' clean"
+
+[tasks.reset-derived]
+description = "Development helpers"
+run = "rm -rf ~/Library/Developer/Xcode/DerivedData/*"
+
+[tasks.reset-xcode]
+description = "Development helpers"
+run = "killall Xcode || true && open -a Xcode"
+
+[tasks.cleanup]
+description = "Clean up"
+run = "rm -rf ~/Library/Caches/com.amebalabs.SwiftKey/* ~/Library/Containers/com.ameba.SwiftKey/Data/Documents/* && defaults remove com.ameba.SwiftKey"
