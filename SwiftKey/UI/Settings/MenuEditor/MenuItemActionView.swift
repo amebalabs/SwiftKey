@@ -5,113 +5,94 @@ import AppKit
 
 struct MenuItemActionView: View {
     @Binding var item: MenuItem
-    @Binding var actionType: String
-    let actionTypes: [String]
+    @State private var selectedType: ActionType
+    
+    // Initialize with correct action type
+    init(item: Binding<MenuItem>) {
+        self._item = item
+        // Set the initial type based on the item's action
+        let currentType = item.wrappedValue.actionType
+        // Only use actual action types, not submenu or unknown
+        if currentType == .submenu || currentType == .unknown {
+            self._selectedType = State(initialValue: .launch)
+        } else {
+            self._selectedType = State(initialValue: currentType)
+        }
+    }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
+            // Action type selection
             HStack {
                 Text("Action Type")
                     .font(.headline)
                 
                 Spacer()
                 
-                Picker("", selection: $actionType) {
-                    ForEach(actionTypes, id: \.self) { type in
-                        Text(type).tag(type)
-                    }
-                }
-                .pickerStyle(SegmentedPickerStyle())
-                .frame(width: 350)
-                .onChange(of: actionType) { newValue in
-                    // Update the action prefix if an action exists
-                    if let existingAction = item.action, !existingAction.isEmpty {
-                        // Find the part after the prefix
-                        if let range = existingAction.range(of: "://") {
-                            let paramPart = existingAction[range.upperBound...]
-                            item.action = "\(newValue)://\(paramPart)"
-                        } else {
-                            // No valid prefix found, create a new action
-                            item.action = "\(newValue)://"
+                if item.actionType == .submenu {
+                    // For submenu items, show a different UI
+                    Text("Submenu")
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.secondary.opacity(0.2))
+                        .cornerRadius(4)
+                } else {
+                    // For regular items, show action type picker
+                    Picker("", selection: $selectedType) {
+                        ForEach(ActionType.selectableTypes, id: \.self) { type in
+                            Text(type.rawValue.capitalized).tag(type)
                         }
-                    } else {
-                        // Create a new empty action with the selected prefix
-                        item.action = "\(newValue)://"
+                    }
+                    .pickerStyle(.menu)
+                    .frame(width: 350)
+                    .onChange(of: selectedType) { newType in
+                        // Update the action with the new type
+                        let currentParam = item.actionParameter
+                        item.updateAction(type: newType, parameter: currentParam)
                     }
                 }
             }
             
-            VStack(alignment: .leading, spacing: 8) {
-                Text(actionLabel)
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                
-                HStack {
-                    Text("\(actionType)://")
+            // Only show action parameter UI if not a submenu
+            if item.actionType != .submenu {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(selectedType.label)
+                        .font(.subheadline)
                         .foregroundColor(.secondary)
                     
-                    TextField("", text: actionPathBinding)
-                        .textFieldStyle(PlainTextFieldStyle())
-                        .padding(8)
-                        .background(Color(NSColor.systemGray))
-                        .cornerRadius(6)
+                    HStack {
+                        Text("\(selectedType.prefix)")
+                            .foregroundColor(.secondary)
+                        
+                        TextField("", text: actionParameterBinding)
+                            .textFieldStyle(PlainTextFieldStyle())
+                            .padding(8)
+                            .background(Color(NSColor.systemGray))
+                            .cornerRadius(6)
+                    }
+                    
+                    Text(selectedType.helpText)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-                
-                Text(actionHelpText)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                .padding(.vertical, 4)
             }
-            .padding(.vertical, 4)
             
-            // Action options
+            // Action options - show for all items
             GroupBox {
                 ActionOptionsView(item: $item)
             }
         }
     }
     
-    // Computed properties for action fields
-    private var actionLabel: String {
-        switch actionType {
-        case "launch": return "Application Path:"
-        case "open": return "URL to Open:"
-        case "shell": return "Shell Command:"
-        case "shortcut": return "Shortcut Name:"
-        case "dynamic": return "Dynamic Command:"
-        default: return "Action Parameter:"
-        }
-    }
-    
-    private var actionHelpText: String {
-        switch actionType {
-        case "launch":
-            return "Path to the application to launch. For system apps, use /System/Applications/AppName.app, for user apps use /Applications/AppName.app"
-        case "open":
-            return "URL to open in the default browser, e.g., https://example.com"
-        case "shell":
-            return "Shell command to execute. Use safe commands that don't need elevated privileges."
-        case "shortcut":
-            return "Name of the Shortcuts automation to run"
-        case "dynamic":
-            return "Shell command that returns YAML for dynamic menu generation"
-        default:
-            return ""
-        }
-    }
-    
-    // Binding for the action path (everything after the prefix)
-    private var actionPathBinding: Binding<String> {
+    // Binding for the action parameter
+    private var actionParameterBinding: Binding<String> {
         Binding(
-            get: {
-                guard let action = item.action, !action.isEmpty else { return "" }
-                if let range = action.range(of: "://") {
-                    return String(action[range.upperBound...])
-                }
-                return ""
-            },
+            get: { item.actionParameter },
             set: { newValue in
-                item.action = "\(actionType)://\(newValue)"
+                item.updateAction(type: selectedType, parameter: newValue)
             }
         )
     }
@@ -170,9 +151,7 @@ struct MenuItemActionView_Previews: PreviewProvider {
     
     static var previews: some View {
         MenuItemActionView(
-            item: $sampleItem,
-            actionType: $actionType,
-            actionTypes: actionTypes
+            item: $sampleItem
         )
         .padding()
         .frame(width: 500)

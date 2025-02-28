@@ -2,6 +2,74 @@ import AppKit
 import SwiftUI
 import Yams
 
+// MARK: - ActionType
+
+enum ActionType: String, CaseIterable, Codable {
+    case launch
+    case open
+    case shell
+    case shortcut
+    case dynamic
+    case submenu
+    case unknown
+    
+    // Properties for UI display
+    var label: String {
+        switch self {
+        case .launch: return "Application Path:"
+        case .open: return "URL to Open:"
+        case .shell: return "Shell Command:"
+        case .shortcut: return "Shortcut Name:"
+        case .dynamic: return "Dynamic Command:"
+        case .submenu: return "Submenu Items:"
+        case .unknown: return "Action Parameter:"
+        }
+    }
+    
+    var helpText: String {
+        switch self {
+        case .launch:
+            return "Path to the application to launch. For system apps, use /System/Applications/AppName.app, for user apps use /Applications/AppName.app"
+        case .open:
+            return "URL to open in the default browser, e.g., https://example.com"
+        case .shell:
+            return "Shell command to execute. Use safe commands that don't need elevated privileges."
+        case .shortcut:
+            return "Name of the Shortcuts automation to run"
+        case .dynamic:
+            return "Shell command that returns YAML for dynamic menu generation"
+        case .submenu:
+            return "A collection of menu items that will appear in a submenu"
+        case .unknown:
+            return "Unknown action type"
+        }
+    }
+    
+    // Get prefix string for URL schemes
+    var prefix: String {
+        return "\(rawValue)://"
+    }
+    
+    // Get array of types for picker
+    static var selectableTypes: [ActionType] {
+        // Filter out submenu and unknown for selectable types
+        return ActionType.allCases.filter { $0 != .submenu && $0 != .unknown }
+    }
+    
+    // Extract parameter from a full action string
+    static func extractParameter(from action: String) -> String {
+        if let range = action.range(of: "://") {
+            return String(action[range.upperBound...])
+        }
+        return ""
+    }
+    
+    // Create an action string with type and parameter
+    static func createAction(type: ActionType, parameter: String) -> String {
+        return "\(type.prefix)\(parameter)"
+    }
+}
+
 // MARK: - MenuItem
 
 struct MenuItem: Identifiable, Codable, Equatable {
@@ -16,6 +84,74 @@ struct MenuItem: Identifiable, Codable, Equatable {
     var hidden: Bool? // Hidden items aren't shown in UI but can be activated
     var submenu: [MenuItem]? // Optional nested submenu
     var hotkey: String? // Hotkey for the menu item
+    
+    // Helper to determine the action type
+    var actionType: ActionType {
+        // If it has a submenu, it's a submenu type
+        if let submenu = submenu, !submenu.isEmpty {
+            return .submenu
+        }
+        
+        // Check the action prefix
+        guard let action = action, !action.isEmpty else {
+            // No action, might be a submenu or unknown
+            return submenu != nil ? .submenu : .unknown
+        }
+        
+        // Determine type from prefix
+        for type in ActionType.allCases where type != .unknown && type != .submenu {
+            if action.hasPrefix(type.prefix) {
+                return type
+            }
+        }
+        
+        return .unknown
+    }
+    
+    // Get the parameter part of the action (after the prefix)
+    var actionParameter: String {
+        guard let action = action, !action.isEmpty else { return "" }
+        return ActionType.extractParameter(from: action)
+    }
+    
+    // Update the action with new type and parameter
+    mutating func updateAction(type: ActionType, parameter: String) {
+        // Only set action if not a submenu type
+        if type != .submenu {
+            action = ActionType.createAction(type: type, parameter: parameter)
+        } else {
+            // For submenu type, ensure we have a submenu array
+            if submenu == nil {
+                submenu = []
+            }
+            // Clear action for submenu types
+            action = nil
+        }
+    }
+    
+    // Convert item to a submenu type
+    mutating func convertToSubmenu() {
+        // Ensure we have a submenu array
+        if submenu == nil {
+            submenu = []
+        }
+        // Clear action as it's now a submenu
+        action = nil
+    }
+    
+    // Convert item to an action type with the specified action type
+    mutating func convertToAction(type: ActionType = .launch) {
+        // Only convert if it's not already a submenu type
+        if type != .submenu {
+            // Set a default empty action of the specified type
+            action = ActionType.createAction(type: type, parameter: "")
+            
+            // Clear submenu if it's empty
+            if submenu?.isEmpty ?? true {
+                submenu = nil
+            }
+        }
+    }
 
     // Define coding keys explicitly.
     enum CodingKeys: String, CodingKey {
@@ -77,8 +213,10 @@ struct MenuItem: Identifiable, Codable, Equatable {
     /// Computed property that creates a closure to perform the specified action.
     var actionClosure: (() -> Void)? {
         guard let action = action else { return nil }
-        if action.hasPrefix("launch://") {
-            let appPath = String(action.dropFirst("launch://".count))
+        
+        switch actionType {
+        case .launch:
+            let appPath = actionParameter
             return {
                 let expandedPath = (appPath as NSString).expandingTildeInPath
                 let appURL = URL(fileURLWithPath: expandedPath)
@@ -91,23 +229,23 @@ struct MenuItem: Identifiable, Codable, Equatable {
                     print("Application not found or invalid at path: \(appPath)")
                 }
             }
-        }
-        if action.hasPrefix("open://") {
-            let urlString = String(action.dropFirst("open://".count))
+            
+        case .open:
+            let urlString = actionParameter
             return {
                 if let url = URL(string: urlString) {
                     NSWorkspace.shared.open(url)
                 }
             }
-        }
-        if action.hasPrefix("shortcut://") {
-            let shortcutName = String(action.dropFirst("shortcut://".count))
+            
+        case .shortcut:
+            let shortcutName = actionParameter
             return {
                 ShortcutsManager.shared.runShortcut(shortcut: shortcutName)
             }
-        }
-        if action.hasPrefix("shell://") {
-            let command = String(action.dropFirst("shell://".count))
+            
+        case .shell:
+            let command = actionParameter
             return {
                 do {
                     let out = try runScript(to: command, env: [:])
@@ -128,8 +266,10 @@ struct MenuItem: Identifiable, Codable, Equatable {
                     }
                 }
             }
+            
+        default:
+            return nil
         }
-        return nil
     }
 }
 

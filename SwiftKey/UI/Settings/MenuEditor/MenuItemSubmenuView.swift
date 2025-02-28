@@ -8,7 +8,20 @@ struct MenuItemSubmenuView: View {
     @Binding var isAddingSubmenuItem: Bool
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 12) {
+            // Description explaining submenu functionality
+            Text("This item functions as a submenu, containing other menu items.")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .padding(.bottom, 4)
+                
+            // Submenu options
+            GroupBox {
+                SubmenuOptionsView(item: $item)
+            }
+            .padding(.bottom, 8)
+            
+            // Submenu items list section
             HStack {
                 Text("Submenu Items")
                     .font(.headline)
@@ -29,6 +42,31 @@ struct MenuItemSubmenuView: View {
                 EmptySubmenuView(onAddItem: { isAddingSubmenuItem = true })
             }
         }
+    }
+}
+
+// MARK: - Submenu Options View
+
+struct SubmenuOptionsView: View {
+    @Binding var item: MenuItem
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Toggle("Batch (run all submenu items)", isOn: batchBinding)
+                .toggleStyle(SwitchToggleStyle())
+                .help("When enabled, all submenu items will be executed in sequence when this item is activated")
+            
+            // Can add other submenu-specific options here
+        }
+        .padding(.vertical, 6)
+    }
+    
+    // Binding for the batch property
+    private var batchBinding: Binding<Bool> {
+        Binding(
+            get: { item.batch ?? false },
+            set: { item.batch = $0 }
+        )
     }
 }
 

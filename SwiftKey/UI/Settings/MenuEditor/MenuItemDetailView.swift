@@ -7,48 +7,86 @@ struct MenuItemDetailView: View {
     @Binding var item: MenuItem
     var onDelete: () -> Void
     
-    @State private var selectedTab = 0
+    // State for UI controls
     @State private var isAddingSubmenuItem = false
     @State private var showingIconPicker = false
-    @State private var actionType: String = "launch"
+    @State private var selectedMode: ItemMode = .action
     
-    private let actionTypes = ["launch", "open", "shell", "shortcut", "dynamic"]
+    // Enum for the segmented control
+    enum ItemMode: String, CaseIterable {
+        case action = "Action"
+        case submenu = "Submenu"
+    }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            // Title and icon header
+            // Header section with title and icon
             MenuItemHeaderView(
                 item: $item,
                 showingIconPicker: $showingIconPicker
             )
             
+            // Segmented control for Action/Submenu mode
+            Picker("Item Type", selection: $selectedMode) {
+                ForEach(ItemMode.allCases, id: \.self) { mode in
+                    Text(mode.rawValue).tag(mode)
+                }
+            }
+            .pickerStyle(.segmented)
+            .padding(.top, 4)
+            .onChange(of: selectedMode) { newMode in
+                // Convert the item to the appropriate type based on selected mode
+                if newMode == .submenu {
+                    // Warning dialog if submenu has items and we're changing from action to submenu
+                    let hasAction = item.action != nil && !item.action!.isEmpty
+                    if hasAction {
+                        // Convert to submenu type
+                        item.convertToSubmenu()
+                    }
+                } else {
+                    // Convert to action type
+                    let hasNonEmptySubmenu = item.submenu != nil && !(item.submenu?.isEmpty ?? true)
+                    
+                    // Only convert if submenu is empty or nil
+                    if !hasNonEmptySubmenu {
+                        // We'll preserve the current action type if possible
+                        let currentType = item.actionType
+                        if currentType != .submenu && currentType != .unknown {
+                            item.convertToAction(type: currentType)
+                        } else {
+                            // Default to launch if no valid type
+                            item.convertToAction(type: .launch)
+                        }
+                    } else {
+                        // If has submenu items, stay in submenu mode
+                        selectedMode = .submenu
+                    }
+                }
+            }
+            
             Divider()
             
-            // Action settings
-            MenuItemActionView(
-                item: $item,
-                actionType: $actionType,
-                actionTypes: actionTypes
-            )
+            // Content based on selected mode
+            if selectedMode == .action {
+                // Action settings view
+                MenuItemActionView(item: $item)
+            } else {
+                // Submenu settings view
+                MenuItemSubmenuView(
+                    item: $item,
+                    isAddingSubmenuItem: $isAddingSubmenuItem
+                )
+            }
             
             Divider()
-            
-            // Submenu section
-            MenuItemSubmenuView(
-                item: $item,
-                isAddingSubmenuItem: $isAddingSubmenuItem
-            )
-            
-            Spacer()
-            
+                        
             // Bottom action buttons
             HStack {
+                Spacer()
                 Button(role: .destructive, action: onDelete) {
                     Label("Delete Item", systemImage: "trash")
                 }
                 .buttonStyle(.bordered)
-                
-                Spacer()
             }
         }
         .sheet(isPresented: $isAddingSubmenuItem) {
@@ -60,14 +98,11 @@ struct MenuItemDetailView: View {
                 .frame(width: 300, height: 400)
         }
         .onAppear {
-            // Set the initial action type based on the current action
-            if let action = item.action, !action.isEmpty {
-                for prefix in actionTypes {
-                    if action.hasPrefix("\(prefix)://") {
-                        actionType = prefix
-                        break
-                    }
-                }
+            // Initialize proper selected mode based on current item state
+            if item.actionType == .submenu {
+                selectedMode = .submenu
+            } else {
+                selectedMode = .action
             }
             
             // Initialize submenu if nil

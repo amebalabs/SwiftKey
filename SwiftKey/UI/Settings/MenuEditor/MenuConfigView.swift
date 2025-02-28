@@ -72,14 +72,34 @@ struct MenuConfigView: View {
             
             HSplitView {
                 // Left side: Hierarchical tree view
-                MenuTreeView(
-                    items: filteredItems,
-                    selectedItem: $selectedItem,
-                    expandedItems: $expandedItems,
-                    onToggleExpanded: toggleExpanded
-                )
-                .listStyle(SidebarListStyle())
-                .frame(minWidth: 220)
+                if searchText.isEmpty {
+                    // If no search, use direct binding to config
+                    MenuTreeView(
+                        items: $config,
+                        selectedItem: $selectedItem,
+                        expandedItems: $expandedItems,
+                        onAddRootItem: addNewRootItem
+                    )
+                    .listStyle(SidebarListStyle())
+                    .frame(minWidth: 220)
+                } else {
+                    // If searching, we can't use direct binding
+                    // Instead, create a read-only view without adding capabilities
+                    List(selection: $selectedItem) {
+                        if !filteredItems.isEmpty {
+                            ForEach(filteredItems) { item in
+                                Text(item.title)
+                                    .tag(item.id)
+                            }
+                        } else {
+                            Text("No matching items")
+                                .foregroundColor(.secondary)
+                                .italic()
+                        }
+                    }
+                    .listStyle(SidebarListStyle())
+                    .frame(minWidth: 220)
+                }
                 
                 // Right side: Detail editor
                 if let selectedID = selectedItem, let index = findMenuItemIndex(id: selectedID, in: config) {
