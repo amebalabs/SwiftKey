@@ -13,12 +13,13 @@ struct MenuItem: Identifiable, Codable, Equatable {
     var sticky: Bool? // Sticky actions don't close window after execution
     var notify: Bool? // Notify actions show a notification after execution
     var batch: Bool? // Batch runs all submenu items
+    var hidden: Bool? // Hidden items aren't shown in UI but can be activated
     var submenu: [MenuItem]? // Optional nested submenu
     var hotkey: String? // Hotkey for the menu item
 
     // Define coding keys explicitly.
     enum CodingKeys: String, CodingKey {
-        case id, key, icon, title, action, sticky, notify, batch, submenu, hotkey
+        case id, key, icon, title, action, sticky, notify, batch, hidden, submenu, hotkey
     }
 
     // Custom initializer that ignores any incoming 'id' from the YAML
@@ -34,6 +35,7 @@ struct MenuItem: Identifiable, Codable, Equatable {
         sticky = try container.decodeIfPresent(Bool.self, forKey: .sticky)
         notify = try container.decodeIfPresent(Bool.self, forKey: .notify)
         batch = try container.decodeIfPresent(Bool.self, forKey: .batch)
+        hidden = try container.decodeIfPresent(Bool.self, forKey: .hidden)
         submenu = try container.decodeIfPresent([MenuItem].self, forKey: .submenu)
         hotkey = try container.decodeIfPresent(String.self, forKey: .hotkey)
     }
@@ -41,8 +43,8 @@ struct MenuItem: Identifiable, Codable, Equatable {
     // Standard initializer for manual creation
     init(
         id: UUID = UUID(), key: String, icon: String? = nil, title: String, action: String? = nil,
-        sticky: Bool? = nil, notify: Bool? = nil, batch: Bool? = nil, submenu: [MenuItem]? = nil,
-        hotkey: String? = nil
+        sticky: Bool? = nil, notify: Bool? = nil, batch: Bool? = nil, hidden: Bool? = nil, 
+        submenu: [MenuItem]? = nil, hotkey: String? = nil
     ) {
         self.id = id
         self.key = key
@@ -52,6 +54,7 @@ struct MenuItem: Identifiable, Codable, Equatable {
         self.sticky = sticky
         self.notify = notify
         self.batch = batch
+        self.hidden = hidden
         self.submenu = submenu
         self.hotkey = hotkey
     }
@@ -66,6 +69,7 @@ struct MenuItem: Identifiable, Codable, Equatable {
         try container.encodeIfPresent(sticky, forKey: .sticky)
         try container.encodeIfPresent(notify, forKey: .notify)
         try container.encodeIfPresent(batch, forKey: .batch)
+        try container.encodeIfPresent(hidden, forKey: .hidden)
         try container.encodeIfPresent(submenu, forKey: .submenu)
         try container.encodeIfPresent(hotkey, forKey: .hotkey)
     }

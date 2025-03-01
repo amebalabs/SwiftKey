@@ -8,7 +8,7 @@ struct OverlayView: View {
     @State private var altMode: Bool = false
 
     var currentMenu: [MenuItem] {
-        state.menuStack.last ?? state.rootMenu
+        state.visibleMenu
     }
 
     // MARK: - Screen-based size computations
@@ -31,6 +31,18 @@ struct OverlayView: View {
     var verticalContentHeight: CGFloat {
         min(CGFloat(currentMenu.count) * verticalItemHeight, verticalMaxHeight)
     }
+    
+    // Calculate the appropriate height for vertical menus to avoid corner clipping
+    func calculateVerticalHeight() -> CGFloat {
+        if currentMenu.count > 5 {
+            // For larger menus, reduce height to avoid corner clipping
+            return verticalContentHeight - 20
+        } else {
+            // For smaller menus, calculate exact height needed
+            let contentHeight = CGFloat(currentMenu.count) * verticalItemHeight + 20
+            return contentHeight
+        }
+    }
 
     var horizontalMaxWidth: CGFloat {
         screenSize.width * 4 / 5
@@ -45,6 +57,7 @@ struct OverlayView: View {
 
     var body: some View {
         ZStack {
+            // Main background with rounded corners
             Rectangle()
                 .fill(.thinMaterial)
                 .shadow(radius: 10)
@@ -52,7 +65,6 @@ struct OverlayView: View {
                     RoundedRectangle(cornerRadius: 20, style: .continuous)
                 )
                 .opacity(0.9)
-
             VStack(spacing: 10) {
                 Spacer()
                 if settings.useHorizontalOverlayLayout {
@@ -73,16 +85,28 @@ struct OverlayView: View {
                         Spacer()
                     }
                 } else {
-                    ScrollView(.vertical, showsIndicators: false) {
-                        LazyVStack(spacing: 8) {
-                            ForEach(currentMenu) { item in
-                                VerticalMenuItemView(item: item, altMode: $altMode)
+                    // Create container for vertical content with insets to prevent clipping at corners
+                    VStack {
+                        // Use a smaller size for the scrollable area to avoid hitting the corners
+                        ScrollView(.vertical, showsIndicators: false) {
+                            LazyVStack(spacing: 8) {
+                                ForEach(currentMenu) { item in
+                                    VerticalMenuItemView(item: item, altMode: $altMode)
+                                }
                             }
+                            .padding(.vertical, 12)
                         }
-                        .padding(.vertical, 12)
+                        // Make scrollable content slightly smaller to avoid corners
+                        .padding(.top, currentMenu.count > 5 ? 8 : 0)
+                        .padding(.bottom, currentMenu.count > 5 ? 8 : 0)
                     }
                     .padding(.horizontal, 16)
-                    .frame(width: verticalContentFixedWidth, height: verticalContentHeight, alignment: .top)
+                    // Calculate the appropriate height based on menu size
+                    .frame(
+                        width: verticalContentFixedWidth,
+                        height: calculateVerticalHeight(),
+                        alignment: .top
+                    )
                 }
                 if !errorMessage.isEmpty {
                     Text(errorMessage)

@@ -38,7 +38,7 @@ class FacelessMenuController: DependencyInjectable {
     }
 
     var currentMenu: [MenuItem] {
-        menuState.menuStack.last ?? rootMenu
+        menuState.visibleMenu
     }
 
     func updateStatusItem() {
