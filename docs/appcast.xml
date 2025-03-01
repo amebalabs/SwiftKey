@@ -9,7 +9,25 @@
       <title>SwiftKey 1.1.0</title>
       <sparkle:version>1.1.0</sparkle:version>
       <sparkle:shortVersionString>1.1.0</sparkle:shortVersionString>
-      <description><![CDATA[]]></description>
+      <description><![CDATA[<h1>Boisterous Burrito</h1>
+        <h2>New Features</h2>
+    <ul>
+        <li>Root menu now can be dynamic, which allows for more flexibility in menu structure</li>
+        <li>Optionally hide menu items based on user preferences</li>
+    </ul>
+    
+    <h2>Bug Fixes</h2>
+    <ul>
+        <li>Improved first launch experience</li>
+        <li>Fixed when batch menu execution highlight was preserved between sessions</li>
+        <li>Improved shell script execution</li>
+        <li>Fixed clipping for vertical overlay menu</li>
+    </ul>
+    
+    <h2>Documentation</h2>
+    <ul>
+        <li>Added more detailed config examples to the README.md</li>
+    </ul>]]></description>
       <pubDate>Sat, 01 Mar 2025 00:17:26 +0000</pubDate>
       <enclosure
         url="https://github.com/amebalabs/SwiftKey/releases/download/v1.1.0/SwiftKey-1.1.0.zip"
