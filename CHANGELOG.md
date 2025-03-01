@@ -1,3 +1,25 @@
+# v1.1.0 (2025-03-01)
+
+# Boisterous Burrito
+
+## v1.1.0
+
+## New Features
+
+- Root menu now can be dynamic, which allows for more flexibility in menu structure
+- Optionally hide menu items based on user preferences
+
+## Bug Fixes
+
+- Improved first launch experience
+- Fixed when batch menu execution highlight was preserved between sessions
+- Improved shell script execution
+- Fixed clipping for vertical overlay menu
+
+## Documentation
+
+- Added more detailed config examples to the README.md
+
 # v1.0.0 (2025-02-23)
 # Adventurous Avocado
 # V1.0.0

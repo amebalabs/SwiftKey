@@ -6,18 +6,18 @@
     <description>SwiftKey Updates</description>
     <language>en</language>
     <item>
-      <title>SwiftKey 1.0.0</title>
-      <sparkle:version>1.0.0</sparkle:version>
-      <sparkle:shortVersionString>1.0.0</sparkle:shortVersionString>
-      <description><![CDATA[- First public version]]></description>
-      <pubDate>Sun, 23 Feb 2025 13:50:28 +0000</pubDate>
+      <title>SwiftKey 1.1.0</title>
+      <sparkle:version>1.1.0</sparkle:version>
+      <sparkle:shortVersionString>1.1.0</sparkle:shortVersionString>
+      <description><![CDATA[]]></description>
+      <pubDate>Sat, 01 Mar 2025 00:17:26 +0000</pubDate>
       <enclosure
-        url="https://github.com/amebalabs/SwiftKey/releases/download/v1.0.0/SwiftKey-1.0.0.zip"
-        sparkle:version="1.0.0"
-        sparkle:shortVersionString="1.0.0"
+        url="https://github.com/amebalabs/SwiftKey/releases/download/v1.1.0/SwiftKey-1.1.0.zip"
+        sparkle:version="1.1.0"
+        sparkle:shortVersionString="1.1.0"
         type="application/octet-stream"
-        sparkle:edSignature="boxsGsuqwE45lu5fP19doQ1eZX/DYob4JKm+spsg6vrqQ6yAfy10Q/c/lAwRzk9Q1/cuSmfzHLNscYEPQ7WQAg==" length="5458521"
-        sparkle:sha256="61bdedf3ecb98485b6326f322407098bd98234cffbd1fdfecaff2e84e3952980"
+        sparkle:edSignature="xqMd4pfO++cHK3OBkBPk8fElmits/asluWqqITd/tCOF54mlUNYRJoxtPozEQZqd5EtcQXeYWy/A4Wg80fziCA==" length="5585745"
+        sparkle:sha256="f319717b77e0482965388d88f6e72d587bb90dafa27701914617937a2acaddb7"
       />
     </item>
   </channel>
