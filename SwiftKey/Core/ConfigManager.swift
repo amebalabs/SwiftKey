@@ -257,6 +257,112 @@ class ConfigManager: DependencyInjectable, ObservableObject {
             inFileViewerRootedAtPath: url.deletingLastPathComponent().path
         )
     }
+    
+    /// Imports and merges menu items from a snippet into the current configuration
+    func importSnippet(menuItems: [MenuItem], strategy: MergeStrategy) -> Result<Void, ConfigError> {
+        // Validation
+        do {
+            try validateMenuItems(menuItems)
+        } catch let validationError as ConfigError {
+            print("ConfigManager: Snippet validation failed: \(validationError.localizedDescription)")
+            self.lastError = validationError
+            return .failure(validationError)
+        } catch {
+            print("ConfigManager: Unexpected validation error: \(error.localizedDescription)")
+            self.lastError = ConfigError.unknown(underlying: error)
+            return .failure(ConfigError.unknown(underlying: error))
+        }
+        
+        // Get current config
+        var currentConfig = self.menuItems
+        
+        // Apply merge strategy
+        switch strategy {
+        case .append:
+            currentConfig.append(contentsOf: menuItems)
+        case .prepend:
+            currentConfig = menuItems + currentConfig
+        case .replace:
+            currentConfig = menuItems
+        case .smart:
+            currentConfig = smartMergeMenuItems(currentConfig, with: menuItems)
+        }
+        
+        // Save back to file
+        return saveMenuItems(currentConfig)
+    }
+    
+    /// Saves the menu items to the current config file
+    func saveMenuItems(_ items: [MenuItem]) -> Result<Void, ConfigError> {
+        guard let url = resolveConfigFileURL() else {
+            return .failure(ConfigError.fileNotFound)
+        }
+        
+        do {
+            let encoder = YAMLEncoder()
+            let yamlString = try encoder.encode(items)
+            
+            try yamlString.write(to: url, atomically: true, encoding: .utf8)
+            print("ConfigManager: Successfully saved \(items.count) menu items to \(url.path)")
+            
+            // Update the menu items
+            DispatchQueue.main.async { [weak self] in
+                self?.menuItems = items
+                self?.lastError = nil
+                self?.lastUpdateTime = Date()
+            }
+            
+            return .success(())
+        } catch {
+            print("ConfigManager: Failed to save config: \(error)")
+            self.lastError = ConfigError.readFailed(underlying: error)
+            return .failure(ConfigError.readFailed(underlying: error))
+        }
+    }
+    
+    /// Performs a smart merge of two menu item arrays
+    private func smartMergeMenuItems(_ base: [MenuItem], with new: [MenuItem]) -> [MenuItem] {
+        var result = base
+        
+        for newItem in new {
+            // Check if an item with the same key and title already exists
+            if let existingIndex = result.firstIndex(where: { $0.key == newItem.key && $0.title == newItem.title }) {
+                // If same key+title, replace the item completely
+                result[existingIndex] = newItem
+            } else if let existingKeyIndex = result.firstIndex(where: { $0.key == newItem.key }) {
+                // If only same key, add as a new item (avoids key conflicts)
+                let uniqueItem = makeKeyUnique(newItem, existingItems: result)
+                result.append(uniqueItem)
+            } else {
+                // Completely new item
+                result.append(newItem)
+            }
+        }
+        
+        return result
+    }
+    
+    /// Makes a menu item's key unique by appending a number if needed
+    private func makeKeyUnique(_ item: MenuItem, existingItems: [MenuItem]) -> MenuItem {
+        var uniqueItem = item
+        var counter = 1
+        var newKey = item.key
+        
+        // Keep incrementing until we find a unique key
+        while existingItems.contains(where: { $0.key == newKey }) {
+            counter += 1
+            // Use the next available character if possible
+            if item.key.count == 1, let ascii = item.key.first?.asciiValue, ascii + UInt8(counter) <= 122 {
+                newKey = String(Character(UnicodeScalar(ascii + UInt8(counter))))
+            } else {
+                // Otherwise just append a number
+                newKey = "\(item.key)\(counter)"
+            }
+        }
+        
+        uniqueItem.key = newKey
+        return uniqueItem
+    }
 
     // MARK: - Private Methods
 

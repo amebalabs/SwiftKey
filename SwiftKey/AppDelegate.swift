@@ -290,4 +290,35 @@ extension AppDelegate {
         window.contentView = NSHostingView(rootView: onboardingView)
         window.makeKeyAndOrderFront(nil)
     }
+    
+    // Called from SwiftUI SettingsView and DeepLinkHandler
+    static func showGalleryWindow(preselectedSnippetId: String? = nil) {
+        if let existingWindow = NSApp.windows.first(where: { $0.title == "SwiftKey Snippets Gallery" }) {
+            existingWindow.makeKeyAndOrderFront(nil)
+            return
+        }
+        
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 800, height: 600),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "SwiftKey Snippets Gallery"
+        window.center()
+        
+        // Create view model with preselected snippet if provided
+        let viewModel = SnippetsGalleryViewModel(
+            snippetsStore: DependencyContainer.shared.snippetsStore,
+            preselectedSnippetId: preselectedSnippetId
+        )
+        
+        let hostingController = NSHostingController(
+            rootView: SnippetsGalleryView(viewModel: viewModel)
+                .environmentObject(DependencyContainer.shared.configManager)
+                .environmentObject(DependencyContainer.shared.settingsStore)
+        )
+        window.contentViewController = hostingController
+        window.makeKeyAndOrderFront(nil)
+    }
 }

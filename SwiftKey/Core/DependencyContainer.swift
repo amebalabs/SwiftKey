@@ -11,6 +11,7 @@ class DependencyContainer {
     let sparkleUpdater: SparkleUpdater
     let deepLinkHandler: DeepLinkHandler
     let keyboardManager: KeyboardManager
+    let snippetsStore: SnippetsStore
     
     private var cancellables = Set<AnyCancellable>()
     
@@ -20,7 +21,8 @@ class DependencyContainer {
         menuState: MenuState = MenuState(),
         sparkleUpdater: SparkleUpdater = SparkleUpdater.shared,
         deepLinkHandler: DeepLinkHandler = DeepLinkHandler.shared,
-        keyboardManager: KeyboardManager = KeyboardManager.shared
+        keyboardManager: KeyboardManager = KeyboardManager.shared,
+        snippetsStore: SnippetsStore = SnippetsStore()
     ) {
         // Create a new SettingsStore if one wasn't provided
         let settings = settingsStore ?? SettingsStore(sparkleUpdater: sparkleUpdater)
@@ -30,6 +32,7 @@ class DependencyContainer {
         self.sparkleUpdater = sparkleUpdater
         self.deepLinkHandler = deepLinkHandler
         self.keyboardManager = keyboardManager
+        self.snippetsStore = snippetsStore
 
         // Inject dependencies into components in the correct order
         // First inject into services that don't depend on others
@@ -41,6 +44,7 @@ class DependencyContainer {
         menuState.injectDependencies(self)
         deepLinkHandler.injectDependencies(self)
         keyboardManager.injectDependencies(self)
+        snippetsStore.injectDependencies(self)
 
         // Set up services that need post-injection initialization
         configManager.setupAfterDependenciesInjected()
