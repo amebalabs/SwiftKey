@@ -1,0 +1,53 @@
+[
+  {
+    "id": "developer/devtools-toolkit",
+    "name": "Developer Tools Toolkit",
+    "description": "A collection of essential developer tools and shortcuts for macOS, including IDE launchers, git commands, and Docker controls.",
+    "author": "Alex Johnson",
+    "tags": ["development", "git", "docker", "ide"],
+    "created": "2024-06-10",
+    "content": "# Developer tools and IDE shortcuts\n- key: \"d\"\n  icon: \"terminal.fill\"\n  title: \"Developer Tools\"\n  submenu:\n    - key: \"x\"\n      title: \"Xcode\"\n      action: \"launch:///Applications/Xcode.app\"\n    - key: \"v\"\n      title: \"Visual Studio Code\"\n      action: \"launch:///Applications/Visual Studio Code.app\"\n    - key: \"i\"\n      title: \"IntelliJ IDEA\"\n      action: \"launch:///Applications/IntelliJ IDEA.app\"\n    - key: \"g\"\n      title: \"Git Commands\"\n      submenu:\n        - key: \"p\"\n          title: \"Pull\"\n          action: \"shell://git pull\"\n          notify: true\n        - key: \"s\"\n          title: \"Status\"\n          action: \"shell://git status\"\n          notify: true",
+    "previewImageURL": "previews/devtools-toolkit.png"
+  },
+  {
+    "id": "productivity/quick-apps",
+    "name": "Quick App Launcher",
+    "description": "A simple app launcher for your most frequently used applications, organized by category with custom icons.",
+    "author": "Sarah Miller",
+    "tags": ["productivity", "launcher", "apps"],
+    "created": "2024-05-15",
+    "content": "# Quick app launcher by category\n- key: \"a\"\n  icon: \"app.fill\"\n  title: \"Applications\"\n  submenu:\n    - key: \"b\"\n      icon: \"safari\"\n      title: \"Browsers\"\n      submenu:\n        - key: \"s\"\n          title: \"Safari\"\n          action: \"launch:///Applications/Safari.app\"\n        - key: \"c\"\n          title: \"Chrome\"\n          action: \"launch:///Applications/Google Chrome.app\"\n        - key: \"f\"\n          title: \"Firefox\"\n          action: \"launch:///Applications/Firefox.app\"\n    - key: \"p\"\n      icon: \"doc.text\"\n      title: \"Productivity\"\n      submenu:\n        - key: \"p\"\n          title: \"Preview\"\n          action: \"launch:///System/Applications/Preview.app\"\n        - key: \"n\"\n          title: \"Notes\"\n          action: \"launch:///System/Applications/Notes.app\"\n        - key: \"c\"\n          title: \"Calculator\"\n          action: \"launch:///System/Applications/Calculator.app\"",
+    "previewImageURL": "previews/quick-apps.png"
+  },
+  {
+    "id": "system/mac-utils",
+    "name": "macOS System Utilities",
+    "description": "Essential macOS system controls and utilities, including display settings, sound controls, and power management options.",
+    "author": "Michael Chen",
+    "tags": ["system", "macos", "utilities"],
+    "created": "2024-04-22",
+    "updated": "2024-05-30",
+    "content": "# macOS system utilities and controls\n- key: \"s\"\n  icon: \"gearshape.fill\"\n  title: \"System\"\n  submenu:\n    - key: \"d\"\n      icon: \"display\"\n      title: \"Display\"\n      submenu:\n        - key: \"n\"\n          title: \"Night Shift Toggle\"\n          action: \"shell://osascript -e 'tell application \"System Events\" to tell appearance preferences to set dark mode to not dark mode'\"\n          notify: true\n        - key: \"b\"\n          title: \"Brightness Up\"\n          action: \"shell://brightness up\"\n        - key: \"d\"\n          title: \"Brightness Down\"\n          action: \"shell://brightness down\"\n    - key: \"a\"\n      icon: \"speaker.wave.3.fill\"\n      title: \"Audio\"\n      submenu:\n        - key: \"u\"\n          title: \"Volume Up\"\n          action: \"shell://volume up\"\n        - key: \"d\"\n          title: \"Volume Down\"\n          action: \"shell://volume down\"\n        - key: \"m\"\n          title: \"Mute Toggle\"\n          action: \"shell://volume mute\"\n    - key: \"p\"\n      icon: \"bolt.fill\"\n      title: \"Power\"\n      submenu:\n        - key: \"s\"\n          title: \"Sleep\"\n          action: \"shell://pmset sleepnow\"\n        - key: \"r\"\n          title: \"Restart\"\n          action: \"shell://osascript -e 'tell app \"System Events\" to restart'\"\n        - key: \"o\"\n          title: \"Shut Down\"\n          action: \"shell://osascript -e 'tell app \"System Events\" to shut down'\"",
+    "previewImageURL": "previews/mac-utils.png"
+  },
+  {
+    "id": "media/quick-controls",
+    "name": "Media Quick Controls",
+    "description": "Media playback controls for various media players, including Spotify, Apple Music, and YouTube.",
+    "author": "Emma Wilson",
+    "tags": ["media", "spotify", "apple music", "youtube"],
+    "created": "2024-06-01",
+    "content": "# Media playback controls for popular players\n- key: \"m\"\n  icon: \"music.note\"\n  title: \"Media Controls\"\n  submenu:\n    - key: \"p\"\n      icon: \"play.fill\"\n      title: \"Play/Pause\"\n      action: \"shell://osascript -e 'tell application \"Spotify\" to playpause'\"\n    - key: \"n\"\n      icon: \"forward.fill\"\n      title: \"Next Track\"\n      action: \"shell://osascript -e 'tell application \"Spotify\" to next track'\"\n    - key: \"b\"\n      icon: \"backward.fill\"\n      title: \"Previous Track\"\n      action: \"shell://osascript -e 'tell application \"Spotify\" to previous track'\"\n    - key: \"s\"\n      icon: \"speaker.wave.2.fill\"\n      title: \"Spotify\"\n      action: \"launch:///Applications/Spotify.app\"\n    - key: \"a\"\n      icon: \"music.note\"\n      title: \"Apple Music\"\n      action: \"launch:///System/Applications/Music.app\"",
+    "previewImageURL": null
+  },
+  {
+    "id": "web/bookmarks",
+    "name": "Web Bookmarks Collection",
+    "description": "A collection of useful website bookmarks organized by category, including news, social media, and productivity tools.",
+    "author": "David Lee",
+    "tags": ["web", "bookmarks", "productivity"],
+    "created": "2024-03-15",
+    "content": "# Organized web bookmarks by category\n- key: \"w\"\n  icon: \"globe\"\n  title: \"Web Bookmarks\"\n  submenu:\n    - key: \"n\"\n      icon: \"newspaper\"\n      title: \"News\"\n      submenu:\n        - key: \"c\"\n          title: \"CNN\"\n          action: \"open://https://www.cnn.com\"\n        - key: \"b\"\n          title: \"BBC\"\n          action: \"open://https://www.bbc.com\"\n        - key: \"r\"\n          title: \"Reuters\"\n          action: \"open://https://www.reuters.com\"\n    - key: \"s\"\n      icon: \"person.2.fill\"\n      title: \"Social Media\"\n      submenu:\n        - key: \"t\"\n          title: \"Twitter\"\n          action: \"open://https://twitter.com\"\n        - key: \"l\"\n          title: \"LinkedIn\"\n          action: \"open://https://www.linkedin.com\"\n        - key: \"r\"\n          title: \"Reddit\"\n          action: \"open://https://www.reddit.com\"\n    - key: \"p\"\n      icon: \"checklist\"\n      title: \"Productivity\"\n      submenu:\n        - key: \"t\"\n          title: \"Trello\"\n          action: \"open://https://trello.com\"\n        - key: \"n\"\n          title: \"Notion\"\n          action: \"open://https://www.notion.so\"\n        - key: \"g\"\n          title: \"Google Drive\"\n          action: \"open://https://drive.google.com\"",
+    "previewImageURL": "previews/web-bookmarks.png"
+  }
+]

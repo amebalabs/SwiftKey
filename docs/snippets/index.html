@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta
+            name="description"
+            content="SwiftKey Snippets - Community configuration snippets for SwiftKey"
+        />
+        <meta name="theme-color" content="#007AFF" />
+        <title>SwiftKey Snippets - Community Configuration Repository</title>
+        <link rel="icon" type="image/png" href="../logo.png" />
+        <link rel="stylesheet" href="../styles.css" />
+        <link rel="stylesheet" href="snippets.css" />
+        <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+        />
+    </head>
+    <body>
+        <nav class="nav-blur">
+            <div class="container">
+                <div class="logo">
+                    <img src="../logo.png" alt="SwiftKey" class="logo-img" />
+                    <span>SwiftKey Snippets</span>
+                </div>
+                <div class="nav-links">
+                    <a href="../index.html">Home</a>
+                    <a href="#about">About Snippets</a>
+                    <a href="#browse">Browse Snippets</a>
+                    <a href="#contribute">Contribute</a>
+                    <a
+                        href="https://github.com/amebalabs/swiftkey-snippets"
+                        class="github-link"
+                    >
+                        <i class="fab fa-github"></i>
+                    </a>
+                </div>
+                <button class="mobile-menu-btn">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+        </nav>
+
+        <div class="mobile-menu">
+            <a href="../index.html">Home</a>
+            <a href="#about">About Snippets</a>
+            <a href="#browse">Browse Snippets</a>
+            <a href="#contribute">Contribute</a>
+            <a href="https://github.com/amebalabs/swiftkey-snippets">GitHub</a>
+        </div>
+
+        <header class="hero">
+            <div class="container">
+                <div class="hero-content">
+                    <h1 class="gradient-text">SwiftKey Snippets</h1>
+                    <p class="subtitle">
+                        Discover, share, and import configuration snippets from the SwiftKey community
+                    </p>
+                    <div class="cta-buttons">
+                        <a href="#browse" class="btn primary">
+                            <i class="fas fa-search"></i>
+                            Browse Snippets
+                        </a>
+                        <a href="#contribute" class="btn secondary">
+                            <i class="fas fa-upload"></i>
+                            Share Your Snippets
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <section id="about" class="about">
+            <div class="container">
+                <h2>About SwiftKey Snippets</h2>
+                <p>
+                    SwiftKey Snippets is a community-driven repository of configuration snippets for SwiftKey. 
+                    Snippets are small, reusable pieces of YAML configuration that can be easily imported into your SwiftKey setup.
+                </p>
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <i class="fas fa-download"></i>
+                        <h3>Import in App</h3>
+                        <p>
+                            Browse and import snippets directly from the SwiftKey app
+                        </p>
+                    </div>
+                    <div class="feature-card">
+                        <i class="fas fa-code-branch"></i>
+                        <h3>Share Your Config</h3>
+                        <p>Create and share your own snippets with the community</p>
+                    </div>
+                    <div class="feature-card">
+                        <i class="fas fa-puzzle-piece"></i>
+                        <h3>Modular Design</h3>
+                        <p>Use just the parts you need and merge with your existing config</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="browse" class="snippets">
+            <div class="container">
+                <h2>Browse Snippets</h2>
+                <div class="snippet-filters">
+                    <div class="search-bar">
+                        <input 
+                            type="text" 
+                            id="snippet-search" 
+                            placeholder="Search snippets..." 
+                            onkeyup="filterSnippets()"
+                        >
+                        <i class="fas fa-search"></i>
+                    </div>
+                    <div class="tag-filters" id="tag-filters">
+                        <!-- Tags will be populated by JavaScript -->
+                    </div>
+                </div>
+                
+                <div class="snippet-grid" id="snippet-grid">
+                    <!-- Snippets will be populated by JavaScript -->
+                </div>
+            </div>
+        </section>
+
+        <section id="contribute" class="contribute">
+            <div class="container">
+                <h2>Share Your Snippets</h2>
+                <p>
+                    Have a useful configuration that others might benefit from? Share it with the community by
+                    contributing to the SwiftKey Snippets repository.
+                </p>
+                <div class="steps">
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        <h3>Create a Snippet</h3>
+                        <p>
+                            Create a YAML configuration snippet that includes a useful set of menu items.
+                            Make sure to include a descriptive name, tags, and a clear explanation of what your snippet does.
+                        </p>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <h3>Fork the Repository</h3>
+                        <p>
+                            Fork the <a href="https://github.com/amebalabs/swiftkey-snippets">SwiftKey Snippets repository</a>
+                            on GitHub.
+                        </p>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <h3>Add Your Snippet</h3>
+                        <p>
+                            Add your snippet to the repository and create a pull request. Your snippet
+                            will be reviewed and merged if it meets the quality standards.
+                        </p>
+                    </div>
+                </div>
+                <a href="https://github.com/amebalabs/swiftkey-snippets/blob/main/CONTRIBUTING.md" class="btn primary">
+                    <i class="fas fa-book"></i>
+                    Read Contribution Guidelines
+                </a>
+            </div>
+        </section>
+
+        <footer>
+            <div class="container">
+                <div class="footer-content">
+                    <div class="footer-left">
+                        <div class="logo">
+                            <img
+                                src="../logo.png"
+                                alt="SwiftKey"
+                                class="logo-img"
+                            />
+                            <span>SwiftKey</span>
+                        </div>
+                        <p>Made with ❤️ for macOS power users</p>
+                    </div>
+                    <div class="footer-links">
+                        <a href="https://github.com/amebalabs/swiftkey">Main Project</a>
+                        <a href="https://github.com/amebalabs/swiftkey-snippets">Snippets Repo</a>
+                        <a href="../index.html">SwiftKey Home</a>
+                    </div>
+                </div>
+            </div>
+        </footer>
+
+        <script src="snippets.js"></script>
+    </body>
+</html>

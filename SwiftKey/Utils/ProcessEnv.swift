@@ -1,7 +1,7 @@
 import Foundation
 
-class Environment {
-    static let shared = Environment()
+class ProcessEnv {
+    static let shared = ProcessEnv()
 
     enum Variables: String {
         case swiftKey = "SWIFTKEY"

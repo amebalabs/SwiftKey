@@ -1,0 +1,260 @@
+/* Snippet-specific styles */
+
+.snippet-filters {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.search-bar {
+    position: relative;
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.search-bar input {
+    width: 100%;
+    padding: 0.8rem 1rem 0.8rem 2.5rem;
+    border-radius: 8px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    font-size: 1rem;
+    outline: none;
+    transition: all 0.3s ease;
+}
+
+.search-bar input:focus {
+    border-color: #007AFF;
+    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.2);
+}
+
+.search-bar i {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #999;
+}
+
+.tag-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: center;
+    margin-top: 0.5rem;
+}
+
+.tag {
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    background-color: rgba(0, 122, 255, 0.1);
+    color: #007AFF;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.tag:hover {
+    background-color: rgba(0, 122, 255, 0.2);
+}
+
+.tag.active {
+    background-color: #007AFF;
+    color: white;
+}
+
+.snippet-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+.snippet-card {
+    border-radius: 12px;
+    overflow: hidden;
+    background-color: white;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.snippet-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.snippet-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.snippet-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin: 0;
+    color: #333;
+}
+
+.snippet-author {
+    color: #666;
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+}
+
+.snippet-description {
+    padding: 1.5rem;
+    color: #555;
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+.snippet-footer {
+    padding: 1rem 1.5rem;
+    background-color: #f8f9fa;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.snippet-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.snippet-tag {
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    background-color: rgba(0, 122, 255, 0.1);
+    color: #007AFF;
+    font-size: 0.7rem;
+}
+
+.snippet-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.snippet-actions a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background-color: #007AFF;
+    color: white;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+}
+
+.snippet-actions a:hover {
+    background-color: #0055c4;
+    transform: scale(1.05);
+}
+
+.snippet-date {
+    font-size: 0.8rem;
+    color: #999;
+    margin-top: 0.5rem;
+}
+
+/* Steps section */
+.steps {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 2rem;
+    margin: 3rem 0;
+}
+
+.step {
+    background-color: white;
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    position: relative;
+}
+
+.step-number {
+    position: absolute;
+    top: -20px;
+    left: 20px;
+    width: 40px;
+    height: 40px;
+    background-color: #007AFF;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1.2rem;
+}
+
+.step h3 {
+    margin-top: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+/* Snippet detail page */
+.snippet-detail {
+    background-color: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    margin: 2rem 0;
+    overflow: hidden;
+}
+
+.snippet-detail-header {
+    padding: 2rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.snippet-detail-content {
+    padding: 2rem;
+}
+
+.snippet-yaml {
+    background-color: #f6f8fa;
+    padding: 1.5rem;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin: 1.5rem 0;
+}
+
+.snippet-yaml pre {
+    margin: 0;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+    white-space: pre-wrap;
+}
+
+.copy-btn {
+    background-color: #007AFF;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s ease;
+}
+
+.copy-btn:hover {
+    background-color: #0055c4;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .snippet-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .steps {
+        grid-template-columns: 1fr;
+    }
+}
