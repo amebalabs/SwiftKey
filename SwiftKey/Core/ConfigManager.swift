@@ -215,15 +215,6 @@ class ConfigManager: DependencyInjectable, ObservableObject {
         }
     }
 
-    fileprivate func createSecureBookmark(_ url: URL) throws {
-            let bookmarkData = try url.bookmarkData(
-                options: .withSecurityScope,
-                includingResourceValuesForKeys: nil,
-                relativeTo: nil
-            )
-            settingsStore.configFileBookmark = bookmarkData
-    }
-    
     /// Changes the configuration file to a new location
     func changeConfigFile() {
         let dialog = NSOpenPanel()
@@ -235,15 +226,6 @@ class ConfigManager: DependencyInjectable, ObservableObject {
 
         guard dialog.runModal() == .OK, let url = dialog.url else { return }
         settingsStore.configFilePath = url.path
-
-        // Create a security-scoped bookmark
-        do {
-            try createSecureBookmark(url)
-        } catch {
-            print("Error creating bookmark: \(error)")
-            self.lastError = error
-        }
-
         loadConfig()
     }
 
@@ -412,7 +394,7 @@ class ConfigManager: DependencyInjectable, ObservableObject {
         return false
     }
 
-    /// Helper to resolve the saved security-scoped bookmark
+    /// Helper to resolve the config file URL using direct file path
     func resolveConfigFileURL() -> URL? {
         // Ensure we have a valid reference to settings store
         guard let settings = settingsStore else {
@@ -420,44 +402,16 @@ class ConfigManager: DependencyInjectable, ObservableObject {
             return nil
         }
 
-        // Check if we have a bookmark
-        if let bookmarkData = settings.configFileBookmark {
-            var isStale = false
-            do {
-                let url = try URL(
-                    resolvingBookmarkData: bookmarkData,
-                    options: .withSecurityScope,
-                    relativeTo: nil,
-                    bookmarkDataIsStale: &isStale
-                )
-
-                if isStale {
-                    print("Bookmark is stale, please re-select the configuration file.")
-                }
-
-                guard url.startAccessingSecurityScopedResource() else {
-                    print("Couldn't access the resource via the security-scoped bookmark.")
-                    return nil
-                }
-
-                print("ConfigManager: Resolved bookmark to URL: \(url.path)")
-                return url
-            } catch {
-                print("Error resolving bookmark: \(error)")
-                return settings.configFileResolvedURL
-            }
+        // Use the direct path
+        if let url = settings.configFileResolvedURL {
+            print("ConfigManager: Using direct path: \(url.path)")
+            return url
         } else {
-            // No bookmark, use the direct path
-            if let url = settings.configFileResolvedURL {
-                print("ConfigManager: Using direct path: \(url.path)")
-                return url
-            } else {
-                print("ConfigManager: No configuration file path available")
-                // Default to bundle location or create one in user Documents
-                let defaultConfigPath = createDefaultConfigIfNeeded()
-                print("ConfigManager: Using default config at: \(defaultConfigPath?.path ?? "none")")
-                return defaultConfigPath
-            }
+            print("ConfigManager: No configuration file path available")
+            // Default to bundle location or create one in user Documents
+            let defaultConfigPath = createDefaultConfigIfNeeded()
+            print("ConfigManager: Using default config at: \(defaultConfigPath?.path ?? "none")")
+            return defaultConfigPath
         }
     }
 
@@ -472,7 +426,6 @@ class ConfigManager: DependencyInjectable, ObservableObject {
 
         if FileManager.default.fileExists(atPath: configURL.path) {
             print("ConfigManager: Found existing config at \(configURL.path)")
-            try? createSecureBookmark(configURL)
             return configURL
         }
         
@@ -488,7 +441,6 @@ class ConfigManager: DependencyInjectable, ObservableObject {
             print("ConfigManager: Copied bundled config to \(configURL.path)")
             
             settingsStore.configFilePath = configURL.path
-            try? createSecureBookmark(configURL)
             return configURL
         } catch {
             print("ConfigManager: Failed to copy bundled config: \(error)")

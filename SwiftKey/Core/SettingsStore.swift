@@ -26,7 +26,6 @@ class SettingsStore: ObservableObject, DependencyInjectable {
 
     @AppStorage("IsShowingMenuBar") public var isShowingMenuBar: Bool = true
     @AppStorage("ConfigFilePath") public var configFilePath: String = ""
-    @AppStorage("ConfigFileBookmark") public var configFileBookmark: Data?
     @AppStorage("MenuStateResetDelay") public var menuStateResetDelay: Double = 3.0
     @AppStorage("UseHorizontalOverlayLayout") public var useHorizontalOverlayLayout: Bool = true
     @AppStorage("OverlayStyle") public var overlayStyle: OverlayStyle = .panel
