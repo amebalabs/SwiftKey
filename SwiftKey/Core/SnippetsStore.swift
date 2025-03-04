@@ -85,17 +85,12 @@ class SnippetsStore: ObservableObject, DependencyInjectable {
         let indexURL = baseURL.appendingPathComponent("index.json")
         print("SnippetsStore: Fetching snippets from URL: \(indexURL.absoluteString)")
         
-        // Configure JSON decoder with date decoding strategy
+        // Configure JSON decoder
         let decoder = JSONDecoder()
         
-        // First try the network request to get snippets from the website
+        // Perform the network request
         URLSession.shared.dataTaskPublisher(for: indexURL)
-            .map { data, response -> Data in
-                if let httpResponse = response as? HTTPURLResponse {
-                    print("SnippetsStore: HTTP response status: \(httpResponse.statusCode)")
-                }
-                return data
-            }
+            .map { $0.data }
             .decode(type: [ConfigSnippet].self, decoder: decoder)
             .receive(on: DispatchQueue.main)
             .sink(
@@ -106,8 +101,10 @@ class SnippetsStore: ObservableObject, DependencyInjectable {
                         print("SnippetsStore: Failed to fetch snippets: \(error)")
                         self?.lastError = error
                         
-                        // Fall back to mock data if network request fails
-                        self?.loadMockData()
+                        // Load cached snippets if available
+                        if self?.snippets.isEmpty == true {
+                            self?.loadCachedSnippets()
+                        }
                     }
                 },
                 receiveValue: { [weak self] fetchedSnippets in
@@ -184,65 +181,6 @@ class SnippetsStore: ObservableObject, DependencyInjectable {
     
     // MARK: - Private Methods
     
-    /// Loads mock data for demonstration purposes
-    @discardableResult
-    private func loadMockData() -> Bool {
-        print("SnippetsStore: Loading mock data")
-        
-        // Create sample snippet data 
-        let mockSnippets = createMockSnippets()
-        
-        DispatchQueue.main.async { [weak self] in
-            self?.snippets = mockSnippets
-            self?.filteredSnippets = mockSnippets
-            self?.isLoading = false
-            print("SnippetsStore: Successfully loaded \(mockSnippets.count) mock snippets")
-        }
-        
-        return true
-    }
-    
-    /// Creates mock snippets for testing
-    private func createMockSnippets() -> [ConfigSnippet] {
-        let developerSnippet = ConfigSnippet(
-            id: "developer/devtools-toolkit",
-            name: "Developer Tools Toolkit",
-            description: "A collection of essential developer tools and shortcuts for macOS, including IDE launchers, git commands, and Docker controls.",
-            author: "Alex Johnson",
-            tags: ["development", "git", "docker", "ide"],
-            created: "2024-06-10",
-            updated: nil,
-            content: "# Developer tools and IDE shortcuts\n- key: \"d\"\n  icon: \"terminal.fill\"\n  title: \"Developer Tools\"\n  submenu:\n    - key: \"x\"\n      title: \"Xcode\"\n      action: \"launch:///Applications/Xcode.app\"\n    - key: \"v\"\n      title: \"Visual Studio Code\"\n      action: \"launch:///Applications/Visual Studio Code.app\"\n    - key: \"i\"\n      title: \"IntelliJ IDEA\"\n      action: \"launch:///Applications/IntelliJ IDEA.app\"\n    - key: \"g\"\n      title: \"Git Commands\"\n      submenu:\n        - key: \"p\"\n          title: \"Pull\"\n          action: \"shell://git pull\"\n          notify: true\n        - key: \"s\"\n          title: \"Status\"\n          action: \"shell://git status\"\n          notify: true",
-            previewImageURL: nil
-        )
-        
-        let quickAppSnippet = ConfigSnippet(
-            id: "productivity/quick-apps",
-            name: "Quick App Launcher",
-            description: "A simple app launcher for your most frequently used applications, organized by category with custom icons.",
-            author: "Sarah Miller",
-            tags: ["productivity", "launcher", "apps"],
-            created: "2024-05-15",
-            updated: nil,
-            content: "# Quick app launcher by category\n- key: \"a\"\n  icon: \"app.fill\"\n  title: \"Applications\"\n  submenu:\n    - key: \"b\"\n      icon: \"safari\"\n      title: \"Browsers\"\n      submenu:\n        - key: \"s\"\n          title: \"Safari\"\n          action: \"launch:///Applications/Safari.app\"\n        - key: \"c\"\n          title: \"Chrome\"\n          action: \"launch:///Applications/Google Chrome.app\"\n        - key: \"f\"\n          title: \"Firefox\"\n          action: \"launch:///Applications/Firefox.app\"\n    - key: \"p\"\n      icon: \"doc.text\"\n      title: \"Productivity\"\n      submenu:\n        - key: \"p\"\n          title: \"Preview\"\n          action: \"launch:///System/Applications/Preview.app\"\n        - key: \"n\"\n          title: \"Notes\"\n          action: \"launch:///System/Applications/Notes.app\"\n        - key: \"c\"\n          title: \"Calculator\"\n          action: \"launch:///System/Applications/Calculator.app\"",
-            previewImageURL: nil
-        )
-        
-        let systemSnippet = ConfigSnippet(
-            id: "system/mac-utils",
-            name: "macOS System Utilities",
-            description: "Essential macOS system controls and utilities, including display settings, sound controls, and power management options.",
-            author: "Michael Chen",
-            tags: ["system", "macos", "utilities"],
-            created: "2024-04-22",
-            updated: "2024-05-30",
-            content: "# macOS system utilities and controls\n- key: \"s\"\n  icon: \"gearshape.fill\"\n  title: \"System\"\n  submenu:\n    - key: \"d\"\n      icon: \"display\"\n      title: \"Display\"\n      submenu:\n        - key: \"n\"\n          title: \"Night Shift Toggle\"\n          action: \"shell://osascript -e 'tell application \"System Events\" to tell appearance preferences to set dark mode to not dark mode'\"\n          notify: true\n        - key: \"b\"\n          title: \"Brightness Up\"\n          action: \"shell://brightness up\"\n        - key: \"d\"\n          title: \"Brightness Down\"\n          action: \"shell://brightness down\"\n    - key: \"a\"\n      icon: \"speaker.wave.3.fill\"\n      title: \"Audio\"\n      submenu:\n        - key: \"u\"\n          title: \"Volume Up\"\n          action: \"shell://volume up\"\n        - key: \"d\"\n          title: \"Volume Down\"\n          action: \"shell://volume down\"\n        - key: \"m\"\n          title: \"Mute Toggle\"\n          action: \"shell://volume mute\"\n    - key: \"p\"\n      icon: \"bolt.fill\"\n      title: \"Power\"\n      submenu:\n        - key: \"s\"\n          title: \"Sleep\"\n          action: \"shell://pmset sleepnow\"\n        - key: \"r\"\n          title: \"Restart\"\n          action: \"shell://osascript -e 'tell app \"System Events\" to restart'\"\n        - key: \"o\"\n          title: \"Shut Down\"\n          action: \"shell://osascript -e 'tell app \"System Events\" to shut down'\"",
-            previewImageURL: nil
-        )
-        
-        return [developerSnippet, quickAppSnippet, systemSnippet]
-    }
-    
     /// Loads snippets from local cache
     private func loadCachedSnippets() {
         guard let cacheURL = getCacheFileURL() else { return }
@@ -252,6 +190,7 @@ class SnippetsStore: ObservableObject, DependencyInjectable {
             let cachedSnippets = try JSONDecoder().decode([ConfigSnippet].self, from: data)
             DispatchQueue.main.async { [weak self] in
                 self?.snippets = cachedSnippets
+                self?.filteredSnippets = cachedSnippets
             }
             print("SnippetsStore: Loaded \(cachedSnippets.count) snippets from cache")
         } catch {

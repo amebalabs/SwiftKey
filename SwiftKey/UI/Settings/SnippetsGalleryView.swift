@@ -62,7 +62,7 @@ struct SnippetsGalleryView: View {
             
             TextField("Search snippets...", text: $searchText)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
-                .onChange(of: searchText) { _ in
+                .onChange(of: searchText) { _,_ in
                     viewModel.search(query: searchText)
                 }
             
@@ -421,61 +421,22 @@ class SnippetsGalleryViewModel: ObservableObject {
         // Update isLoading status
         isLoading = true
         
-        // Then fetch fresh snippets from remote
+        // Fetch snippets from the store
         snippetsStore.fetchSnippets()
         
-        // Update our local snippets property for convenience
-        snippets = snippetsStore.snippets
-        
-        // Use a timer to simulate network request and check when snippets are loaded
-        Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] timer in
-            guard let self = self else {
-                timer.invalidate()
-                return
-            }
+        // Update our local snippets directly
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            self.snippets = self.snippetsStore.snippets
+            self.isLoading = false
             
-            // Check if snippets have been updated
-            if !self.snippetsStore.isLoading && !self.snippetsStore.snippets.isEmpty {
-                DispatchQueue.main.async {
-                    self.snippets = self.snippetsStore.snippets
-                    self.isLoading = false
-                    self.objectWillChange.send() // Force UI update
+            // Check for preselected snippet if needed
+            if let preselectedId = self.preselectedSnippetId,
+               !self.snippets.isEmpty {
+                if let snippet = self.snippets.first(where: { $0.id == preselectedId }) {
+                    self.selectedSnippet = snippet
+                    self.isDetailPresented = true
                 }
-                timer.invalidate()
-            }
-            
-            // Timeout after 5 seconds
-//            if timer.fireCount > 10 {
-//                DispatchQueue.main.async {
-//                    self.isLoading = false
-//                }
-//                timer.invalidate()
-//            }
-        }
-        
-        // Check for preselected snippet after loading completes
-        if let preselectedId = preselectedSnippetId {
-            Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] timer in
-                guard let self = self else {
-                    timer.invalidate()
-                    return
-                }
-                
-                // Only search once snippets are loaded
-                if !self.snippets.isEmpty {
-                    if let snippet = self.snippets.first(where: { $0.id == preselectedId }) {
-                        DispatchQueue.main.async {
-                            self.selectedSnippet = snippet
-                            self.isDetailPresented = true
-                        }
-                    }
-                    timer.invalidate()
-                }
-                
-//                // Timeout after 5 seconds
-//                if timer.fireCount > 10 {
-//                    timer.invalidate()
-//                }
             }
         }
     }
