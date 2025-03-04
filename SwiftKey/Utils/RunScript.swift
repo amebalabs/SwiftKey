@@ -2,7 +2,7 @@ import Dispatch
 import Foundation
 import os
 
-let sharedEnv = Environment.shared
+let sharedEnv = ProcessEnv.shared
 
 func getEnvExportString(env: [String: String]) -> String {
     let dict = sharedEnv.systemEnvStr.merging(env) { current, _ in current }

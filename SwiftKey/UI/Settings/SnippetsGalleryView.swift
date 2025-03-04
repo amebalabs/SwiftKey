@@ -24,7 +24,7 @@ struct SnippetsGalleryView: View {
             
             if viewModel.isLoading {
                 loadingView
-            } else if viewModel.filteredSnippets.isEmpty {
+            } else if viewModel.snippets.isEmpty {
                 emptyStateView
             } else {
                 snippetsGrid
@@ -35,23 +35,13 @@ struct SnippetsGalleryView: View {
         .onAppear {
             viewModel.fetchSnippets()
         }
+        // Only use a single sheet presentation to avoid conflict
         .sheet(isPresented: $isDetailPresented) {
             if let snippet = selectedSnippet {
                 SnippetDetailView(snippet: snippet, mergeStrategy: $mergeStrategy) { strategy in
                     importSnippet(snippet, strategy: strategy)
                 }
-                .frame(width: 600, height: 500)
-            }
-        }
-        .sheet(isPresented: Binding<Bool>(
-            get: { viewModel.isDetailPresented && viewModel.selectedSnippet != nil },
-            set: { viewModel.isDetailPresented = $0 }
-        )) {
-            if let snippet = viewModel.selectedSnippet {
-                SnippetDetailView(snippet: snippet, mergeStrategy: $mergeStrategy) { strategy in
-                    importSnippet(snippet, strategy: strategy)
-                }
-                .frame(width: 600, height: 500)
+                .frame(width: 700, height: 600) // Increase size to prevent clipping
             }
         }
         .alert(isPresented: $showingErrorAlert) {
@@ -128,6 +118,7 @@ struct SnippetsGalleryView: View {
                             isDetailPresented = true
                         }
                 }
+                .id(UUID()) // Force refresh when snippets change
             }
             .padding(.horizontal)
         }
@@ -208,19 +199,22 @@ struct SnippetDetailView: View {
     @Binding var mergeStrategy: MergeStrategy
     let onImport: (MergeStrategy) -> Void
     
-//    @Environment(\.presentationMode) var presentationMode
+    @Environment(\.dismiss) private var dismiss
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
             HStack {
                 Text(snippet.name)
                     .font(.largeTitle)
                     .bold()
+                    .lineLimit(1) // Limit to one line
+                    .truncationMode(.tail) // Add ellipsis if needed
                 
                 Spacer()
                 
                 Button(action: {
-//                    presentationMode.wrappedValue.dismiss()
+                    dismiss()
                 }) {
                     Image(systemName: "xmark.circle.fill")
                         .resizable()
@@ -228,7 +222,9 @@ struct SnippetDetailView: View {
                         .foregroundColor(.secondary)
                 }
                 .buttonStyle(BorderlessButtonStyle())
+                .padding(.leading, 10) // Add padding to prevent overlap
             }
+            .padding(.trailing, 10) // Add padding to prevent clipping on the right
             
             Text(snippet.description)
                 .font(.title3)
@@ -239,11 +235,14 @@ struct SnippetDetailView: View {
                 
                 Spacer()
                 
-                if let updated = snippet.updated {
+                if let updated = snippet.updateDate {
                     Text("Updated: \(dateFormatter.string(from: updated))")
                         .font(.caption)
+                } else if let created = snippet.creationDate {
+                    Text("Created: \(dateFormatter.string(from: created))")
+                        .font(.caption)
                 } else {
-                    Text("Created: \(dateFormatter.string(from: snippet.created))")
+                    Text("Created: \(snippet.created)")
                         .font(.caption)
                 }
             }
@@ -271,7 +270,7 @@ struct SnippetDetailView: View {
                 List {
                     MenuItemPreviewRow(menuItems: menuItems, level: 0)
                 }
-                .frame(height: 150)
+                .frame(height: 200) // Increase height for better visibility
                 .border(Color.secondary.opacity(0.3), width: 1)
             } else {
                 Text("Could not parse snippet content")
@@ -298,23 +297,28 @@ struct SnippetDetailView: View {
                     .padding(.top, 5)
             }
             
-            Spacer()
+            Spacer(minLength: 20) // Add minimum spacing
             
             HStack {
                 Spacer()
                 
                 Button("Cancel") {
-//                    presentationMode.wrappedValue.dismiss()
+                    dismiss()
                 }
+                .padding()
+                .controlSize(.large)
                 
                 Button("Import") {
                     onImport(mergeStrategy)
                 }
+                .padding()
                 .buttonStyle(BorderedButtonStyle())
                 .controlSize(.large)
             }
+            .padding(.bottom, 20) // Add bottom padding to prevent clipping
+            }
+            .padding()
         }
-        .padding()
     }
     
     private var dateFormatter: DateFormatter {
@@ -396,10 +400,13 @@ struct MenuItemPreviewRow: View {
 
 class SnippetsGalleryViewModel: ObservableObject {
     @Published var snippets: [ConfigSnippet] = []
-    @Published var filteredSnippets: [ConfigSnippet] = []
     @Published var isLoading = false
     @Published var selectedSnippet: ConfigSnippet?
     @Published var isDetailPresented = false
+    
+    var filteredSnippets: [ConfigSnippet] {
+        return snippetsStore.filteredSnippets
+    }
     
     private let snippetsStore: SnippetsStore
     private let preselectedSnippetId: String?
@@ -411,14 +418,14 @@ class SnippetsGalleryViewModel: ObservableObject {
     }
     
     func fetchSnippets() {
+        // Update isLoading status
         isLoading = true
-        
-        // Update UI immediately with cached snippets
-        snippets = snippetsStore.snippets
-        filteredSnippets = snippets
         
         // Then fetch fresh snippets from remote
         snippetsStore.fetchSnippets()
+        
+        // Update our local snippets property for convenience
+        snippets = snippetsStore.snippets
         
         // Use a timer to simulate network request and check when snippets are loaded
         Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] timer in
@@ -428,11 +435,11 @@ class SnippetsGalleryViewModel: ObservableObject {
             }
             
             // Check if snippets have been updated
-            if self.snippets != self.snippetsStore.snippets {
+            if !self.snippetsStore.isLoading && !self.snippetsStore.snippets.isEmpty {
                 DispatchQueue.main.async {
                     self.snippets = self.snippetsStore.snippets
-                    self.filteredSnippets = self.snippets
                     self.isLoading = false
+                    self.objectWillChange.send() // Force UI update
                 }
                 timer.invalidate()
             }
@@ -474,11 +481,8 @@ class SnippetsGalleryViewModel: ObservableObject {
     }
     
     func search(query: String) {
-        if query.isEmpty {
-            filteredSnippets = snippets
-        } else {
-            filteredSnippets = snippetsStore.searchSnippets(query: query)
-        }
+        snippetsStore.searchSnippets(query: query)
+        objectWillChange.send()
     }
     
     func importSnippet(_ snippet: ConfigSnippet, strategy: MergeStrategy, completion: @escaping (Result<Void, Error>) -> Void) {

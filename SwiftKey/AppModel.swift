@@ -61,10 +61,20 @@ struct MenuItem: Identifiable, Codable, Equatable {
 
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(id, forKey: .id)
+        
+        // Skip encoding the ID when using YAML encoder (keeps the YAML cleaner)
+        // This check is more robust by checking the type name
+        let encoderType = String(describing: type(of: encoder))
+        if !encoderType.contains("YAML") {
+            try container.encode(id, forKey: .id)
+        }
+        
+        // Always encode key and title
         try container.encode(key, forKey: .key)
-        try container.encode(icon, forKey: .icon)
         try container.encode(title, forKey: .title)
+        
+        // Only encode non-nil properties to keep the YAML clean
+        try container.encodeIfPresent(icon, forKey: .icon)
         try container.encodeIfPresent(action, forKey: .action)
         try container.encodeIfPresent(sticky, forKey: .sticky)
         try container.encodeIfPresent(notify, forKey: .notify)

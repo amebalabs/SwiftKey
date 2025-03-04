@@ -299,8 +299,8 @@ class ConfigManager: DependencyInjectable, ObservableObject {
         }
         
         do {
-            let encoder = YAMLEncoder()
-            let yamlString = try encoder.encode(items)
+            // Create a YAML encoder with a custom encoding function that strips out IDs
+            let yamlString = try createCleanYaml(from: items)
             
             try yamlString.write(to: url, atomically: true, encoding: .utf8)
             print("ConfigManager: Successfully saved \(items.count) menu items to \(url.path)")
@@ -320,8 +320,20 @@ class ConfigManager: DependencyInjectable, ObservableObject {
         }
     }
     
+    /// Creates YAML using the standard encoder
+    /// The MenuItem.encode(to:) method already handles skipping the ID
+    private func createCleanYaml(from items: [MenuItem]) -> String {
+        let encoder = YAMLEncoder()
+        do {
+            return try encoder.encode(items)
+        } catch {
+            print("Error creating YAML: \(error)")
+            return ""
+        }
+    }
+    
     /// Performs a smart merge of two menu item arrays
-    private func smartMergeMenuItems(_ base: [MenuItem], with new: [MenuItem]) -> [MenuItem] {
+    func smartMergeMenuItems(_ base: [MenuItem], with new: [MenuItem]) -> [MenuItem] {
         var result = base
         
         for newItem in new {
@@ -650,6 +662,7 @@ class ConfigManager: DependencyInjectable, ObservableObject {
 }
 
 // MARK: - Error Types
+
 
 enum ConfigError: Error {
     case fileNotFound
