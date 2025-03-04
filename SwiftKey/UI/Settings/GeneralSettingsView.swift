@@ -42,7 +42,7 @@ struct GeneralSettingsView: View {
                 }
             }
             HStack(spacing: 8) {
-                if let _ = settings.configFileBookmark {
+                if !settings.configFilePath.isEmpty {
                     if let url = configManager.resolveConfigFileURL() {
                         Text(url.path)
                             .font(.system(size: 11))
