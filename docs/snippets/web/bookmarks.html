@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="description" content="SwiftKey Snippets - A collection of useful website bookmarks organized by category, including news, social media, and productivity tools." />
+        <meta name="theme-color" content="#007AFF" />
+        <title>Web Bookmarks Collection - SwiftKey Snippets</title>
+        <link rel="icon" type="image/png" href="../logo.png" />
+        <link rel="stylesheet" href="../../styles.css" />
+        <link rel="stylesheet" href="../snippets.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    </head>
+    <body>
+        <nav class="nav-blur">
+            <div class="container">
+                <div class="logo">
+                    <img src="../../logo.png" alt="SwiftKey" class="logo-img" />
+                    <span>SwiftKey Snippets</span>
+                </div>
+                <div class="nav-links">
+                    <a href="../../index.html">Home</a>
+                    <a href="../index.html">Snippets</a>
+                    <a href="../index.html#contribute">Contribute</a>
+                    <a href="https://github.com/amebalabs/swiftkey-snippets" class="github-link">
+                        <i class="fab fa-github"></i>
+                    </a>
+                </div>
+                <button class="mobile-menu-btn">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+        </nav>
+
+        <div class="mobile-menu">
+            <a href="../../index.html">Home</a>
+            <a href="../index.html">Snippets</a>
+            <a href="../index.html#contribute">Contribute</a>
+            <a href="https://github.com/amebalabs/swiftkey-snippets">GitHub</a>
+        </div>
+
+        <div class="container">
+            <div class="snippet-detail">
+                <div class="snippet-detail-header">
+                    <h1>Web Bookmarks Collection</h1>
+                    <div class="snippet-author">By David Lee</div>
+                    <div class="snippet-date">Mar 14, 2024</div>
+                    <p class="snippet-description">
+                        A collection of useful website bookmarks organized by category, including news, social media, and productivity tools.
+                    </p>
+                    <div class="snippet-tags">
+                        <div class="snippet-tag">web</div>
+<div class="snippet-tag">bookmarks</div>
+<div class="snippet-tag">productivity</div>
+
+                    </div>
+                </div>
+                <div class="snippet-detail-content">
+                    <h2>Preview</h2>
+                    <div class="snippet-preview">
+                        <img src="../previews/web-bookmarks.png" alt="Web Bookmarks Collection Preview" class="preview-image" />
+                    </div>
+                    
+                    <h2>Content</h2>
+                    <div class="snippet-yaml">
+                        <pre><code># Organized web bookmarks by category
+- key: &quot;w&quot;
+  icon: &quot;globe&quot;
+  title: &quot;Web Bookmarks&quot;
+  submenu:
+    - key: &quot;n&quot;
+      icon: &quot;newspaper&quot;
+      title: &quot;News&quot;
+      submenu:
+        - key: &quot;c&quot;
+          title: &quot;CNN&quot;
+          action: &quot;open://https://www.cnn.com&quot;
+        - key: &quot;b&quot;
+          title: &quot;BBC&quot;
+          action: &quot;open://https://www.bbc.com&quot;
+        - key: &quot;r&quot;
+          title: &quot;Reuters&quot;
+          action: &quot;open://https://www.reuters.com&quot;
+    - key: &quot;s&quot;
+      icon: &quot;person.2.fill&quot;
+      title: &quot;Social Media&quot;
+      submenu:
+        - key: &quot;t&quot;
+          title: &quot;Twitter&quot;
+          action: &quot;open://https://twitter.com&quot;
+        - key: &quot;l&quot;
+          title: &quot;LinkedIn&quot;
+          action: &quot;open://https://www.linkedin.com&quot;
+        - key: &quot;r&quot;
+          title: &quot;Reddit&quot;
+          action: &quot;open://https://www.reddit.com&quot;
+    - key: &quot;p&quot;
+      icon: &quot;checklist&quot;
+      title: &quot;Productivity&quot;
+      submenu:
+        - key: &quot;t&quot;
+          title: &quot;Trello&quot;
+          action: &quot;open://https://trello.com&quot;
+        - key: &quot;n&quot;
+          title: &quot;Notion&quot;
+          action: &quot;open://https://www.notion.so&quot;
+        - key: &quot;g&quot;
+          title: &quot;Google Drive&quot;
+          action: &quot;open://https://drive.google.com&quot;</code></pre>
+                    </div>
+                    
+                    <div class="snippet-actions">
+                        <button class="copy-btn" onclick="copySnippetContent()">
+                            <i class="fas fa-copy"></i> Copy to Clipboard
+                        </button>
+                        <a href="swiftkey://snippets/web/bookmarks" class="btn primary">
+                            <i class="fas fa-download"></i> Import to SwiftKey
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            <div class="container">
+                <div class="footer-content">
+                    <div class="footer-left">
+                        <div class="logo">
+                            <img src="../../logo.png" alt="SwiftKey" class="logo-img" />
+                            <span>SwiftKey</span>
+                        </div>
+                        <p>Made with ❤️ for macOS power users</p>
+                    </div>
+                    <div class="footer-links">
+                        <a href="https://github.com/amebalabs/swiftkey">Main Project</a>
+                        <a href="https://github.com/amebalabs/swiftkey-snippets">Snippets Repo</a>
+                        <a href="../../index.html">SwiftKey Home</a>
+                    </div>
+                </div>
+            </div>
+        </footer>
+
+        <script>
+            function copySnippetContent() {
+                const content = document.querySelector('.snippet-yaml pre code').textContent;
+                navigator.clipboard.writeText(content)
+                    .then(() => {
+                        const btn = document.querySelector('.copy-btn');
+                        const originalText = btn.innerHTML;
+                        btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                        setTimeout(() => {
+                            btn.innerHTML = originalText;
+                        }, 2000);
+                    });
+            }
+            
+            // Mobile menu toggle
+            document.querySelector('.mobile-menu-btn').addEventListener('click', function() {
+                document.querySelector('.mobile-menu').classList.toggle('active');
+                this.classList.toggle('active');
+            });
+        </script>
+    </body>
+</html>

@@ -38,7 +38,7 @@
     "tags": ["media", "spotify", "apple music", "youtube"],
     "created": "2024-06-01",
     "content": "# Media playback controls for popular players\n- key: \"m\"\n  icon: \"music.note\"\n  title: \"Media Controls\"\n  submenu:\n    - key: \"p\"\n      icon: \"play.fill\"\n      title: \"Play/Pause\"\n      action: \"shell://osascript -e 'tell application \"Spotify\" to playpause'\"\n    - key: \"n\"\n      icon: \"forward.fill\"\n      title: \"Next Track\"\n      action: \"shell://osascript -e 'tell application \"Spotify\" to next track'\"\n    - key: \"b\"\n      icon: \"backward.fill\"\n      title: \"Previous Track\"\n      action: \"shell://osascript -e 'tell application \"Spotify\" to previous track'\"\n    - key: \"s\"\n      icon: \"speaker.wave.2.fill\"\n      title: \"Spotify\"\n      action: \"launch:///Applications/Spotify.app\"\n    - key: \"a\"\n      icon: \"music.note\"\n      title: \"Apple Music\"\n      action: \"launch:///System/Applications/Music.app\"",
-    "previewImageURL": null
+    "previewImageURL": "previews/quick-controls.png"
   },
   {
     "id": "web/bookmarks",

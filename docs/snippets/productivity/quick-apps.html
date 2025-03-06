@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="description" content="SwiftKey Snippets - A simple app launcher for your most frequently used applications, organized by category with custom icons." />
+        <meta name="theme-color" content="#007AFF" />
+        <title>Quick App Launcher - SwiftKey Snippets</title>
+        <link rel="icon" type="image/png" href="../logo.png" />
+        <link rel="stylesheet" href="../../styles.css" />
+        <link rel="stylesheet" href="../snippets.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    </head>
+    <body>
+        <nav class="nav-blur">
+            <div class="container">
+                <div class="logo">
+                    <img src="../../logo.png" alt="SwiftKey" class="logo-img" />
+                    <span>SwiftKey Snippets</span>
+                </div>
+                <div class="nav-links">
+                    <a href="../../index.html">Home</a>
+                    <a href="../index.html">Snippets</a>
+                    <a href="../index.html#contribute">Contribute</a>
+                    <a href="https://github.com/amebalabs/swiftkey-snippets" class="github-link">
+                        <i class="fab fa-github"></i>
+                    </a>
+                </div>
+                <button class="mobile-menu-btn">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+        </nav>
+
+        <div class="mobile-menu">
+            <a href="../../index.html">Home</a>
+            <a href="../index.html">Snippets</a>
+            <a href="../index.html#contribute">Contribute</a>
+            <a href="https://github.com/amebalabs/swiftkey-snippets">GitHub</a>
+        </div>
+
+        <div class="container">
+            <div class="snippet-detail">
+                <div class="snippet-detail-header">
+                    <h1>Quick App Launcher</h1>
+                    <div class="snippet-author">By Sarah Miller</div>
+                    <div class="snippet-date">May 14, 2024</div>
+                    <p class="snippet-description">
+                        A simple app launcher for your most frequently used applications, organized by category with custom icons.
+                    </p>
+                    <div class="snippet-tags">
+                        <div class="snippet-tag">productivity</div>
+<div class="snippet-tag">launcher</div>
+<div class="snippet-tag">apps</div>
+
+                    </div>
+                </div>
+                <div class="snippet-detail-content">
+                    <h2>Preview</h2>
+                    <div class="snippet-preview">
+                        <img src="../previews/quick-apps.png" alt="Quick App Launcher Preview" class="preview-image" />
+                    </div>
+                    
+                    <h2>Content</h2>
+                    <div class="snippet-yaml">
+                        <pre><code># Quick app launcher by category
+- key: &quot;a&quot;
+  icon: &quot;app.fill&quot;
+  title: &quot;Applications&quot;
+  submenu:
+    - key: &quot;b&quot;
+      icon: &quot;safari&quot;
+      title: &quot;Browsers&quot;
+      submenu:
+        - key: &quot;s&quot;
+          title: &quot;Safari&quot;
+          action: &quot;launch:///Applications/Safari.app&quot;
+        - key: &quot;c&quot;
+          title: &quot;Chrome&quot;
+          action: &quot;launch:///Applications/Google Chrome.app&quot;
+        - key: &quot;f&quot;
+          title: &quot;Firefox&quot;
+          action: &quot;launch:///Applications/Firefox.app&quot;
+    - key: &quot;p&quot;
+      icon: &quot;doc.text&quot;
+      title: &quot;Productivity&quot;
+      submenu:
+        - key: &quot;p&quot;
+          title: &quot;Preview&quot;
+          action: &quot;launch:///System/Applications/Preview.app&quot;
+        - key: &quot;n&quot;
+          title: &quot;Notes&quot;
+          action: &quot;launch:///System/Applications/Notes.app&quot;
+        - key: &quot;c&quot;
+          title: &quot;Calculator&quot;
+          action: &quot;launch:///System/Applications/Calculator.app&quot;</code></pre>
+                    </div>
+                    
+                    <div class="snippet-actions">
+                        <button class="copy-btn" onclick="copySnippetContent()">
+                            <i class="fas fa-copy"></i> Copy to Clipboard
+                        </button>
+                        <a href="swiftkey://snippets/productivity/quick-apps" class="btn primary">
+                            <i class="fas fa-download"></i> Import to SwiftKey
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            <div class="container">
+                <div class="footer-content">
+                    <div class="footer-left">
+                        <div class="logo">
+                            <img src="../../logo.png" alt="SwiftKey" class="logo-img" />
+                            <span>SwiftKey</span>
+                        </div>
+                        <p>Made with ❤️ for macOS power users</p>
+                    </div>
+                    <div class="footer-links">
+                        <a href="https://github.com/amebalabs/swiftkey">Main Project</a>
+                        <a href="https://github.com/amebalabs/swiftkey-snippets">Snippets Repo</a>
+                        <a href="../../index.html">SwiftKey Home</a>
+                    </div>
+                </div>
+            </div>
+        </footer>
+
+        <script>
+            function copySnippetContent() {
+                const content = document.querySelector('.snippet-yaml pre code').textContent;
+                navigator.clipboard.writeText(content)
+                    .then(() => {
+                        const btn = document.querySelector('.copy-btn');
+                        const originalText = btn.innerHTML;
+                        btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                        setTimeout(() => {
+                            btn.innerHTML = originalText;
+                        }, 2000);
+                    });
+            }
+            
+            // Mobile menu toggle
+            document.querySelector('.mobile-menu-btn').addEventListener('click', function() {
+                document.querySelector('.mobile-menu').classList.toggle('active');
+                this.classList.toggle('active');
+            });
+        </script>
+    </body>
+</html>
