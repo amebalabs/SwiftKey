@@ -1,5 +1,5 @@
-import SwiftUI
 import Combine
+import SwiftUI
 
 struct SnippetsGalleryView: View {
     @ObservedObject var viewModel: SnippetsGalleryViewModel
@@ -9,19 +9,19 @@ struct SnippetsGalleryView: View {
     @State private var showingErrorAlert = false
     @State private var errorMessage = ""
     @State private var mergeStrategy: MergeStrategy = .smart
-    
+
     init(viewModel: SnippetsGalleryViewModel = SnippetsGalleryViewModel()) {
         self.viewModel = viewModel
     }
-    
+
     private let columns = [
-        GridItem(.adaptive(minimum: 250, maximum: 350), spacing: 20)
+        GridItem(.adaptive(minimum: 250, maximum: 350), spacing: 20),
     ]
-    
+
     var body: some View {
         VStack {
             searchBar
-            
+
             if viewModel.isLoading {
                 loadingView
             } else if viewModel.snippets.isEmpty {
@@ -35,7 +35,6 @@ struct SnippetsGalleryView: View {
         .onAppear {
             viewModel.fetchSnippets()
         }
-        // Only use a single sheet presentation to avoid conflict
         .sheet(isPresented: $isDetailPresented) {
             if let snippet = selectedSnippet {
                 SnippetDetailView(snippet: snippet, mergeStrategy: $mergeStrategy) { strategy in
@@ -52,20 +51,20 @@ struct SnippetsGalleryView: View {
             )
         }
     }
-    
+
     // MARK: - Subviews
-    
+
     private var searchBar: some View {
         HStack {
             Image(systemName: "magnifyingglass")
                 .foregroundColor(.secondary)
-            
+
             TextField("Search snippets...", text: $searchText)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
-                .onChange(of: searchText) { _,_ in
+                .onChange(of: searchText) { _, _ in
                     viewModel.search(query: searchText)
                 }
-            
+
             Button(action: {
                 viewModel.fetchSnippets()
             }) {
@@ -77,18 +76,18 @@ struct SnippetsGalleryView: View {
         }
         .padding(.bottom)
     }
-    
+
     private var loadingView: some View {
         VStack {
             ProgressView()
                 .scaleEffect(1.5)
                 .padding()
-            
+
             Text("Loading snippets...")
                 .font(.headline)
         }
     }
-    
+
     private var emptyStateView: some View {
         VStack(spacing: 10) {
             Image(systemName: "doc.text.magnifyingglass")
@@ -96,10 +95,10 @@ struct SnippetsGalleryView: View {
                 .scaledToFit()
                 .frame(width: 50, height: 50)
                 .foregroundColor(.secondary)
-            
+
             Text(searchText.isEmpty ? "No snippets available" : "No snippets match your search")
                 .font(.headline)
-            
+
             Button("Refresh") {
                 viewModel.fetchSnippets()
             }
@@ -107,7 +106,7 @@ struct SnippetsGalleryView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
-    
+
     private var snippetsGrid: some View {
         ScrollView {
             LazyVGrid(columns: columns, spacing: 20) {
@@ -123,16 +122,16 @@ struct SnippetsGalleryView: View {
             .padding(.horizontal)
         }
     }
-    
+
     // MARK: - Helper Functions
-    
+
     private func importSnippet(_ snippet: ConfigSnippet, strategy: MergeStrategy) {
         viewModel.importSnippet(snippet, strategy: strategy) { result in
             switch result {
             case .success:
                 // Successfully imported
                 isDetailPresented = false
-            case .failure(let error):
+            case let .failure(error):
                 // Handle error
                 errorMessage = error.localizedDescription
                 showingErrorAlert = true
@@ -145,35 +144,35 @@ struct SnippetsGalleryView: View {
 
 struct SnippetCard: View {
     let snippet: ConfigSnippet
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Text(snippet.name)
                     .font(.headline)
                     .lineLimit(1)
-                
+
                 Spacer()
-                
+
                 Image(systemName: "chevron.right")
                     .foregroundColor(.secondary)
                     .font(.caption)
             }
-            
+
             Text(snippet.description)
                 .font(.subheadline)
                 .foregroundColor(.secondary)
                 .lineLimit(2)
-            
+
             Spacer()
-            
+
             HStack {
                 Text("by \(snippet.author)")
                     .font(.caption)
                     .foregroundColor(.secondary)
-                
+
                 Spacer()
-                
+
                 ForEach(snippet.tags.prefix(3), id: \.self) { tag in
                     Text(tag)
                         .font(.caption2)
@@ -198,136 +197,136 @@ struct SnippetDetailView: View {
     let snippet: ConfigSnippet
     @Binding var mergeStrategy: MergeStrategy
     let onImport: (MergeStrategy) -> Void
-    
+
     @Environment(\.dismiss) private var dismiss
-    
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-            HStack {
-                Text(snippet.name)
-                    .font(.largeTitle)
-                    .bold()
-                    .lineLimit(1) // Limit to one line
-                    .truncationMode(.tail) // Add ellipsis if needed
-                
-                Spacer()
-                
-                Button(action: {
-                    dismiss()
-                }) {
-                    Image(systemName: "xmark.circle.fill")
-                        .resizable()
-                        .frame(width: 20, height: 20)
-                        .foregroundColor(.secondary)
+                HStack {
+                    Text(snippet.name)
+                        .font(.largeTitle)
+                        .bold()
+                        .lineLimit(1) // Limit to one line
+                        .truncationMode(.tail) // Add ellipsis if needed
+
+                    Spacer()
+
+                    Button(action: {
+                        dismiss()
+                    }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .resizable()
+                            .frame(width: 20, height: 20)
+                            .foregroundColor(.secondary)
+                    }
+                    .buttonStyle(BorderlessButtonStyle())
+                    .padding(.leading, 10)
                 }
-                .buttonStyle(BorderlessButtonStyle())
-                .padding(.leading, 10) // Add padding to prevent overlap
-            }
-            .padding(.trailing, 10) // Add padding to prevent clipping on the right
-            
-            Text(snippet.description)
-                .font(.title3)
-            
-            HStack {
-                Text("Author: \(snippet.author)")
-                    .font(.subheadline)
-                
-                Spacer()
-                
-                if let updated = snippet.updateDate {
-                    Text("Updated: \(dateFormatter.string(from: updated))")
-                        .font(.caption)
-                } else if let created = snippet.creationDate {
-                    Text("Created: \(dateFormatter.string(from: created))")
-                        .font(.caption)
-                } else {
-                    Text("Created: \(snippet.created)")
-                        .font(.caption)
+                .padding(.trailing, 10)
+
+                Text(snippet.description)
+                    .font(.title3)
+
+                HStack {
+                    Text("Author: \(snippet.author)")
+                        .font(.subheadline)
+
+                    Spacer()
+
+                    if let updated = snippet.updateDate {
+                        Text("Updated: \(dateFormatter.string(from: updated))")
+                            .font(.caption)
+                    } else if let created = snippet.creationDate {
+                        Text("Created: \(dateFormatter.string(from: created))")
+                            .font(.caption)
+                    } else {
+                        Text("Created: \(snippet.created)")
+                            .font(.caption)
+                    }
                 }
-            }
-            
-            HStack {
-                Text("Tags:")
-                    .font(.subheadline)
-                
-                ForEach(snippet.tags, id: \.self) { tag in
-                    Text(tag)
-                        .font(.caption)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(Color.blue.opacity(0.2))
-                        .cornerRadius(4)
+
+                HStack {
+                    Text("Tags:")
+                        .font(.subheadline)
+
+                    ForEach(snippet.tags, id: \.self) { tag in
+                        Text(tag)
+                            .font(.caption)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(Color.blue.opacity(0.2))
+                            .cornerRadius(4)
+                    }
                 }
-            }
-            
-            Divider()
-            
-            Text("Preview:")
-                .font(.headline)
-            
-            if let menuItems = snippet.menuItems {
-                List {
-                    MenuItemPreviewRow(menuItems: menuItems, level: 0)
-                }
-                .frame(height: 200) // Increase height for better visibility
-                .border(Color.secondary.opacity(0.3), width: 1)
-            } else {
-                Text("Could not parse snippet content")
-                    .foregroundColor(.red)
-            }
-            
-            Divider()
-            
-            VStack(alignment: .leading) {
-                Text("Merge Strategy:")
+
+                Divider()
+
+                Text("Preview:")
                     .font(.headline)
-                
-                Picker("", selection: $mergeStrategy) {
-                    Text("Smart Merge").tag(MergeStrategy.smart)
-                    Text("Append").tag(MergeStrategy.append)
-                    Text("Prepend").tag(MergeStrategy.prepend)
-                    Text("Replace").tag(MergeStrategy.replace)
+
+                if let menuItems = snippet.menuItems {
+                    List {
+                        MenuItemPreviewRow(menuItems: menuItems, level: 0)
+                    }
+                    .frame(height: 200) // Increase height for better visibility
+                    .border(Color.secondary.opacity(0.3), width: 1)
+                } else {
+                    Text("Could not parse snippet content")
+                        .foregroundColor(.red)
                 }
-                .pickerStyle(SegmentedPickerStyle())
-                
-                Text(mergeStrategyDescription)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .padding(.top, 5)
-            }
-            
-            Spacer(minLength: 20) // Add minimum spacing
-            
-            HStack {
-                Spacer()
-                
-                Button("Cancel") {
-                    dismiss()
+
+                Divider()
+
+                VStack(alignment: .leading) {
+                    Text("Merge Strategy:")
+                        .font(.headline)
+
+                    Picker("", selection: $mergeStrategy) {
+                        Text("Smart Merge").tag(MergeStrategy.smart)
+                        Text("Append").tag(MergeStrategy.append)
+                        Text("Prepend").tag(MergeStrategy.prepend)
+                        Text("Replace").tag(MergeStrategy.replace)
+                    }
+                    .pickerStyle(SegmentedPickerStyle())
+
+                    Text(mergeStrategyDescription)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .padding(.top, 5)
                 }
-                .padding()
-                .controlSize(.large)
-                
-                Button("Import") {
-                    onImport(mergeStrategy)
+
+                Spacer(minLength: 20)
+
+                HStack {
+                    Spacer()
+
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                    .padding()
+                    .controlSize(.large)
+
+                    Button("Import") {
+                        onImport(mergeStrategy)
+                    }
+                    .padding()
+                    .buttonStyle(BorderedButtonStyle())
+                    .controlSize(.large)
                 }
-                .padding()
-                .buttonStyle(BorderedButtonStyle())
-                .controlSize(.large)
-            }
-            .padding(.bottom, 20) // Add bottom padding to prevent clipping
+                .padding(.bottom, 20)
             }
             .padding()
         }
     }
-    
+
     private var dateFormatter: DateFormatter {
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
         formatter.timeStyle = .none
         return formatter
     }
-    
+
     private var mergeStrategyDescription: String {
         switch mergeStrategy {
         case .smart:
@@ -347,19 +346,19 @@ struct SnippetDetailView: View {
 struct MenuItemPreviewRow: View {
     let menuItems: [MenuItem]
     let level: Int
-    
+
     @State private var isExpanded = true
-    
+
     var body: some View {
         ForEach(menuItems) { item in
             VStack(alignment: .leading) {
                 HStack {
-                    ForEach(0..<level, id: \.self) { _ in
+                    ForEach(0 ..< level, id: \.self) { _ in
                         Rectangle()
                             .fill(Color.clear)
                             .frame(width: 20)
                     }
-                    
+
                     if let submenu = item.submenu, !submenu.isEmpty {
                         Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
                             .onTapGesture {
@@ -370,16 +369,16 @@ struct MenuItemPreviewRow: View {
                             .fill(Color.clear)
                             .frame(width: 20)
                     }
-                    
+
                     if let icon = item.icon {
                         Image(systemName: icon)
                     }
-                    
+
                     Text("[\(item.key)] \(item.title)")
                         .lineLimit(1)
-                    
+
                     Spacer()
-                    
+
                     if let action = item.action {
                         Text(action)
                             .font(.caption)
@@ -387,7 +386,7 @@ struct MenuItemPreviewRow: View {
                             .lineLimit(1)
                     }
                 }
-                
+
                 if isExpanded, let submenu = item.submenu, !submenu.isEmpty {
                     MenuItemPreviewRow(menuItems: submenu, level: level + 1)
                 }
@@ -403,36 +402,34 @@ class SnippetsGalleryViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var selectedSnippet: ConfigSnippet?
     @Published var isDetailPresented = false
-    
+
     var filteredSnippets: [ConfigSnippet] {
         return snippetsStore.filteredSnippets
     }
-    
+
     private let snippetsStore: SnippetsStore
     private let preselectedSnippetId: String?
-    
+
     init(snippetsStore: SnippetsStore? = nil, preselectedSnippetId: String? = nil) {
         // Use provided store or get from dependency container
         self.snippetsStore = snippetsStore ?? DependencyContainer.shared.snippetsStore
         self.preselectedSnippetId = preselectedSnippetId
     }
-    
+
     func fetchSnippets() {
-        // Update isLoading status
         isLoading = true
-        
-        // Fetch snippets from the store
         snippetsStore.fetchSnippets()
-        
+
         // Update our local snippets directly
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
             self.snippets = self.snippetsStore.snippets
             self.isLoading = false
-            
+
             // Check for preselected snippet if needed
             if let preselectedId = self.preselectedSnippetId,
-               !self.snippets.isEmpty {
+               !self.snippets.isEmpty
+            {
                 if let snippet = self.snippets.first(where: { $0.id == preselectedId }) {
                     self.selectedSnippet = snippet
                     self.isDetailPresented = true
@@ -440,13 +437,17 @@ class SnippetsGalleryViewModel: ObservableObject {
             }
         }
     }
-    
+
     func search(query: String) {
         snippetsStore.searchSnippets(query: query)
         objectWillChange.send()
     }
-    
-    func importSnippet(_ snippet: ConfigSnippet, strategy: MergeStrategy, completion: @escaping (Result<Void, Error>) -> Void) {
+
+    func importSnippet(
+        _ snippet: ConfigSnippet,
+        strategy: MergeStrategy,
+        completion: @escaping (Result<Void, Error>) -> Void
+    ) {
         let result = snippetsStore.importSnippet(snippet, mergeStrategy: strategy)
         completion(result)
     }

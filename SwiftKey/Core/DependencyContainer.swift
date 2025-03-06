@@ -3,7 +3,7 @@ import Foundation
 
 class DependencyContainer {
     static let shared = DependencyContainer()
-    
+
     // Services
     let configManager: ConfigManager
     let settingsStore: SettingsStore
@@ -12,9 +12,9 @@ class DependencyContainer {
     let deepLinkHandler: DeepLinkHandler
     let keyboardManager: KeyboardManager
     let snippetsStore: SnippetsStore
-    
+
     private var cancellables = Set<AnyCancellable>()
-    
+
     init(
         configManager: ConfigManager = ConfigManager.shared,
         settingsStore: SettingsStore? = nil,
@@ -62,7 +62,7 @@ class DependencyContainer {
                 guard let self = self else { return }
                 self.menuState.rootMenu = items
                 print("DependencyContainer: Updated menu items: \(items.count) items")
-                
+
                 // Re-register keyboard shortcuts whenever menu items are updated
                 self.keyboardManager.registerMenuHotkeys(items)
                 print("DependencyContainer: Re-registered keyboard shortcuts for menu items")

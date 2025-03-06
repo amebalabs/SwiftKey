@@ -14,13 +14,13 @@ class DeepLinkHandler: DependencyInjectable {
 
     func handle(url: URL) {
         guard url.scheme?.lowercased() == "swiftkey" else { return }
-        
+
         // Handle snippet import URLs (format: swiftkey://snippets/author/name)
         if url.host?.lowercased() == "snippets" {
             handleSnippetImport(url: url)
             return
         }
-        
+
         // Handle regular menu opening URLs
         guard url.host?.lowercased() == "open" else { return }
         let queryItems = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems
@@ -74,19 +74,19 @@ class DeepLinkHandler: DependencyInjectable {
             }
         }
     }
-    
+
     /// Handles importing a snippet from a deep link
     private func handleSnippetImport(url: URL) {
         // Get snippet ID from URL path
         let snippetId = url.path.trimmingCharacters(in: .init(charactersIn: "/"))
-        
+
         guard !snippetId.isEmpty else {
             print("DeepLinkHandler: Invalid snippet ID in URL \(url)")
             return
         }
-        
+
         print("DeepLinkHandler: Opening snippet gallery for snippet ID: \(snippetId)")
-        
+
         // Open snippets gallery with pre-selected snippet
         DispatchQueue.main.async {
             AppDelegate.showGalleryWindow(preselectedSnippetId: snippetId)

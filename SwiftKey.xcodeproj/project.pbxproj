@@ -172,7 +172,6 @@
 					};
 					FA409E382D5E575B00FCFC04 = {
 						CreatedOnToolsVersion = 16.2;
-						TestTargetID = FA3044B02D43F59400BA98E2;
 					};
 				};
 			};
@@ -439,7 +438,6 @@
 		FA409E402D5E575C00FCFC04 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = X93LWC49WV;
@@ -450,14 +448,12 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SwiftKey.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/SwiftKey";
 			};
 			name = Debug;
 		};
 		FA409E412D5E575C00FCFC04 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = X93LWC49WV;
@@ -468,7 +464,6 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SwiftKey.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/SwiftKey";
 			};
 			name = Release;
 		};

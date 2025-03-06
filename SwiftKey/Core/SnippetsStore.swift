@@ -1,5 +1,5 @@
-import Foundation
 import Combine
+import Foundation
 import Yams
 
 // MARK: - ConfigSnippet
@@ -15,7 +15,7 @@ struct ConfigSnippet: Identifiable, Codable, Equatable {
     let updated: String? // Last update date (optional, ISO string format)
     let content: String // The actual YAML content
     let previewImageURL: String? // URL to a preview image (optional)
-    
+
     /// The parsed MenuItem array from the YAML content
     var menuItems: [MenuItem]? {
         do {
@@ -26,18 +26,18 @@ struct ConfigSnippet: Identifiable, Codable, Equatable {
             return nil
         }
     }
-    
+
     /// Parsed creation date
     var creationDate: Date? {
         return dateFromString(created)
     }
-    
+
     /// Parsed update date
     var updateDate: Date? {
         guard let updated = updated else { return nil }
         return dateFromString(updated)
     }
-    
+
     /// Converts a date string to a Date object
     private func dateFromString(_ dateString: String) -> Date? {
         let formatter = DateFormatter()
@@ -55,39 +55,39 @@ class SnippetsStore: ObservableObject, DependencyInjectable {
     @Published private(set) var filteredSnippets: [ConfigSnippet] = []
     @Published private(set) var isLoading: Bool = false
     @Published private(set) var lastError: Error?
-    
+
     // Dependencies
     var settingsStore: SettingsStore!
     var configManager: ConfigManager!
-    
+
     func injectDependencies(_ container: DependencyContainer) {
         self.settingsStore = container.settingsStore
         self.configManager = container.configManager
         print("SnippetsStore: Dependencies injected successfully")
     }
-    
+
     private let baseURL = URL(string: "http://localhost:3000")!
     private let cacheFileName = "snippets-cache.json"
     private var cancellables = Set<AnyCancellable>()
-    
+
     init() {
         // Load cached snippets immediately
         loadCachedSnippets()
     }
-    
+
     // MARK: - Public Methods
-    
+
     /// Fetches snippets from the remote repository
     func fetchSnippets() {
         isLoading = true
-        
+
         // URL for the snippets index file
         let indexURL = baseURL.appendingPathComponent("index.json")
         print("SnippetsStore: Fetching snippets from URL: \(indexURL.absoluteString)")
-        
+
         // Configure JSON decoder
         let decoder = JSONDecoder()
-        
+
         // Perform the network request
         URLSession.shared.dataTaskPublisher(for: indexURL)
             .map { $0.data }
@@ -96,11 +96,11 @@ class SnippetsStore: ObservableObject, DependencyInjectable {
             .sink(
                 receiveCompletion: { [weak self] completion in
                     self?.isLoading = false
-                    
+
                     if case let .failure(error) = completion {
                         print("SnippetsStore: Failed to fetch snippets: \(error)")
                         self?.lastError = error
-                        
+
                         // Load cached snippets if available
                         if self?.snippets.isEmpty == true {
                             self?.loadCachedSnippets()
@@ -116,51 +116,57 @@ class SnippetsStore: ObservableObject, DependencyInjectable {
             )
             .store(in: &cancellables)
     }
-    
+
     /// Searches snippets based on a query string
     func searchSnippets(query: String) {
-        guard !query.isEmpty else { 
+        guard !query.isEmpty else {
             filteredSnippets = snippets
             return
         }
-        
+
         let lowercasedQuery = query.lowercased()
-        
+
         filteredSnippets = snippets.filter { snippet in
             snippet.name.lowercased().contains(lowercasedQuery) ||
-            snippet.description.lowercased().contains(lowercasedQuery) ||
-            snippet.author.lowercased().contains(lowercasedQuery) ||
-            snippet.tags.contains { $0.lowercased().contains(lowercasedQuery) }
+                snippet.description.lowercased().contains(lowercasedQuery) ||
+                snippet.author.lowercased().contains(lowercasedQuery) ||
+                snippet.tags.contains { $0.lowercased().contains(lowercasedQuery) }
         }
     }
-    
+
     /// Imports a snippet and merges it with the existing config
     func importSnippet(_ snippet: ConfigSnippet, mergeStrategy: MergeStrategy = .append) -> Result<Void, Error> {
         guard let menuItems = snippet.menuItems else {
             return .failure(SnippetError.invalidYamlFormat)
         }
-        
+
         // Use ConfigManager to merge and save the snippet
         let result = configManager.importSnippet(menuItems: menuItems, strategy: mergeStrategy)
         switch result {
         case .success:
             return .success(())
-        case .failure(let error):
+        case let .failure(error):
             return .failure(error)
         }
     }
-    
+
     /// Creates a snippet from a subset of current config
-    func createSnippet(from menuItems: [MenuItem], name: String, description: String, author: String, tags: [String]) -> Result<ConfigSnippet, Error> {
+    func createSnippet(
+        from menuItems: [MenuItem],
+        name: String,
+        description: String,
+        author: String,
+        tags: [String]
+    ) -> Result<ConfigSnippet, Error> {
         do {
             let encoder = YAMLEncoder()
             let yamlContent = try encoder.encode(menuItems)
-            
+
             // Format today's date as ISO string
             let dateFormatter = DateFormatter()
             dateFormatter.dateFormat = "yyyy-MM-dd"
             let createdString = dateFormatter.string(from: Date())
-            
+
             let snippet = ConfigSnippet(
                 id: "\(author.lowercased())/\(name.lowercased().replacingOccurrences(of: " ", with: "-"))",
                 name: name,
@@ -172,19 +178,19 @@ class SnippetsStore: ObservableObject, DependencyInjectable {
                 content: yamlContent,
                 previewImageURL: nil
             )
-            
+
             return .success(snippet)
         } catch {
             return .failure(error)
         }
     }
-    
+
     // MARK: - Private Methods
-    
+
     /// Loads snippets from local cache
     private func loadCachedSnippets() {
         guard let cacheURL = getCacheFileURL() else { return }
-        
+
         do {
             let data = try Data(contentsOf: cacheURL)
             let cachedSnippets = try JSONDecoder().decode([ConfigSnippet].self, from: data)
@@ -199,11 +205,11 @@ class SnippetsStore: ObservableObject, DependencyInjectable {
             fetchSnippets()
         }
     }
-    
+
     /// Caches snippets locally
     private func cacheSnippets(_ snippetsToCache: [ConfigSnippet]) {
         guard let cacheURL = getCacheFileURL() else { return }
-        
+
         do {
             let data = try JSONEncoder().encode(snippetsToCache)
             try data.write(to: cacheURL)
@@ -212,7 +218,7 @@ class SnippetsStore: ObservableObject, DependencyInjectable {
             print("SnippetsStore: Failed to cache snippets: \(error)")
         }
     }
-    
+
     /// Gets the URL for the cache file
     private func getCacheFileURL() -> URL? {
         do {
@@ -234,10 +240,10 @@ class SnippetsStore: ObservableObject, DependencyInjectable {
 
 /// Strategy for merging imported snippets with existing config
 enum MergeStrategy {
-    case append      // Add snippets at the end of the existing config
-    case prepend     // Add snippets at the beginning of the existing config
-    case replace     // Replace the entire config with the snippets
-    case smart       // Try to merge intelligently based on item key and title
+    case append // Add snippets at the end of the existing config
+    case prepend // Add snippets at the beginning of the existing config
+    case replace // Replace the entire config with the snippets
+    case smart // Try to merge intelligently based on item key and title
 }
 
 // MARK: - Error Types

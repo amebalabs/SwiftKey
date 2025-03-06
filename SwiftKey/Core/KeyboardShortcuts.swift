@@ -14,43 +14,46 @@ extension KeyboardShortcuts.Name {
 class KeyboardManager: DependencyInjectable, ObservableObject {
     // Singleton instance
     static let shared = KeyboardManager()
-    
+
     // Dependencies
     var menuState: MenuState!
     var settingsStore: SettingsStore!
     var configManager: ConfigManager!
-    
+
     // Event publishers
     let keyPressSubject = PassthroughSubject<KeyEvent, Never>()
     var keyPressPublisher: AnyPublisher<KeyEvent, Never> {
         keyPressSubject.eraseToAnyPublisher()
     }
-    
+
     // Global key handlers map for menu hotkeys
     private var hotkeyHandlers: [String: KeyboardShortcuts.Name] = [:]
-    
+
     // MARK: - Initialization
-    
-    
+
     init() {
         // Setup will happen after dependencies are injected
     }
-    
+
     func injectDependencies(_ container: DependencyContainer) {
         self.menuState = container.menuState
         self.settingsStore = container.settingsStore
         self.configManager = container.configManager
-        
+
         print("KeyboardManager: Dependencies injected successfully")
     }
-    
+
     // MARK: - Key Handling
-    
-    func handleKey(key: String, modifierFlags: NSEvent.ModifierFlags? = nil, completion: @escaping (KeyPressResult) -> Void) {
+
+    func handleKey(
+        key: String,
+        modifierFlags: NSEvent.ModifierFlags? = nil,
+        completion: @escaping (KeyPressResult) -> Void
+    ) {
         print("KeyboardManager: Key pressed: \(key)")
         let normalizedKey = key
         menuState.currentKey = normalizedKey
-        
+
         // Common navigation keys
         if normalizedKey == "escape" {
             completion(.escape)
@@ -66,13 +69,13 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
             completion(.help)
             return
         }
-        
+
         // Find matching menu item
         guard let item = menuState.currentMenu.first(where: { $0.key == normalizedKey }) else {
             completion(.error(key: key))
             return
         }
-        
+
         // Handle dynamic menus
         if let actionString = item.action, actionString.hasPrefix("dynamic://") {
             completion(.dynamicLoading)
@@ -83,7 +86,7 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
             }
             return
         }
-        
+
         // Handle submenu navigation
         if let submenu = item.submenu {
             // Batch execution mode (Alt key or batch flag)
@@ -92,20 +95,20 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
                 completion(.actionExecuted)
                 return
             }
-            
+
             // Normal submenu navigation
             menuState.breadcrumbs.append(item.title)
             menuState.menuStack.append(submenu)
             completion(.submenuPushed(title: item.title))
             return
         }
-        
+
         // Execute action
         if let action = item.actionClosure {
             DispatchQueue.global(qos: .userInitiated).async {
                 action()
             }
-            
+
             // Handle sticky flag for panel mode
             let overlayStyle = settingsStore?.overlayStyle ?? .panel
             if item.sticky == false, overlayStyle == .panel {
@@ -115,12 +118,12 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
             }
             return
         }
-        
+
         completion(.none)
     }
-    
+
     // MARK: - Dynamic Menu Loading
-    
+
     /// Loads a dynamic menu for the specified menu item
     /// - Parameters:
     ///   - item: The menu item containing a dynamic:// action
@@ -130,9 +133,9 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
             completion(.error(key: item.key))
             return
         }
-        
+
         completion(.dynamicLoading)
-        
+
         DynamicMenuLoader.shared.loadDynamicMenu(for: item) { [weak self] submenu in
             guard let self = self, let submenu = submenu else {
                 DispatchQueue.main.async {
@@ -140,7 +143,7 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
                 }
                 return
             }
-            
+
             DispatchQueue.main.async {
                 self.menuState.breadcrumbs.append(item.title)
                 self.menuState.menuStack.append(submenu)
@@ -148,9 +151,9 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
             }
         }
     }
-    
+
     // MARK: - Batch Actions
-    
+
     private func executeBatchActions(in submenu: [MenuItem]) {
         DispatchQueue.global(qos: .userInitiated).async {
             for menu in submenu where menu.actionClosure != nil {
@@ -159,23 +162,23 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
             }
         }
     }
-    
+
     // MARK: - Hotkey Registration
-    
+
     func registerMenuHotkeys(_ menu: [MenuItem]) {
         // Clear existing hotkeys if we're registering for the root menu
         if menu == menuState.rootMenu {
             hotkeyHandlers.removeAll()
         }
-        
+
         for item in menu {
             if let hotkeyStr = item.hotkey, let shortcut = KeyboardShortcuts.Shortcut(hotkeyStr) {
                 let name = KeyboardShortcuts.Name(item.id.uuidString)
                 KeyboardShortcuts.setShortcut(shortcut, for: name)
-                
+
                 KeyboardShortcuts.onKeyDown(for: name) { [weak self] in
                     guard let self = self else { return }
-                    
+
                     if item.submenu != nil {
                         DispatchQueue.main.async {
                             self.navigateToMenuItem(item)
@@ -186,20 +189,20 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
                         }
                     }
                 }
-                
+
                 hotkeyHandlers[item.id.uuidString] = name
             }
-            
+
             // Recursively register hotkeys for submenus
             if let submenu = item.submenu {
                 registerMenuHotkeys(submenu)
             }
         }
     }
-    
+
     private func navigateToMenuItem(_ item: MenuItem) {
         menuState.reset()
-        
+
         if let path = findPathToMenuItem(item, in: menuState.rootMenu) {
             for (index, menuItem) in path.enumerated() {
                 if index < path.count {
@@ -209,12 +212,12 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
                     }
                 }
             }
-            
+
             // Show overlay with the correct menu
             AppDelegate.shared.presentOverlay()
         }
     }
-    
+
     private func findPathToMenuItem(
         _ target: MenuItem,
         in menu: [MenuItem],
@@ -224,13 +227,14 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
             if item.id == target.id {
                 return currentPath + [item]
             }
-            
-            if let submenu = item.submenu, 
+
+            if let submenu = item.submenu,
                let path = findPathToMenuItem(
-                  target,
-                  in: submenu,
-                  currentPath: currentPath + [item]
-               ) {
+                   target,
+                   in: submenu,
+                   currentPath: currentPath + [item]
+               )
+            {
                 return path
             }
         }
@@ -243,7 +247,7 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
 struct KeyEvent {
     let key: String
     let modifiers: NSEvent.ModifierFlags?
-    
+
     init(key: String, modifiers: NSEvent.ModifierFlags? = nil) {
         self.key = key
         self.modifiers = modifiers

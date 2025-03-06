@@ -4,7 +4,6 @@ import Foundation
 import Yams
 
 class ConfigManager: DependencyInjectable, ObservableObject {
-
     static let shared = ConfigManager()
 
     // Published properties for reactive updates
@@ -41,13 +40,13 @@ class ConfigManager: DependencyInjectable, ObservableObject {
     func setupAfterDependenciesInjected() {
         guard !didSetupDependencies else { return }
         didSetupDependencies = true
-        
+
         print("ConfigManager: Setting up after dependencies injected")
-        
+
         // Load config and make sure it's processed
         DispatchQueue.main.async { [weak self] in
             self?.loadConfig()
-            
+
             // If no config was loaded yet, try again with a delay
             // This helps with first launch scenarios
             if let self = self, self.menuItems.isEmpty {
@@ -70,7 +69,7 @@ class ConfigManager: DependencyInjectable, ObservableObject {
             print("ConfigManager: SettingsStore not yet injected, delaying load")
             return
         }
-        
+
         guard let configURL = resolveConfigFileURL() else {
             print("ConfigManager: Failed to resolve config file URL")
             self.lastError = ConfigError.fileNotFound
@@ -129,14 +128,16 @@ class ConfigManager: DependencyInjectable, ObservableObject {
                     return
                 }
             }
-            
+
             // Now try to decode to the actual model
             config = try decoder.decode([MenuItem].self, from: yamlString)
             print("ConfigManager: Successfully decoded \(config.count) menu items")
         } catch let yamlError as YamlError {
             // Detailed handling for Yams parsing errors
             let lineInfo = extractLineInfo(from: yamlError)
-            print("ConfigManager: YAML parsing error at \(lineInfo.line):\(lineInfo.column): \(yamlError.localizedDescription)")
+            print(
+                "ConfigManager: YAML parsing error at \(lineInfo.line):\(lineInfo.column): \(yamlError.localizedDescription)"
+            )
             self.lastError = ConfigError.invalidYamlFormat(
                 message: yamlError.localizedDescription,
                 line: lineInfo.line,
@@ -146,10 +147,12 @@ class ConfigManager: DependencyInjectable, ObservableObject {
         } catch let decodingError as DecodingError {
             // Detailed handling for Swift Decodable errors
             print("ConfigManager: Decoding error: \(decodingError.localizedDescription)")
-            
+
             switch decodingError {
             case let .keyNotFound(key, context):
-                print("ConfigManager: Missing required key '\(key.stringValue)' in context: \(context.debugDescription)")
+                print(
+                    "ConfigManager: Missing required key '\(key.stringValue)' in context: \(context.debugDescription)"
+                )
                 self.lastError = ConfigError.missingRequiredField(
                     field: key.stringValue,
                     context: context.debugDescription
@@ -168,7 +171,7 @@ class ConfigManager: DependencyInjectable, ObservableObject {
                     field: fieldName,
                     context: context.debugDescription
                 )
-            case .dataCorrupted(let context):
+            case let .dataCorrupted(context):
                 print("ConfigManager: Data corrupted in context: \(context.debugDescription)")
                 self.lastError = ConfigError.invalidYamlFormat(
                     message: context.debugDescription,
@@ -192,7 +195,7 @@ class ConfigManager: DependencyInjectable, ObservableObject {
             self.lastError = ConfigError.emptyConfiguration
             return
         }
-        
+
         // Validate the menu items structure
         do {
             try validateMenuItems(config)
@@ -239,7 +242,7 @@ class ConfigManager: DependencyInjectable, ObservableObject {
             inFileViewerRootedAtPath: url.deletingLastPathComponent().path
         )
     }
-    
+
     /// Imports and merges menu items from a snippet into the current configuration
     func importSnippet(menuItems: [MenuItem], strategy: MergeStrategy) -> Result<Void, ConfigError> {
         // Validation
@@ -254,10 +257,10 @@ class ConfigManager: DependencyInjectable, ObservableObject {
             self.lastError = ConfigError.unknown(underlying: error)
             return .failure(ConfigError.unknown(underlying: error))
         }
-        
+
         // Get current config
         var currentConfig = self.menuItems
-        
+
         // Apply merge strategy
         switch strategy {
         case .append:
@@ -269,31 +272,31 @@ class ConfigManager: DependencyInjectable, ObservableObject {
         case .smart:
             currentConfig = smartMergeMenuItems(currentConfig, with: menuItems)
         }
-        
+
         // Save back to file
         return saveMenuItems(currentConfig)
     }
-    
+
     /// Saves the menu items to the current config file
     func saveMenuItems(_ items: [MenuItem]) -> Result<Void, ConfigError> {
         guard let url = resolveConfigFileURL() else {
             return .failure(ConfigError.fileNotFound)
         }
-        
+
         do {
             // Create a YAML encoder with a custom encoding function that strips out IDs
             let yamlString = try createCleanYaml(from: items)
-            
+
             try yamlString.write(to: url, atomically: true, encoding: .utf8)
             print("ConfigManager: Successfully saved \(items.count) menu items to \(url.path)")
-            
+
             // Update the menu items
             DispatchQueue.main.async { [weak self] in
                 self?.menuItems = items
                 self?.lastError = nil
                 self?.lastUpdateTime = Date()
             }
-            
+
             return .success(())
         } catch {
             print("ConfigManager: Failed to save config: \(error)")
@@ -301,7 +304,7 @@ class ConfigManager: DependencyInjectable, ObservableObject {
             return .failure(ConfigError.readFailed(underlying: error))
         }
     }
-    
+
     /// Creates YAML using the standard encoder
     /// The MenuItem.encode(to:) method already handles skipping the ID
     private func createCleanYaml(from items: [MenuItem]) -> String {
@@ -313,11 +316,11 @@ class ConfigManager: DependencyInjectable, ObservableObject {
             return ""
         }
     }
-    
+
     /// Performs a smart merge of two menu item arrays
     func smartMergeMenuItems(_ base: [MenuItem], with new: [MenuItem]) -> [MenuItem] {
         var result = base
-        
+
         for newItem in new {
             // Check if an item with the same key and title already exists
             if let existingIndex = result.firstIndex(where: { $0.key == newItem.key && $0.title == newItem.title }) {
@@ -332,16 +335,16 @@ class ConfigManager: DependencyInjectable, ObservableObject {
                 result.append(newItem)
             }
         }
-        
+
         return result
     }
-    
+
     /// Makes a menu item's key unique by appending a number if needed
     private func makeKeyUnique(_ item: MenuItem, existingItems: [MenuItem]) -> MenuItem {
         var uniqueItem = item
         var counter = 1
         var newKey = item.key
-        
+
         // Keep incrementing until we find a unique key
         while existingItems.contains(where: { $0.key == newKey }) {
             counter += 1
@@ -353,7 +356,7 @@ class ConfigManager: DependencyInjectable, ObservableObject {
                 newKey = "\(item.key)\(counter)"
             }
         }
-        
+
         uniqueItem.key = newKey
         return uniqueItem
     }
@@ -428,18 +431,18 @@ class ConfigManager: DependencyInjectable, ObservableObject {
             print("ConfigManager: Found existing config at \(configURL.path)")
             return configURL
         }
-        
+
         // Get the default config from the app bundle
         guard let bundledConfigURL = Bundle.main.url(forResource: "menu", withExtension: "yaml") else {
             print("ConfigManager: Could not find bundled menu.yaml")
             assert(true)
             return nil
         }
-        
+
         do {
             try FileManager.default.copyItem(at: bundledConfigURL, to: configURL)
             print("ConfigManager: Copied bundled config to \(configURL.path)")
-            
+
             settingsStore.configFilePath = configURL.path
             return configURL
         } catch {
@@ -448,34 +451,37 @@ class ConfigManager: DependencyInjectable, ObservableObject {
         assert(true)
         return nil
     }
-    
-    
+
     // MARK: - YAML Validation Helpers
-    
+
     /// Extracts line and column information from a YAML error
     private func extractLineInfo(from error: YamlError) -> (line: Int, column: Int) {
         // Default values
         var line = 0
         var column = 0
-        
+
         // Try to extract line/column info from error description
         let errorDescription = error.localizedDescription
-        
+
         // Look for line:column pattern in the error description
         let lineColumnPattern = #"line (\d+), column (\d+)"#
         if let regex = try? NSRegularExpression(pattern: lineColumnPattern),
-           let match = regex.firstMatch(in: errorDescription, range: NSRange(errorDescription.startIndex..., in: errorDescription)) {
-            
+           let match = regex.firstMatch(
+               in: errorDescription,
+               range: NSRange(errorDescription.startIndex..., in: errorDescription)
+           )
+        {
             if let lineRange = Range(match.range(at: 1), in: errorDescription),
-               let columnRange = Range(match.range(at: 2), in: errorDescription) {
+               let columnRange = Range(match.range(at: 2), in: errorDescription)
+            {
                 line = Int(errorDescription[lineRange]) ?? 0
                 column = Int(errorDescription[columnRange]) ?? 0
             }
         }
-        
+
         return (line, column)
     }
-    
+
     /// Validates menu items recursively
     private func validateMenuItems(_ items: [MenuItem]) throws {
         for item in items {
@@ -487,7 +493,7 @@ class ConfigManager: DependencyInjectable, ObservableObject {
                     column: 0
                 )
             }
-            
+
             // Validate title is not empty
             if item.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 throw ConfigError.invalidYamlFormat(
@@ -496,7 +502,7 @@ class ConfigManager: DependencyInjectable, ObservableObject {
                     column: 0
                 )
             }
-            
+
             // Validate that if there's no submenu, there must be an action
             if item.submenu == nil && item.action == nil {
                 throw ConfigError.invalidYamlFormat(
@@ -505,7 +511,7 @@ class ConfigManager: DependencyInjectable, ObservableObject {
                     column: 0
                 )
             }
-            
+
             // Validate action format if present
             if let action = item.action {
                 if !isValidActionFormat(action) {
@@ -516,7 +522,7 @@ class ConfigManager: DependencyInjectable, ObservableObject {
                     )
                 }
             }
-            
+
             // Validate hotkey format if present
             if let hotkey = item.hotkey, !isValidHotkeyFormat(hotkey) {
                 throw ConfigError.invalidYamlFormat(
@@ -525,14 +531,14 @@ class ConfigManager: DependencyInjectable, ObservableObject {
                     column: 0
                 )
             }
-            
+
             // Recursively validate submenu if present
             if let submenu = item.submenu {
                 try validateMenuItems(submenu)
             }
         }
     }
-    
+
     /// Validates the action string format
     private func isValidActionFormat(_ action: String) -> Bool {
         if action.hasPrefix("shell://") {
@@ -543,16 +549,16 @@ class ConfigManager: DependencyInjectable, ObservableObject {
                 return false
             }
         }
-        
+
         let validPrefixes = ["launch://", "open://", "shortcut://", "dynamic://"]
         return validPrefixes.contains { action.hasPrefix($0) }
     }
-    
+
     /// Validates shell commands for security and proper format
     private func validateShellCommand(_ command: String) -> Result<Void, ConfigError> {
         // Strip the "shell://" prefix
         let shellCmd = String(command.dropFirst("shell://".count)).trimmingCharacters(in: .whitespacesAndNewlines)
-        
+
         // Check for empty commands
         if shellCmd.isEmpty {
             return .failure(ConfigError.invalidShellCommand(
@@ -560,7 +566,7 @@ class ConfigManager: DependencyInjectable, ObservableObject {
                 command: command
             ))
         }
-        
+
         // Check for blacklisted commands
         let blacklistedPrefixes = ["rm -rf /", "sudo ", "> /", ">> /", "mkfs", "dd if=", ":(){ :|:& };:"]
         for prefix in blacklistedPrefixes {
@@ -571,7 +577,7 @@ class ConfigManager: DependencyInjectable, ObservableObject {
                 ))
             }
         }
-        
+
         // Check command length to prevent very long commands
         if shellCmd.count > 1000 {
             return .failure(ConfigError.invalidShellCommand(
@@ -579,7 +585,7 @@ class ConfigManager: DependencyInjectable, ObservableObject {
                 command: command
             ))
         }
-        
+
         // Check for proper quoting
         let quoteCount = shellCmd.filter { $0 == "\"" || $0 == "'" }.count
         if quoteCount % 2 != 0 {
@@ -588,33 +594,32 @@ class ConfigManager: DependencyInjectable, ObservableObject {
                 command: command
             ))
         }
-        
+
         return .success(())
     }
-    
+
     /// Validates the hotkey format
     private func isValidHotkeyFormat(_ hotkey: String) -> Bool {
         // Simple validation for now - can be made more sophisticated
         let components = hotkey.components(separatedBy: "+")
-        
+
         // Hotkey must have at least one component
         guard !components.isEmpty else { return false }
-        
+
         // Check for valid modifiers
         let validModifiers = ["cmd", "ctrl", "alt", "shift"]
         // At least all but the last component should be valid modifiers
-        for i in 0..<(components.count - 1) {
+        for i in 0 ..< (components.count - 1) {
             if !validModifiers.contains(components[i].lowercased()) {
                 return false
             }
         }
-        
+
         return true
     }
 }
 
 // MARK: - Error Types
-
 
 enum ConfigError: Error {
     case fileNotFound

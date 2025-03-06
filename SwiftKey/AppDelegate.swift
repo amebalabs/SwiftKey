@@ -214,13 +214,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Dependency
 
     func presentOverlay() {
         notchContext?.close()
-        
+
         // Check if current menu consists of a single dynamic menu item
-        if menuState.hasSingleDynamicMenuItem, 
-           let item = menuState.singleDynamicMenuItem {
-            
+        if menuState.hasSingleDynamicMenuItem,
+           let item = menuState.singleDynamicMenuItem
+        {
             print("Detected single dynamic menu item: \(item.title)")
-            
+
             // Don't show the UI yet - first load the dynamic menu
             DynamicMenuLoader.shared.loadDynamicMenu(for: item) { [weak self] submenu in
                 guard let self = self, let submenu = submenu else {
@@ -230,23 +230,23 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Dependency
                     }
                     return
                 }
-                
+
                 DispatchQueue.main.async {
                     // Update the menu state with the loaded submenu
                     self.menuState.breadcrumbs.append(item.title)
                     self.menuState.menuStack.append(submenu)
-                    
+
                     // Now that the menu is loaded, present the UI
                     self.showOverlayWindow()
                 }
             }
             return
         }
-        
+
         // Regular case - show the window directly
         showOverlayWindow()
     }
-    
+
     /// Shows the overlay window positioned appropriately on screen
     private func showOverlayWindow() {
         guard let window = overlayWindow, let screen = chosenScreen() else { return }
@@ -290,14 +290,14 @@ extension AppDelegate {
         window.contentView = NSHostingView(rootView: onboardingView)
         window.makeKeyAndOrderFront(nil)
     }
-    
+
     // Called from SwiftUI SettingsView and DeepLinkHandler
     static func showGalleryWindow(preselectedSnippetId: String? = nil) {
         if let existingWindow = NSApp.windows.first(where: { $0.title == "SwiftKey Snippets Gallery" }) {
             existingWindow.makeKeyAndOrderFront(nil)
             return
         }
-        
+
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 800, height: 600),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
@@ -306,13 +306,13 @@ extension AppDelegate {
         )
         window.title = "SwiftKey Snippets Gallery"
         window.center()
-        
+
         // Create view model with preselected snippet if provided
         let viewModel = SnippetsGalleryViewModel(
             snippetsStore: DependencyContainer.shared.snippetsStore,
             preselectedSnippetId: preselectedSnippetId
         )
-        
+
         let hostingController = NSHostingController(
             rootView: SnippetsGalleryView(viewModel: viewModel)
                 .environmentObject(DependencyContainer.shared.configManager)
