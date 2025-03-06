@@ -3,7 +3,7 @@ import Foundation
 
 class DependencyContainer {
     static let shared = DependencyContainer()
-    
+
     // Services
     let configManager: ConfigManager
     let settingsStore: SettingsStore
@@ -11,16 +11,18 @@ class DependencyContainer {
     let sparkleUpdater: SparkleUpdater
     let deepLinkHandler: DeepLinkHandler
     let keyboardManager: KeyboardManager
-    
+    let snippetsStore: SnippetsStore
+
     private var cancellables = Set<AnyCancellable>()
-    
+
     init(
         configManager: ConfigManager = ConfigManager.shared,
         settingsStore: SettingsStore? = nil,
         menuState: MenuState = MenuState(),
         sparkleUpdater: SparkleUpdater = SparkleUpdater.shared,
         deepLinkHandler: DeepLinkHandler = DeepLinkHandler.shared,
-        keyboardManager: KeyboardManager = KeyboardManager.shared
+        keyboardManager: KeyboardManager = KeyboardManager.shared,
+        snippetsStore: SnippetsStore = SnippetsStore()
     ) {
         // Create a new SettingsStore if one wasn't provided
         let settings = settingsStore ?? SettingsStore(sparkleUpdater: sparkleUpdater)
@@ -30,6 +32,7 @@ class DependencyContainer {
         self.sparkleUpdater = sparkleUpdater
         self.deepLinkHandler = deepLinkHandler
         self.keyboardManager = keyboardManager
+        self.snippetsStore = snippetsStore
 
         // Inject dependencies into components in the correct order
         // First inject into services that don't depend on others
@@ -41,6 +44,7 @@ class DependencyContainer {
         menuState.injectDependencies(self)
         deepLinkHandler.injectDependencies(self)
         keyboardManager.injectDependencies(self)
+        snippetsStore.injectDependencies(self)
 
         // Set up services that need post-injection initialization
         configManager.setupAfterDependenciesInjected()
@@ -58,7 +62,7 @@ class DependencyContainer {
                 guard let self = self else { return }
                 self.menuState.rootMenu = items
                 print("DependencyContainer: Updated menu items: \(items.count) items")
-                
+
                 // Re-register keyboard shortcuts whenever menu items are updated
                 self.keyboardManager.registerMenuHotkeys(items)
                 print("DependencyContainer: Re-registered keyboard shortcuts for menu items")

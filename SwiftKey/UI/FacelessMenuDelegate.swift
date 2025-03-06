@@ -97,7 +97,7 @@ class FacelessMenuController: DependencyInjectable {
             guard let self = self,
                   let key = englishCharactersForKeyEvent(event: event),
                   !key.isEmpty else { return event }
-            
+
             self.keyboardManager?.handleKey(key: key) { result in
                 switch result {
                 case .escape:

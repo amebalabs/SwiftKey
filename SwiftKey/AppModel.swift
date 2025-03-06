@@ -43,7 +43,7 @@ struct MenuItem: Identifiable, Codable, Equatable {
     // Standard initializer for manual creation
     init(
         id: UUID = UUID(), key: String, icon: String? = nil, title: String, action: String? = nil,
-        sticky: Bool? = nil, notify: Bool? = nil, batch: Bool? = nil, hidden: Bool? = nil, 
+        sticky: Bool? = nil, notify: Bool? = nil, batch: Bool? = nil, hidden: Bool? = nil,
         submenu: [MenuItem]? = nil, hotkey: String? = nil
     ) {
         self.id = id
@@ -61,10 +61,13 @@ struct MenuItem: Identifiable, Codable, Equatable {
 
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(id, forKey: .id)
+
+        // Always encode key and title
         try container.encode(key, forKey: .key)
-        try container.encode(icon, forKey: .icon)
         try container.encode(title, forKey: .title)
+
+        // Only encode non-nil properties to keep the YAML clean
+        try container.encodeIfPresent(icon, forKey: .icon)
         try container.encodeIfPresent(action, forKey: .action)
         try container.encodeIfPresent(sticky, forKey: .sticky)
         try container.encodeIfPresent(notify, forKey: .notify)
@@ -111,20 +114,23 @@ struct MenuItem: Identifiable, Codable, Equatable {
             return {
                 do {
                     let out = try runScript(to: command, env: [:])
-                    
+
                     // Only show notification with output if it's not empty
-                    let message = out.out.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 
-                                 "Command completed successfully" : out.out
+                    let message = out.out.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?
+                        "Command completed successfully" : out.out
                     notifyUser(title: "Finished running \(title)", message: message)
                 } catch {
                     if let shellError = error as? ShellOutError {
-                        let errorMessage = shellError.message.isEmpty ? 
-                                          "Command failed with exit code \(shellError.terminationStatus)" : 
-                                          shellError.message
+                        let errorMessage = shellError.message.isEmpty ?
+                            "Command failed with exit code \(shellError.terminationStatus)" :
+                            shellError.message
                         notifyUser(title: "Error running \(title)", message: errorMessage)
                     } else {
                         // Handle other types of errors
-                        notifyUser(title: "Error running \(title)", message: "Unknown error: \(error.localizedDescription)")
+                        notifyUser(
+                            title: "Error running \(title)",
+                            message: "Unknown error: \(error.localizedDescription)"
+                        )
                     }
                 }
             }
@@ -137,19 +143,19 @@ extension MenuItem {
     // Static cache for storing already loaded images
     private static var imageCache = [String: Image]()
     private static var nsImageCache = [String: NSImage]()
-    
+
     var iconImage: Image {
         // Generate a unique cache key based on the action or icon
         let cacheKey = generateIconCacheKey()
-        
+
         // Return cached image if available
         if let cachedImage = Self.imageCache[cacheKey] {
             return cachedImage
         }
-        
+
         // Otherwise generate the image
         let resultImage: Image
-        
+
         if let icon, !icon.isEmpty {
             resultImage = Image(systemName: icon)
         } else if let action = action {
@@ -163,12 +169,12 @@ extension MenuItem {
             } else if action.hasPrefix("open://") {
                 let urlString = String(action.dropFirst("open://".count))
                 let urlCacheKey = "url:\(urlString)"
-                
+
                 if let cachedNSImage = Self.nsImageCache[urlCacheKey] {
                     resultImage = Image(nsImage: cachedNSImage)
                 } else if let url = URL(string: urlString),
-                   let appURL = NSWorkspace.shared.urlForApplication(toOpen: url),
-                   case let nsImage = NSWorkspace.shared.icon(forFile: appURL.path)
+                          let appURL = NSWorkspace.shared.urlForApplication(toOpen: url),
+                          case let nsImage = NSWorkspace.shared.icon(forFile: appURL.path)
                 {
                     Self.nsImageCache[urlCacheKey] = nsImage
                     resultImage = Image(nsImage: nsImage)
@@ -177,7 +183,7 @@ extension MenuItem {
                 }
             } else if action.hasPrefix("shortcut://") {
                 let shortcutsCacheKey = "shortcuts"
-                
+
                 if let cachedNSImage = Self.nsImageCache[shortcutsCacheKey] {
                     resultImage = Image(nsImage: cachedNSImage)
                 } else if let appURL = NSWorkspace.shared.urlForApplication(
@@ -196,12 +202,12 @@ extension MenuItem {
         } else {
             resultImage = Image(systemName: "questionmark")
         }
-        
+
         // Cache the result before returning
         Self.imageCache[cacheKey] = resultImage
         return resultImage
     }
-    
+
     // Helper function to generate a unique cache key
     private func generateIconCacheKey() -> String {
         if let icon, !icon.isEmpty {
@@ -212,25 +218,24 @@ extension MenuItem {
             return "default"
         }
     }
-    
+
     private func getCachedAppIcon(appPath: String) -> NSImage? {
         let cacheKey = "app:\(appPath)"
-        
+
         if let cachedIcon = Self.nsImageCache[cacheKey] {
             return cachedIcon
         }
-        
+
         if let loadedIcon = getAppIcon(appPath: appPath) {
             Self.nsImageCache[cacheKey] = loadedIcon
             return loadedIcon
         }
-        
+
         return nil
     }
-    
+
     static func clearImageCache() {
         imageCache.removeAll()
         nsImageCache.removeAll()
     }
 }
-

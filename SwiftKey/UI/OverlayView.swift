@@ -27,11 +27,11 @@ struct OverlayView: View {
     var verticalMaxHeight: CGFloat {
         screenSize.height * 2 / 3
     }
-    
+
     var verticalContentHeight: CGFloat {
         min(CGFloat(currentMenu.count) * verticalItemHeight, verticalMaxHeight)
     }
-    
+
     // Calculate the appropriate height for vertical menus to avoid corner clipping
     func calculateVerticalHeight() -> CGFloat {
         if currentMenu.count > 5 {
@@ -176,7 +176,7 @@ struct OverlayView: View {
 struct MenuItemIconView: View {
     let item: MenuItem
     let size: CGFloat
-    
+
     var body: some View {
         item.iconImage
             .resizable()
@@ -184,7 +184,7 @@ struct MenuItemIconView: View {
             .frame(width: size, height: size)
             .opacity(0.9)
     }
-    
+
     static func == (lhs: Self, rhs: Self) -> Bool {
         return lhs.item.id == rhs.item.id && lhs.size == rhs.size
     }
@@ -196,10 +196,10 @@ extension MenuItemIconView: Equatable {}
 struct VerticalMenuItemView: View {
     let item: MenuItem
     @Binding var altMode: Bool
-    
+
     // Use id for stable identity
     private let id: UUID
-    
+
     init(item: MenuItem, altMode: Binding<Bool>) {
         self.item = item
         self._altMode = altMode
@@ -245,9 +245,9 @@ struct VerticalMenuItemView: View {
 struct HorizontalMenuItemView: View {
     let item: MenuItem
     @Binding var altMode: Bool
-    
+
     private let id: UUID
-    
+
     init(item: MenuItem, altMode: Binding<Bool>) {
         self.item = item
         self._altMode = altMode

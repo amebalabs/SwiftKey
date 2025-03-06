@@ -2,7 +2,7 @@ import Dispatch
 import Foundation
 import os
 
-let sharedEnv = Environment.shared
+let sharedEnv = ProcessEnv.shared
 
 func getEnvExportString(env: [String: String]) -> String {
     let dict = sharedEnv.systemEnvStr.merging(env) { current, _ in current }
@@ -22,7 +22,7 @@ func getEnvExportString(env: [String: String]) -> String {
 {
     // Pre-execution validation
     let trimmedCommand = command.trimmingCharacters(in: .whitespacesAndNewlines)
-    
+
     // Ensure command is not empty
     guard !trimmedCommand.isEmpty else {
         throw ShellOutError(
@@ -31,7 +31,7 @@ func getEnvExportString(env: [String: String]) -> String {
             outputData: Data()
         )
     }
-    
+
     // Runtime security check - redundant with config-time check but provides defense in depth
     let blacklistedPrefixes = ["rm -rf /", "sudo ", "> /", ">> /", "mkfs", "dd if="]
     for prefix in blacklistedPrefixes {
@@ -43,11 +43,11 @@ func getEnvExportString(env: [String: String]) -> String {
             )
         }
     }
-    
+
     // Set up execution environment
     let swiftbarEnv = sharedEnv.systemEnvStr.merging(env) { current, _ in current }
     process.environment = swiftbarEnv.merging(ProcessInfo.processInfo.environment) { current, _ in current }
-    
+
     // Execute command with enhanced error handling
     return try process.launchScript(
         with: trimmedCommand,

@@ -57,7 +57,7 @@ class KeyPressController: DependencyInjectable {
 
         if let actionString = item.action, actionString.hasPrefix("dynamic://") {
             completion(.dynamicLoading)
-            
+
             DynamicMenuLoader.shared.loadDynamicMenu(for: item) { [weak self] submenu in
                 guard let self = self, let submenu = submenu else {
                     DispatchQueue.main.async {
@@ -65,7 +65,7 @@ class KeyPressController: DependencyInjectable {
                     }
                     return
                 }
-                
+
                 DispatchQueue.main.async {
                     self.menuState.breadcrumbs.append(item.title)
                     self.menuState.menuStack.append(submenu)

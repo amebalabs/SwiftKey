@@ -64,35 +64,36 @@ struct GeneralSettingsView: View {
                 .buttonStyle(BorderlessButtonStyle())
                 .help("Reveal configuration file in Finder")
             }
-            
+
             // Show configuration error if present
             if let error = configManager.lastError {
                 VStack(alignment: .leading, spacing: 5) {
                     Text("Configuration Error")
                         .font(.headline)
                         .foregroundColor(.red)
-                    
+
                     Text(error.localizedDescription)
                         .font(.system(size: 12))
                         .foregroundColor(.red)
                         .fixedSize(horizontal: false, vertical: true)
                         .textSelection(.enabled)
-                    
-                    if let configError = error as? ConfigError, 
+
+                    if let configError = error as? ConfigError,
                        case let .invalidYamlFormat(_, line, column) = configError,
-                       line > 0 {
+                       line > 0
+                    {
                         Text("Line \(line), Column \(column)")
                             .font(.system(size: 11))
                             .foregroundColor(.red)
                     }
-                    
+
                     HStack {
                         Button("Reload Configuration") {
                             configManager.loadConfig()
                         }
                         .buttonStyle(.borderedProminent)
                         .controlSize(.small)
-                        
+
                         Button("Edit File") {
                             configManager.openConfigFile()
                         }
