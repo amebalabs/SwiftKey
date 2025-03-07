@@ -13,10 +13,8 @@ extension KeyboardShortcuts.Name {
 // MARK: - KeyboardManager
 
 class KeyboardManager: DependencyInjectable, ObservableObject {
-    // Singleton instance
     static let shared = KeyboardManager()
 
-    // Logger for this class
     private let logger = AppLogger.keyboard
 
     // Dependencies
@@ -33,12 +31,6 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
     // Global key handlers map for menu hotkeys
     private var hotkeyHandlers: [String: KeyboardShortcuts.Name] = [:]
 
-    // MARK: - Initialization
-
-    init() {
-        // Setup will happen after dependencies are injected
-    }
-
     func injectDependencies(_ container: DependencyContainer) {
         self.menuState = container.menuState
         self.settingsStore = container.settingsStore
@@ -51,115 +43,101 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
 
     func handleKey(
         key: String,
-        modifierFlags: NSEvent.ModifierFlags? = nil,
-        completion: @escaping (KeyPressResult) -> Void
-    ) {
+        modifierFlags: NSEvent.ModifierFlags? = nil
+    ) async -> KeyPressResult {
         logger.debug("Key pressed: \(key, privacy: .public)")
         let normalizedKey = key
-        menuState.currentKey = normalizedKey
+
+        // Update UI state on main actor
+        await MainActor.run {
+            menuState.currentKey = normalizedKey
+        }
 
         // Common navigation keys
         if normalizedKey == "escape" {
-            completion(.escape)
-            return
+            return .escape
         }
         if normalizedKey == "cmd+up" {
-            if !menuState.menuStack.isEmpty { menuState.menuStack.removeLast() }
-            if !menuState.breadcrumbs.isEmpty { menuState.breadcrumbs.removeLast() }
-            completion(.up)
-            return
+            await MainActor.run {
+                if !menuState.menuStack.isEmpty { menuState.menuStack.removeLast() }
+                if !menuState.breadcrumbs.isEmpty { menuState.breadcrumbs.removeLast() }
+            }
+            return .up
         }
         if normalizedKey == "?" {
-            completion(.help)
-            return
+            return .help
         }
 
         // Find matching menu item
-        guard let item = menuState.currentMenu.first(where: { $0.key == normalizedKey }) else {
-            completion(.error(key: key))
-            return
+        let matchingItem = menuState.currentMenu.first(where: { $0.key == normalizedKey })
+
+        guard let item = matchingItem else {
+            return .error(key: key)
         }
 
         // Handle dynamic menus
         if let actionString = item.action, actionString.hasPrefix("dynamic://") {
-            completion(.dynamicLoading)
-            loadDynamicMenu(for: item) { result in
-                DispatchQueue.main.async {
-                    completion(result)
-                }
-            }
-            return
+            let result = await loadDynamicMenu(for: item)
+            return result
         }
 
         // Handle submenu navigation
         if let submenu = item.submenu {
             // Batch execution mode (Alt key or batch flag)
             if modifierFlags?.isOption == true || item.batch == true {
-                executeBatchActions(in: submenu)
-                completion(.actionExecuted)
-                return
+                await executeBatchActions(in: submenu)
+                return .actionExecuted
             }
 
             // Normal submenu navigation
-            menuState.breadcrumbs.append(item.title)
-            menuState.menuStack.append(submenu)
-            completion(.submenuPushed(title: item.title))
-            return
+            await MainActor.run {
+                menuState.breadcrumbs.append(item.title)
+                menuState.menuStack.append(submenu)
+            }
+            return .submenuPushed(title: item.title)
         }
 
         // Execute action
         if let action = item.actionClosure {
-            DispatchQueue.global(qos: .userInitiated).async {
+            Task(priority: .userInitiated) {
                 action()
             }
 
             // Handle sticky flag for panel mode
-            let overlayStyle = settingsStore?.overlayStyle ?? .panel
+            let overlayStyle = await MainActor.run { settingsStore?.overlayStyle ?? .panel }
             if item.sticky == false, overlayStyle == .panel {
-                completion(.none)
+                return .none
             } else {
-                completion(.actionExecuted)
+                return .actionExecuted
             }
-            return
         }
 
-        completion(.none)
+        return .none
     }
 
     // MARK: - Dynamic Menu Loading
 
-    /// Loads a dynamic menu for the specified menu item
-    /// - Parameters:
-    ///   - item: The menu item containing a dynamic:// action
-    ///   - completion: Completion handler called with the result
-    func loadDynamicMenu(for item: MenuItem, completion: @escaping (KeyPressResult) -> Void) {
+    func loadDynamicMenu(for item: MenuItem) async -> KeyPressResult {
         guard item.action?.hasPrefix("dynamic://") == true else {
-            completion(.error(key: item.key))
-            return
+            return .error(key: item.key)
         }
 
-        completion(.dynamicLoading)
-
-        DynamicMenuLoader.shared.loadDynamicMenu(for: item) { [weak self] submenu in
-            guard let self = self, let submenu = submenu else {
-                DispatchQueue.main.async {
-                    completion(.error(key: item.key))
-                }
-                return
+        if let submenu = await DynamicMenuLoader.shared.loadDynamicMenu(for: item) {
+            // Update UI state on the main actor
+            await MainActor.run {
+                menuState.breadcrumbs.append(item.title)
+                menuState.menuStack.append(submenu)
             }
-
-            DispatchQueue.main.async {
-                self.menuState.breadcrumbs.append(item.title)
-                self.menuState.menuStack.append(submenu)
-                completion(.submenuPushed(title: item.title))
-            }
+            return .submenuPushed(title: item.title)
+        } else {
+            return .error(key: item.key)
         }
     }
 
     // MARK: - Batch Actions
 
-    private func executeBatchActions(in submenu: [MenuItem]) {
-        DispatchQueue.global(qos: .userInitiated).async {
+    private func executeBatchActions(in submenu: [MenuItem]) async {
+        Task(priority: .userInitiated) {
             for menu in submenu where menu.actionClosure != nil {
                 guard menu.action?.hasPrefix("dynamic://") == false else { continue }
                 menu.actionClosure!()
@@ -169,9 +147,10 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
 
     // MARK: - Hotkey Registration
 
+    /// Register hotkeys for navigation
     func registerMenuHotkeys(_ menu: [MenuItem]) {
-        // Clear existing hotkeys if we're registering for the root menu
-        if menu == menuState.rootMenu {
+        let isRootMenu = menu == menuState.rootMenu
+        if isRootMenu {
             hotkeyHandlers.removeAll()
         }
 
@@ -184,11 +163,11 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
                     guard let self = self else { return }
 
                     if item.submenu != nil {
-                        DispatchQueue.main.async {
+                        Task { @MainActor in
                             self.navigateToMenuItem(item)
                         }
                     } else if let action = item.actionClosure {
-                        DispatchQueue.global(qos: .userInitiated).async {
+                        Task(priority: .userInitiated) {
                             action()
                         }
                     }
@@ -197,7 +176,6 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
                 hotkeyHandlers[item.id.uuidString] = name
             }
 
-            // Recursively register hotkeys for submenus
             if let submenu = item.submenu {
                 registerMenuHotkeys(submenu)
             }
@@ -217,7 +195,6 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
                 }
             }
 
-            // Show overlay with the correct menu
             AppDelegate.shared.presentOverlay()
         }
     }

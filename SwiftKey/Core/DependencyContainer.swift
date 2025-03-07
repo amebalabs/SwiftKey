@@ -50,11 +50,13 @@ class DependencyContainer {
         keyboardManager.injectDependencies(self)
         snippetsStore.injectDependencies(self)
 
-        // Set up services that need post-injection initialization
-        configManager.setupAfterDependenciesInjected()
+        logger.notice("Initializing SwiftKey dependency container")
 
-        // Set up initial connections between components
         setupComponentConnections()
+
+        Task {
+            await configManager.setupAfterDependenciesInjected()
+        }
     }
 
     /// Connect components via publishers/subscribers
@@ -62,14 +64,15 @@ class DependencyContainer {
         // Connect ConfigManager to MenuState
         configManager.menuItemsPublisher
             .receive(on: RunLoop.main)
+            .filter { !$0.isEmpty } // Skip empty arrays completely
             .sink { [weak self] items in
                 guard let self = self else { return }
-                self.menuState.rootMenu = items
-                self.logger.debug("Updated menu items: \(items.count) items")
 
-                // Re-register keyboard shortcuts whenever menu items are updated
+                self.logger.debug("Menu publisher received update: \(items.count) items")
+                self.menuState.rootMenu = items
+                self.menuState.reset()
                 self.keyboardManager.registerMenuHotkeys(items)
-                self.logger.debug("Re-registered keyboard shortcuts for menu items")
+                self.logger.debug("Re-registered keyboard shortcuts with \(items.count) menu items")
             }
             .store(in: &cancellables)
 

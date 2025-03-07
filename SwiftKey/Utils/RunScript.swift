@@ -30,6 +30,54 @@ func getEnvExportString(env: [String: String]) -> String {
     return "export \(dict.map { "\($0.key)='\($0.value)'" }.joined(separator: " "))"
 }
 
+/// Runs a shell command and returns the output asynchronously
+/// - Parameters:
+///   - command: The shell command to run
+///   - args: Optional arguments for the command
+///   - process: Optional custom Process object
+///   - env: Optional environment variables to set
+///   - runInBash: Whether to run in bash shell
+/// - Returns: A tuple with stdout and stderr output
+@discardableResult @available(macOS 10.15, *)
+func runScript(
+    to command: String,
+    args: [String] = [],
+    process: Process = Process(),
+    env: [String: String] = [:],
+    runInBash: Bool = true
+) async throws -> (out: String, err: String?) {
+    // Pre-execution validation
+    let trimmedCommand = command.trimmingCharacters(in: .whitespacesAndNewlines)
+
+    // Ensure command is not empty
+    guard !trimmedCommand.isEmpty else {
+        logger.error("Empty command provided")
+        throw ScriptError.emptyCommand
+    }
+
+    // Runtime security check - redundant with config-time check but provides defense in depth
+    let blacklistedPrefixes = ["rm -rf /", "sudo ", "> /", ">> /", "mkfs", "dd if="]
+    for prefix in blacklistedPrefixes {
+        if trimmedCommand.hasPrefix(prefix) || trimmedCommand.contains(" " + prefix) {
+            logger.error("Potentially dangerous command rejected: \(trimmedCommand)")
+            throw ScriptError.dangerousCommand(trimmedCommand)
+        }
+    }
+
+    // Set up execution environment
+    let swiftbarEnv = sharedEnv.systemEnvStr.merging(env) { current, _ in current }
+    process.environment = swiftbarEnv.merging(ProcessInfo.processInfo.environment) { current, _ in current }
+
+    // Execute command with enhanced error handling
+    return try await process.launchScript(
+        with: trimmedCommand,
+        args: args,
+        runInBash: runInBash
+    )
+}
+
+/// Legacy version of runScript for backward compatibility
+/// - Note: This function is deprecated and will be removed in a future version
 @discardableResult func runScript(
     to command: String,
     args: [String] = [],
@@ -103,6 +151,63 @@ public struct ShellOutError: Swift.Error, CustomStringConvertible {
 // MARK: - Private
 
 private extension Process {
+    /// Asynchronous version of launchScript using async/await
+    @discardableResult
+    func launchScript(
+        with script: String,
+        args: [String],
+        runInBash: Bool = true
+    ) async throws -> (out: String, err: String?) {
+        let shell = "/bin/zsh"
+        executableURL = URL(fileURLWithPath: shell)
+        arguments = ["-l", "-c", "\(script.escaped()) \(args.joined(separator: " "))"]
+
+        guard let executableURL = executableURL, FileManager.default.fileExists(atPath: executableURL.path) else {
+            logger.error("Shell executable not found: \(shell)")
+            throw ScriptError.invalidShell
+        }
+
+        let outputPipe = Pipe()
+        standardOutput = outputPipe
+
+        let errorPipe = Pipe()
+        standardError = errorPipe
+
+        // Create a Task to handle the process asynchronously
+        return try await withCheckedThrowingContinuation { continuation in
+            do {
+                try run()
+
+                // Create a Task to wait for the process to complete
+                Task {
+                    // Wait for process to exit asynchronously
+                    waitUntilExit()
+
+                    // Read output and error data
+                    let outputData = outputPipe.fileHandleForReading.readDataToEndOfFile()
+                    let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
+
+                    if terminationStatus != 0 {
+                        let errorMessage = String(data: errorData, encoding: .utf8) ?? "Unknown error"
+                        logger.error("Command failed with status \(self.terminationStatus): \(errorMessage)")
+                        continuation.resume(throwing: ShellOutError(
+                            terminationStatus: terminationStatus,
+                            errorData: errorData,
+                            outputData: outputData
+                        ))
+                    } else {
+                        let output = String(data: outputData, encoding: .utf8) ?? ""
+                        let err = String(data: errorData, encoding: .utf8)
+                        continuation.resume(returning: (out: output, err: err))
+                    }
+                }
+            } catch {
+                logger.error("Failed to run command: \(error.localizedDescription)")
+                continuation.resume(throwing: error)
+            }
+        }
+    }
+
     @discardableResult func launchScript(
         with script: String,
         args: [String],

@@ -29,85 +29,85 @@ class KeyPressController: DependencyInjectable {
         self.settingsStore = container.settingsStore
     }
 
-    func handleKeyAsync(
-        _ key: String,
-        modifierFlags: NSEvent.ModifierFlags? = nil,
-        completion: @escaping (KeyPressResult) -> Void
-    ) {
+    func handleKey(_ key: String, modifierFlags: NSEvent.ModifierFlags? = nil) async -> KeyPressResult {
         logger.debug("Key pressed: \(key, privacy: .public)")
         let normalizedKey = key
-        menuState.currentKey = normalizedKey
 
+        // Update UI state on main actor
+        await MainActor.run {
+            menuState.currentKey = normalizedKey
+        }
+
+        // Handle common navigation keys
         if normalizedKey == "escape" {
-            completion(.escape)
-            return
+            return .escape
         }
         if normalizedKey == "cmd+up" {
-            if !menuState.menuStack.isEmpty { menuState.menuStack.removeLast() }
-            if !menuState.breadcrumbs.isEmpty { menuState.breadcrumbs.removeLast() }
-            completion(.up)
-            return
+            await MainActor.run {
+                if !menuState.menuStack.isEmpty { menuState.menuStack.removeLast() }
+                if !menuState.breadcrumbs.isEmpty { menuState.breadcrumbs.removeLast() }
+            }
+            return .up
         }
         if normalizedKey == "?" {
-            completion(.help)
-            return
+            return .help
         }
 
-        guard let item = menuState.currentMenu.first(where: { $0.key == normalizedKey }) else {
-            completion(.error(key: key))
-            return
+        // Find matching menu item
+        let matchingItem = await MainActor.run {
+            menuState.currentMenu.first(where: { $0.key == normalizedKey })
         }
 
+        guard let item = matchingItem else {
+            return .error(key: key)
+        }
+
+        // Handle dynamic menus
         if let actionString = item.action, actionString.hasPrefix("dynamic://") {
-            completion(.dynamicLoading)
-
-            DynamicMenuLoader.shared.loadDynamicMenu(for: item) { [weak self] submenu in
-                guard let self = self, let submenu = submenu else {
-                    DispatchQueue.main.async {
-                        completion(.error(key: item.key))
-                    }
-                    return
+            if let submenu = await DynamicMenuLoader.shared.loadDynamicMenu(for: item) {
+                await MainActor.run {
+                    menuState.breadcrumbs.append(item.title)
+                    menuState.menuStack.append(submenu)
                 }
-
-                DispatchQueue.main.async {
-                    self.menuState.breadcrumbs.append(item.title)
-                    self.menuState.menuStack.append(submenu)
-                    completion(.submenuPushed(title: item.title))
-                }
+                return .submenuPushed(title: item.title)
+            } else {
+                return .error(key: item.key)
             }
-            return
         }
+
+        // Handle submenu navigation
         if let submenu = item.submenu {
             if modifierFlags?.isOption == true || item.batch == true {
-                DispatchQueue.global(qos: .userInitiated).async {
+                Task(priority: .userInitiated) {
                     for menu in submenu where menu.actionClosure != nil {
                         guard menu.action?.hasPrefix("dynamic://") == false else { continue }
                         menu.actionClosure!()
                     }
                 }
-                completion(.actionExecuted)
-                return
+                return .actionExecuted
             }
-            menuState.breadcrumbs.append(item.title)
-            menuState.menuStack.append(submenu)
-            completion(.submenuPushed(title: item.title))
-            return
+
+            // Navigate to submenu
+            await MainActor.run {
+                menuState.breadcrumbs.append(item.title)
+                menuState.menuStack.append(submenu)
+            }
+            return .submenuPushed(title: item.title)
         }
+
         if let action = item.actionClosure {
-            DispatchQueue.global(qos: .userInitiated).async {
+            Task(priority: .userInitiated) {
                 action()
             }
-            // sticky menus are only for full panel mode for now
-            let overlayStyle = settingsStore?.overlayStyle ?? .panel
-            if item.sticky == false, overlayStyle == .panel {
-                completion(.none)
-            } else {
-                completion(.actionExecuted)
-            }
-            return
-        }
-        completion(.none)
-    }
 
-    // Removed runDynamicMenu method, now using DynamicMenuLoader instead
+            let overlayStyle = await MainActor.run { settingsStore?.overlayStyle ?? .panel }
+            if item.sticky == false, overlayStyle == .panel {
+                return .none
+            } else {
+                return .actionExecuted
+            }
+        }
+
+        return .none
+    }
 }

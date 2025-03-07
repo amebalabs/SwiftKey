@@ -67,12 +67,18 @@ class FacelessMenuController: DependencyInjectable {
         updateStatusItem()
     }
 
-    func blinkIndicator(success: Bool) {
+    func blinkIndicator(success: Bool) async {
         animationTimer?.invalidate()
         animationTimer = nil
+
         if let button = statusItem.button {
-            button.contentTintColor = success ? NSColor.systemGreen : NSColor.systemRed
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+            await MainActor.run {
+                button.contentTintColor = success ? NSColor.systemGreen : NSColor.systemRed
+            }
+
+            try? await Task.sleep(nanoseconds: 300000000)
+
+            await MainActor.run { [weak self] in
                 button.contentTintColor = nil
                 self?.startAnimationTimer()
             }
@@ -93,34 +99,43 @@ class FacelessMenuController: DependencyInjectable {
         startAnimationTimer()
         updateStatusItem()
         resetSessionTimer()
+
         localMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard let self = self,
                   let key = englishCharactersForKeyEvent(event: event),
                   !key.isEmpty else { return event }
 
-            self.keyboardManager?.handleKey(key: key) { result in
-                switch result {
-                case .escape:
-                    self.endSession()
-                case .help:
-                    self.endSession()
-                    AppDelegate.shared.presentOverlay()
-                case .up:
-                    break
-                case .submenuPushed:
-                    self.blinkIndicator(success: true)
-                    self.updateStatusItem()
-                case .actionExecuted:
-                    self.endSession()
-                case .dynamicLoading:
-                    break
-                case .error:
-                    self.blinkIndicator(success: false)
-                case .none:
-                    break
+            // Spawn a Task to handle the key press asynchronously
+            Task { [weak self] in
+                guard let self = self else { return }
+
+                if let keyboardManager = self.keyboardManager {
+                    let result = await keyboardManager.handleKey(key: key)
+
+                    switch result {
+                    case .escape:
+                        self.endSession()
+                    case .help:
+                        self.endSession()
+                        AppDelegate.shared.presentOverlay()
+                    case .up:
+                        break
+                    case .submenuPushed:
+                        await self.blinkIndicator(success: true)
+                        self.updateStatusItem()
+                    case .actionExecuted:
+                        self.endSession()
+                    case .dynamicLoading:
+                        break
+                    case .error:
+                        await self.blinkIndicator(success: false)
+                    case .none:
+                        break
+                    }
+                    self.resetSessionTimer()
                 }
-                self.resetSessionTimer()
             }
+
             return nil
         }
     }

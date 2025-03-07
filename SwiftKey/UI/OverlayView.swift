@@ -145,30 +145,53 @@ struct OverlayView: View {
     }
 
     private func handleKey(key: String, modifierFlags: NSEvent.ModifierFlags?) {
-        KeyboardManager.shared.handleKey(key: key, modifierFlags: modifierFlags) { result in
-            switch result {
-            case .escape:
+        if key == "alt" {
+            altMode = true
+            return
+        }
+        if key == "alt+release" {
+            altMode = false
+            return
+        }
+
+        Task {
+            await handleKey(key: key, modifierFlags: modifierFlags)
+        }
+    }
+
+    private func handleKey(key: String, modifierFlags: NSEvent.ModifierFlags?) async {
+        let result = await KeyboardManager.shared.handleKey(key: key, modifierFlags: modifierFlags)
+
+        switch result {
+        case .escape:
+            await MainActor.run {
                 NotificationCenter.default.post(name: .resetMenuState, object: nil)
                 NotificationCenter.default.post(name: .hideOverlay, object: nil)
-            case .help:
-                NotificationCenter.default.post(name: .resetMenuState, object: nil)
-                NotificationCenter.default.post(name: .hideOverlay, object: nil)
-            case .up:
-                break
-            case .submenuPushed:
-                self.errorMessage = ""
-            case .actionExecuted:
-                NotificationCenter.default.post(name: .hideOverlay, object: nil)
-            case .dynamicLoading:
-                self.errorMessage = "Loading dynamic menu..."
-            case let .error(errorKey):
-                self.errorMessage = "No action for key \(errorKey)"
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                    self.errorMessage = ""
-                }
-            case .none:
-                break
             }
+        case .help:
+            await MainActor.run {
+                NotificationCenter.default.post(name: .resetMenuState, object: nil)
+                NotificationCenter.default.post(name: .hideOverlay, object: nil)
+            }
+        case .up:
+            break
+        case .submenuPushed:
+            errorMessage = ""
+        case .actionExecuted:
+            await MainActor.run {
+                NotificationCenter.default.post(name: .hideOverlay, object: nil)
+            }
+        case .dynamicLoading:
+            errorMessage = "Loading dynamic menu..."
+        case let .error(errorKey):
+            errorMessage = "No action for key \(errorKey)"
+
+            Task { @MainActor in
+                try? await Task.sleep(nanoseconds: 1000000000) // 1 second
+                errorMessage = ""
+            }
+        case .none:
+            break
         }
     }
 }

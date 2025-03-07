@@ -88,14 +88,17 @@ class NotchViewModel: NSObject, ObservableObject {
 
     func scheduleClose(after interval: TimeInterval) {
         NSObject.cancelPreviousPerformRequests(withTarget: self)
-        perform(#selector(destroy), with: nil, afterDelay: interval)
+        Task {
+            try? await Task.sleep(nanoseconds: UInt64(interval * 1000000000))
+            await destroy()
+        }
     }
 
-    @objc func destroy() {
+    @MainActor
+    @objc func destroy() async {
         close()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            self.destroyMemory()
-        }
+        try? await Task.sleep(nanoseconds: 500000000)
+        destroyMemory()
     }
 
     func destroyMemory() {

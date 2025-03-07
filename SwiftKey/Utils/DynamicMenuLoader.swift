@@ -6,37 +6,21 @@ class DynamicMenuLoader {
     static let shared = DynamicMenuLoader()
     private let logger = AppLogger.utils
 
-    /**
-     Loads a dynamic menu for a MenuItem with a dynamic:// action
-
-     - Parameters:
-       - menuItem: The menu item containing a dynamic:// action
-       - completion: Closure called with the parsed menu items or nil if an error occurred
-
-     - Note: This function executes the shell command asynchronously and calls the completion handler on a background thread.
-     */
-    func loadDynamicMenu(
-        for menuItem: MenuItem,
-        completion: @escaping ([MenuItem]?) -> Void
-    ) {
+    func loadDynamicMenu(for menuItem: MenuItem) async -> [MenuItem]? {
         guard let actionString = menuItem.action, actionString.hasPrefix("dynamic://") else {
-            completion(nil)
-            return
+            return nil
         }
 
         let command = String(actionString.dropFirst("dynamic://".count))
 
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            do {
-                let result = try runScript(to: command, args: [])
-                let output = result.out
-                let decoder = YAMLDecoder()
-                let menuItems = try decoder.decode([MenuItem].self, from: output)
-                completion(menuItems)
-            } catch {
-                self?.logger.error("Dynamic menu error: \(error.localizedDescription)")
-                completion(nil)
-            }
+        do {
+            let result = try await runScript(to: command, args: [])
+            let output = result.out
+            let decoder = YAMLDecoder()
+            return try decoder.decode([MenuItem].self, from: output)
+        } catch {
+            logger.error("Dynamic menu error: \(error.localizedDescription)")
+            return nil
         }
     }
 }

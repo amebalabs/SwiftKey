@@ -41,29 +41,44 @@ struct MinimalHUDView: View {
     }
 
     func handleKeyPress(_ key: String) {
-        KeyboardManager.shared.handleKey(key: key) { result in
-            switch result {
-            case .escape:
+        Task {
+            await processKeyPress(key)
+        }
+    }
+
+    func processKeyPress(_ key: String) async {
+        let result = await KeyboardManager.shared.handleKey(key: key)
+
+        switch result {
+        case .escape:
+            await MainActor.run {
                 NotificationCenter.default.post(name: .hideOverlay, object: nil)
-            case .help:
-                AppDelegate.shared.presentOverlay()
-            case .up:
-                break
-            case .submenuPushed:
-                lastKey = ""
-            case .actionExecuted:
+            }
+        case .help:
+            AppDelegate.shared.presentOverlay()
+        case .up:
+            break
+        case .submenuPushed:
+            lastKey = ""
+        case .actionExecuted:
+            await MainActor.run {
                 NotificationCenter.default.post(name: .hideOverlay, object: nil)
-            case .dynamicLoading:
-                lastKey = "Loading..."
-            case let .error(errorKey):
+            }
+        case .dynamicLoading:
+            lastKey = "Loading..."
+        case let .error(errorKey):
+            await MainActor.run {
                 withAnimation(.easeInOut(duration: 0.1)) { lastKey = errorKey }
                 error = true
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                    withAnimation { error = false }
-                }
-            case .none:
-                break
             }
+
+            try? await Task.sleep(nanoseconds: 300000000) // 0.3 seconds
+
+            await MainActor.run {
+                withAnimation { error = false }
+            }
+        case .none:
+            break
         }
     }
 }

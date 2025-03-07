@@ -89,7 +89,9 @@ struct GeneralSettingsView: View {
 
                     HStack {
                         Button("Reload Configuration") {
-                            configManager.loadConfig()
+                            Task {
+                                await configManager.loadConfig()
+                            }
                         }
                         .buttonStyle(.borderedProminent)
                         .controlSize(.small)

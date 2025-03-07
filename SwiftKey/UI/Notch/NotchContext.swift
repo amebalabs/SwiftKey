@@ -66,6 +66,7 @@ class NotchContext: DependencyInjectable {
         self.settingsStore = settingsStore
     }
 
+    @MainActor
     func open(forInterval interval: TimeInterval = 0) {
         let window = NotchWindowController(screen: screen)
         window.window?.setFrameOrigin(.zero)
@@ -102,6 +103,9 @@ class NotchContext: DependencyInjectable {
     }
 
     func close() {
-        viewModel?.destroy()
+        guard let vm = viewModel else { return }
+        Task {
+            await vm.destroy()
+        }
     }
 }

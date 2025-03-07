@@ -18,7 +18,9 @@ struct SettingsView: View {
                 .tag(Tabs.general)
 
             SnippetsSettingsView(openGallery: {
-                showGalleryWindow()
+                Task {
+                    await AppDelegate.showGalleryWindow()
+                }
             })
             .tabItem {
                 Label("Snippets", systemImage: "square.grid.2x2")
@@ -31,10 +33,6 @@ struct SettingsView: View {
                 }
                 .tag(Tabs.about)
         }.padding(20)
-    }
-
-    private func showGalleryWindow() {
-        AppDelegate.showGalleryWindow()
     }
 }
 

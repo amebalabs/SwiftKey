@@ -14,49 +14,6 @@ func FOUR_CHAR_CODE(_ string: String) -> UInt32 {
     return result
 }
 
-// MARK: - Carbon Hotkey Callback and registerHotKey()
-
-func hotKeyHandler(
-    nextHandler _: EventHandlerCallRef?,
-    theEvent: EventRef?,
-    userData: UnsafeMutableRawPointer?
-) -> OSStatus {
-    var hotKeyID = EventHotKeyID()
-    let status = GetEventParameter(theEvent,
-                                   EventParamName(kEventParamDirectObject),
-                                   EventParamType(typeEventHotKeyID),
-                                   nil,
-                                   MemoryLayout<EventHotKeyID>.size,
-                                   nil,
-                                   &hotKeyID)
-    if status != noErr { return status }
-    if let userData = userData {
-        let delegate = Unmanaged<AppDelegate>.fromOpaque(userData).takeUnretainedValue()
-        delegate.toggleSession()
-    }
-    return noErr
-}
-
-func registerHotKey() -> EventHotKeyRef? {
-    let modifierFlags = UInt32(cmdKey) // | UInt32(shiftKey)
-    let keyCode: UInt32 = 49 // Space bar
-    let hotKeyID = EventHotKeyID(signature: FOUR_CHAR_CODE("HTK1"), id: 1)
-    var hotKeyRef: EventHotKeyRef?
-    let status = RegisterEventHotKey(keyCode, modifierFlags, hotKeyID, GetApplicationEventTarget(), 0, &hotKeyRef)
-    if status != noErr {
-        AppLogger.keyboard.error("Error registering hotkey: \(status)")
-    }
-    InstallEventHandler(GetApplicationEventTarget(),
-                        hotKeyHandler,
-                        1,
-                        [EventTypeSpec(
-                            eventClass: OSType(kEventClassKeyboard),
-                            eventKind: UInt32(kEventHotKeyPressed)
-                        )],
-                        UnsafeMutableRawPointer(Unmanaged.passUnretained(AppDelegate.shared).toOpaque()),
-                        nil)
-    return hotKeyRef
-}
 
 // MARK: - English Key Conversion
 

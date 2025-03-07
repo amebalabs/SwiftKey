@@ -418,21 +418,23 @@ class SnippetsGalleryViewModel: ObservableObject {
 
     func fetchSnippets() {
         isLoading = true
-        snippetsStore.fetchSnippets()
 
-        // Update our local snippets directly
-        DispatchQueue.main.async { [weak self] in
-            guard let self = self else { return }
-            self.snippets = self.snippetsStore.snippets
-            self.isLoading = false
+        Task {
+            await snippetsStore.fetchSnippets()
 
-            // Check for preselected snippet if needed
-            if let preselectedId = self.preselectedSnippetId,
-               !self.snippets.isEmpty
-            {
-                if let snippet = self.snippets.first(where: { $0.id == preselectedId }) {
-                    self.selectedSnippet = snippet
-                    self.isDetailPresented = true
+            // Update UI on main thread
+            await MainActor.run {
+                snippets = snippetsStore.snippets
+                isLoading = false
+
+                // Check for preselected snippet if needed
+                if let preselectedId = preselectedSnippetId,
+                   !snippets.isEmpty
+                {
+                    if let snippet = snippets.first(where: { $0.id == preselectedId }) {
+                        selectedSnippet = snippet
+                        isDetailPresented = true
+                    }
                 }
             }
         }
@@ -443,12 +445,20 @@ class SnippetsGalleryViewModel: ObservableObject {
         objectWillChange.send()
     }
 
+    /// Imports a snippet using the async API
     func importSnippet(
         _ snippet: ConfigSnippet,
         strategy: MergeStrategy,
         completion: @escaping (Result<Void, Error>) -> Void
     ) {
-        let result = snippetsStore.importSnippet(snippet, mergeStrategy: strategy)
-        completion(result)
+        // Use Task to bridge between async/await and completion handler
+        Task {
+            do {
+                try await snippetsStore.importSnippet(snippet, mergeStrategy: strategy)
+                completion(.success(()))
+            } catch {
+                completion(.failure(error))
+            }
+        }
     }
 }
