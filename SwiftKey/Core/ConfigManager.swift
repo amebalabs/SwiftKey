@@ -1,10 +1,14 @@
 import AppKit
 import Combine
 import Foundation
+import os
 import Yams
 
 class ConfigManager: DependencyInjectable, ObservableObject {
     static let shared = ConfigManager()
+
+    // Logger for this class
+    private let logger = AppLogger.config
 
     // Published properties for reactive updates
     @Published private(set) var menuItems: [MenuItem] = []
@@ -18,7 +22,7 @@ class ConfigManager: DependencyInjectable, ObservableObject {
 
     func injectDependencies(_ container: DependencyContainer) {
         self.settingsStore = container.settingsStore
-        print("ConfigManager: SettingsStore injected successfully")
+        logger.debug("SettingsStore injected successfully")
     }
 
     // Publishers
@@ -41,18 +45,18 @@ class ConfigManager: DependencyInjectable, ObservableObject {
         guard !didSetupDependencies else { return }
         didSetupDependencies = true
 
-        print("ConfigManager: Setting up after dependencies injected")
+        logger.info("Setting up after dependencies injected")
 
         // Load config and make sure it's processed
         DispatchQueue.main.async { [weak self] in
-            self?.loadConfig()
+            _ = self?.loadConfig()
 
             // If no config was loaded yet, try again with a delay
             // This helps with first launch scenarios
             if let self = self, self.menuItems.isEmpty {
-                print("ConfigManager: Menu items empty after initial load, retrying...")
+                logger.notice("Menu items empty after initial load, retrying...")
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    self.loadConfig()
+                    _ = self.loadConfig()
                 }
             }
         }
@@ -61,160 +65,171 @@ class ConfigManager: DependencyInjectable, ObservableObject {
     // MARK: - Public Methods
 
     /// Loads the configuration from the YAML file
-    func loadConfig() {
-        print("ConfigManager: loadConfig() called")
+    /// - Returns: A Result indicating success or failure with detailed error information
+    @discardableResult
+    func loadConfig() -> Result<[MenuItem], ConfigError> {
+        logger.debug("loadConfig() called")
 
         // Make sure dependencies are ready
         guard settingsStore != nil else {
-            print("ConfigManager: SettingsStore not yet injected, delaying load")
-            return
+            logger.error("SettingsStore not yet injected, delaying load")
+            self.lastError = ConfigError.dependencyNotReady
+            return .failure(.dependencyNotReady)
         }
 
         guard let configURL = resolveConfigFileURL() else {
-            print("ConfigManager: Failed to resolve config file URL")
+            logger.error("Failed to resolve config file URL")
             self.lastError = ConfigError.fileNotFound
-            return
+            return .failure(.fileNotFound)
         }
 
-        print("ConfigManager: Loading config from \(configURL.path)")
+        logger.info("Loading config from \(configURL.path, privacy: .public)")
 
         // Read the file content
-        let yamlString: String
+        let fileReadResult = readConfigFile(from: configURL)
+        switch fileReadResult {
+        case let .failure(error):
+            self.lastError = error
+            return .failure(error)
+        case let .success(yamlString):
+            logger.debug("Successfully read YAML file, length: \(yamlString.count) characters")
+
+            // Validate the YAML format before parsing
+            if yamlString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                logger.error("Config file is empty")
+                self.lastError = ConfigError.emptyFile
+                return .failure(.emptyFile)
+            }
+
+            // Parse the YAML
+            let parseResult = parseYAML(yamlString)
+            switch parseResult {
+            case let .failure(error):
+                self.lastError = error
+                return .failure(error)
+            case let .success(config):
+                // Validate the parsed config
+                if config.isEmpty {
+                    logger.error("Config is empty, no menu items found")
+                    self.lastError = ConfigError.emptyConfiguration
+                    return .failure(.emptyConfiguration)
+                }
+
+                // Validate the menu items structure
+                let validationResult = validateMenuItemsResult(config)
+                switch validationResult {
+                case let .failure(error):
+                    self.lastError = error
+                    return .failure(error)
+                case .success:
+                    // Successfully parsed, update the menu items
+                    DispatchQueue.main.async { [weak self] in
+                        self?.logger.info("Updating menu items: \(config.count) items")
+                        self?.menuItems = config
+                        self?.lastError = nil
+                        self?.lastUpdateTime = Date()
+                    }
+                    return .success(config)
+                }
+            }
+        }
+    }
+
+    /// Read configuration file from the specified URL
+    private func readConfigFile(from url: URL) -> Result<String, ConfigError> {
         do {
-            yamlString = try String(contentsOf: configURL, encoding: .utf8)
-            print("ConfigManager: Successfully read YAML file, length: \(yamlString.count) characters")
+            let yamlString = try String(contentsOf: url, encoding: .utf8)
+            return .success(yamlString)
         } catch let error as NSError {
             if error.domain == NSCocoaErrorDomain {
                 switch error.code {
                 case NSFileReadNoSuchFileError:
-                    print("ConfigManager: File not found at \(configURL.path)")
-                    self.lastError = ConfigError.fileNotFound
+                    logger.error("File not found at \(url.path, privacy: .public)")
+                    return .failure(.fileNotFound)
                 case NSFileReadNoPermissionError:
-                    print("ConfigManager: Permission denied to read \(configURL.path)")
-                    self.lastError = ConfigError.accessDenied
+                    logger.error("Permission denied to read \(url.path, privacy: .public)")
+                    return .failure(.accessDenied)
                 default:
-                    print("ConfigManager: Failed to read file: \(error.localizedDescription)")
-                    self.lastError = ConfigError.readFailed(underlying: error)
+                    logger.error("Failed to read file: \(error.localizedDescription)")
+                    return .failure(.readFailed(underlying: error))
                 }
             } else {
-                print("ConfigManager: Error loading config file: \(error.localizedDescription)")
-                self.lastError = ConfigError.readFailed(underlying: error)
+                logger.error("Error loading config file: \(error.localizedDescription)")
+                return .failure(.readFailed(underlying: error))
             }
-            return
         }
+    }
 
-        // Validate the YAML format before parsing
-        if yamlString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            print("ConfigManager: Config file is empty")
-            self.lastError = ConfigError.emptyFile
-            return
-        }
-
-        // Parse the YAML
+    /// Parse YAML string into menu items
+    private func parseYAML(_ yamlString: String) -> Result<[MenuItem], ConfigError> {
         let decoder = YAMLDecoder()
-        let config: [MenuItem]
 
         do {
             // First try to decode as a generic YAML to check structure
             if let yamlObject = try Yams.load(yaml: yamlString) {
                 // Validate that the YAML is an array at the root level
                 guard yamlObject is [Any] else {
-                    print("ConfigManager: Invalid YAML format - root should be an array")
-                    self.lastError = ConfigError.invalidYamlFormat(
+                    logger.error("Invalid YAML format - root should be an array")
+                    return .failure(ConfigError.invalidYamlFormat(
                         message: "Root element must be an array of menu items",
                         line: 1,
                         column: 1
-                    )
-                    return
+                    ))
                 }
             }
 
             // Now try to decode to the actual model
-            config = try decoder.decode([MenuItem].self, from: yamlString)
-            print("ConfigManager: Successfully decoded \(config.count) menu items")
+            let config = try decoder.decode([MenuItem].self, from: yamlString)
+            logger.debug("Successfully decoded \(config.count) menu items")
+            return .success(config)
         } catch let yamlError as YamlError {
             // Detailed handling for Yams parsing errors
             let lineInfo = extractLineInfo(from: yamlError)
-            print(
-                "ConfigManager: YAML parsing error at \(lineInfo.line):\(lineInfo.column): \(yamlError.localizedDescription)"
-            )
-            self.lastError = ConfigError.invalidYamlFormat(
+            logger.error("YAML parsing error at \(lineInfo.line):\(lineInfo.column): \(yamlError.localizedDescription)")
+            return .failure(ConfigError.invalidYamlFormat(
                 message: yamlError.localizedDescription,
                 line: lineInfo.line,
                 column: lineInfo.column
-            )
-            return
+            ))
         } catch let decodingError as DecodingError {
             // Detailed handling for Swift Decodable errors
-            print("ConfigManager: Decoding error: \(decodingError.localizedDescription)")
+            logger.error("Decoding error: \(decodingError.localizedDescription)")
 
             switch decodingError {
             case let .keyNotFound(key, context):
-                print(
-                    "ConfigManager: Missing required key '\(key.stringValue)' in context: \(context.debugDescription)"
-                )
-                self.lastError = ConfigError.missingRequiredField(
+                logger.error("Missing required key '\(key.stringValue)' in context: \(context.debugDescription)")
+                return .failure(ConfigError.missingRequiredField(
                     field: key.stringValue,
                     context: context.debugDescription
-                )
+                ))
             case let .typeMismatch(type, context):
-                print("ConfigManager: Type mismatch for \(type) in context: \(context.debugDescription)")
+                logger.error("Type mismatch for \(type) in context: \(context.debugDescription)")
                 let fieldName = context.codingPath.last?.stringValue ?? "unknown"
-                self.lastError = ConfigError.typeMismatch(
+                return .failure(ConfigError.typeMismatch(
                     field: fieldName,
                     context: context.debugDescription
-                )
+                ))
             case let .valueNotFound(type, context):
-                print("ConfigManager: Value not found for \(type) in context: \(context.debugDescription)")
+                logger.error("Value not found for \(type) in context: \(context.debugDescription)")
                 let fieldName = context.codingPath.last?.stringValue ?? "unknown"
-                self.lastError = ConfigError.missingRequiredField(
+                return .failure(ConfigError.missingRequiredField(
                     field: fieldName,
                     context: context.debugDescription
-                )
+                ))
             case let .dataCorrupted(context):
-                print("ConfigManager: Data corrupted in context: \(context.debugDescription)")
-                self.lastError = ConfigError.invalidYamlFormat(
+                logger.error("Data corrupted in context: \(context.debugDescription)")
+                return .failure(ConfigError.invalidYamlFormat(
                     message: context.debugDescription,
                     line: 0,
                     column: 0
-                )
+                ))
             @unknown default:
-                self.lastError = ConfigError.parsingFailed(underlying: decodingError)
+                return .failure(ConfigError.parsingFailed(underlying: decodingError))
             }
-            return
         } catch let otherError {
             // Fallback for other errors
-            print("ConfigManager: YAML parsing error: \(otherError.localizedDescription)")
-            self.lastError = ConfigError.parsingFailed(underlying: otherError)
-            return
-        }
-
-        // Validate the parsed config
-        if config.isEmpty {
-            print("ConfigManager: Config is empty, no menu items found")
-            self.lastError = ConfigError.emptyConfiguration
-            return
-        }
-
-        // Validate the menu items structure
-        do {
-            try validateMenuItems(config)
-        } catch let validationError as ConfigError {
-            print("ConfigManager: Menu item validation failed: \(validationError.localizedDescription)")
-            self.lastError = validationError
-            return
-        } catch {
-            print("ConfigManager: Unexpected validation error: \(error.localizedDescription)")
-            self.lastError = ConfigError.unknown(underlying: error)
-            return
-        }
-
-        // Successfully parsed, update the menu items
-        DispatchQueue.main.async { [weak self] in
-            print("ConfigManager: Updating menu items: \(config.count) items")
-            self?.menuItems = config
-            self?.lastError = nil
-            self?.lastUpdateTime = Date()
+            logger.error("YAML parsing error: \(otherError.localizedDescription)")
+            return .failure(ConfigError.parsingFailed(underlying: otherError))
         }
     }
 
@@ -249,11 +264,11 @@ class ConfigManager: DependencyInjectable, ObservableObject {
         do {
             try validateMenuItems(menuItems)
         } catch let validationError as ConfigError {
-            print("ConfigManager: Snippet validation failed: \(validationError.localizedDescription)")
+            logger.error("Snippet validation failed: \(validationError.localizedDescription)")
             self.lastError = validationError
             return .failure(validationError)
         } catch {
-            print("ConfigManager: Unexpected validation error: \(error.localizedDescription)")
+            logger.error("Unexpected validation error: \(error.localizedDescription)")
             self.lastError = ConfigError.unknown(underlying: error)
             return .failure(ConfigError.unknown(underlying: error))
         }
@@ -288,7 +303,7 @@ class ConfigManager: DependencyInjectable, ObservableObject {
             let yamlString = try createCleanYaml(from: items)
 
             try yamlString.write(to: url, atomically: true, encoding: .utf8)
-            print("ConfigManager: Successfully saved \(items.count) menu items to \(url.path)")
+            logger.info("Successfully saved \(items.count) menu items to \(url.path, privacy: .public)")
 
             // Update the menu items
             DispatchQueue.main.async { [weak self] in
@@ -299,7 +314,7 @@ class ConfigManager: DependencyInjectable, ObservableObject {
 
             return .success(())
         } catch {
-            print("ConfigManager: Failed to save config: \(error)")
+            logger.error("Failed to save config: \(error.localizedDescription)")
             self.lastError = ConfigError.readFailed(underlying: error)
             return .failure(ConfigError.readFailed(underlying: error))
         }
@@ -312,7 +327,7 @@ class ConfigManager: DependencyInjectable, ObservableObject {
         do {
             return try encoder.encode(items)
         } catch {
-            print("Error creating YAML: \(error)")
+            logger.error("Error creating YAML: \(error.localizedDescription)")
             return ""
         }
     }
@@ -373,25 +388,25 @@ class ConfigManager: DependencyInjectable, ObservableObject {
             if let modDate = attributes[.modificationDate] as? Date {
                 if lastModificationDate == nil {
                     lastModificationDate = modDate
-                    print("ConfigManager: Initial config file mod date: \(modDate)")
+                    logger.debug("Initial config file mod date: \(modDate)")
                     return false
                 }
 
                 if let lastMod = lastModificationDate, modDate > lastMod {
-                    print("ConfigManager: Config file changed - old: \(lastMod), new: \(modDate)")
+                    logger.notice("Config file changed - old: \(lastMod), new: \(modDate)")
                     lastModificationDate = modDate
                     return true
                 }
             }
         } catch {
-            print("Error reading file attributes: \(error)")
+            logger.error("Error reading file attributes: \(error.localizedDescription)")
         }
         return false
     }
 
     @discardableResult func refreshIfNeeded() -> Bool {
         if hasConfigChanged() {
-            loadConfig()
+            _ = loadConfig()
             return true
         }
         return false
@@ -401,55 +416,56 @@ class ConfigManager: DependencyInjectable, ObservableObject {
     func resolveConfigFileURL() -> URL? {
         // Ensure we have a valid reference to settings store
         guard let settings = settingsStore else {
-            print("Error: SettingsStore is not properly injected into ConfigManager")
+            logger.error("SettingsStore is not properly injected into ConfigManager")
             return nil
         }
 
         // Use the direct path
         if let url = settings.configFileResolvedURL {
-            print("ConfigManager: Using direct path: \(url.path)")
+            logger.debug("Using direct path: \(url.path, privacy: .public)")
             return url
         } else {
-            print("ConfigManager: No configuration file path available")
+            logger.notice("No configuration file path available, creating default")
             // Default to bundle location or create one in user Documents
             let defaultConfigPath = createDefaultConfigIfNeeded()
-            print("ConfigManager: Using default config at: \(defaultConfigPath?.path ?? "none")")
+            logger.debug("Using default config at: \(defaultConfigPath?.path ?? "none", privacy: .public)")
             return defaultConfigPath
         }
     }
 
     private func createDefaultConfigIfNeeded() -> URL? {
         guard let documentsDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
-            print("ConfigManager: Could not access Documents directory")
-            assert(true)
+            logger.fault("Could not access Documents directory")
+            assertionFailure("Could not access Documents directory")
             return nil
         }
 
         let configURL = documentsDir.appendingPathComponent("menu.yaml")
 
         if FileManager.default.fileExists(atPath: configURL.path) {
-            print("ConfigManager: Found existing config at \(configURL.path)")
+            logger.debug("Found existing config at \(configURL.path, privacy: .public)")
             return configURL
         }
 
         // Get the default config from the app bundle
         guard let bundledConfigURL = Bundle.main.url(forResource: "menu", withExtension: "yaml") else {
-            print("ConfigManager: Could not find bundled menu.yaml")
-            assert(true)
+            logger.fault("Could not find bundled menu.yaml")
+            assertionFailure("Could not find bundled menu.yaml")
             return nil
         }
 
         do {
             try FileManager.default.copyItem(at: bundledConfigURL, to: configURL)
-            print("ConfigManager: Copied bundled config to \(configURL.path)")
+            logger.info("Copied bundled config to \(configURL.path, privacy: .public)")
 
             settingsStore.configFilePath = configURL.path
             return configURL
         } catch {
-            print("ConfigManager: Failed to copy bundled config: \(error)")
+            logger.error("Failed to copy bundled config: \(error.localizedDescription)")
+            // This is a serious error but don't crash in production
+            assertionFailure("Failed to copy bundled config: \(error.localizedDescription)")
+            return nil
         }
-        assert(true)
-        return nil
     }
 
     // MARK: - YAML Validation Helpers
@@ -482,60 +498,81 @@ class ConfigManager: DependencyInjectable, ObservableObject {
         return (line, column)
     }
 
-    /// Validates menu items recursively
-    private func validateMenuItems(_ items: [MenuItem]) throws {
+    /// Validates menu items recursively using Result
+    private func validateMenuItemsResult(_ items: [MenuItem]) -> Result<Void, ConfigError> {
         for item in items {
             // Validate key format (should be a single character)
             if item.key.count != 1 {
-                throw ConfigError.invalidYamlFormat(
+                logger.error("Invalid key format: \(item.key)")
+                return .failure(ConfigError.invalidYamlFormat(
                     message: "Key must be a single character, found '\(item.key)'",
                     line: 0,
                     column: 0
-                )
+                ))
             }
 
             // Validate title is not empty
             if item.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                throw ConfigError.invalidYamlFormat(
+                logger.error("Empty title for key: \(item.key)")
+                return .failure(ConfigError.invalidYamlFormat(
                     message: "Title cannot be empty for key '\(item.key)'",
                     line: 0,
                     column: 0
-                )
+                ))
             }
 
             // Validate that if there's no submenu, there must be an action
             if item.submenu == nil && item.action == nil {
-                throw ConfigError.invalidYamlFormat(
+                logger.error("Menu item missing both submenu and action: \(item.title)")
+                return .failure(ConfigError.invalidYamlFormat(
                     message: "Menu item '\(item.title)' (key: \(item.key)) must have either a submenu or an action",
                     line: 0,
                     column: 0
-                )
+                ))
             }
 
             // Validate action format if present
             if let action = item.action {
                 if !isValidActionFormat(action) {
-                    throw ConfigError.invalidYamlFormat(
+                    logger.error("Invalid action format: \(action)")
+                    return .failure(ConfigError.invalidYamlFormat(
                         message: "Invalid action format: '\(action)' for key '\(item.key)'",
                         line: 0,
                         column: 0
-                    )
+                    ))
                 }
             }
 
             // Validate hotkey format if present
             if let hotkey = item.hotkey, !isValidHotkeyFormat(hotkey) {
-                throw ConfigError.invalidYamlFormat(
+                logger.error("Invalid hotkey format: \(hotkey)")
+                return .failure(ConfigError.invalidYamlFormat(
                     message: "Invalid hotkey format: '\(hotkey)' for key '\(item.key)'",
                     line: 0,
                     column: 0
-                )
+                ))
             }
 
             // Recursively validate submenu if present
             if let submenu = item.submenu {
-                try validateMenuItems(submenu)
+                let result = validateMenuItemsResult(submenu)
+                if case let .failure(error) = result {
+                    return .failure(error)
+                }
             }
+        }
+
+        return .success(())
+    }
+
+    /// Legacy method that uses throws for backward compatibility
+    private func validateMenuItems(_ items: [MenuItem]) throws {
+        let result = validateMenuItemsResult(items)
+        switch result {
+        case .success:
+            return
+        case let .failure(error):
+            throw error
         }
     }
 
@@ -633,6 +670,7 @@ enum ConfigError: Error {
     case parsingFailed(underlying: Error)
     case invalidShellCommand(message: String, command: String)
     case unknown(underlying: Error)
+    case dependencyNotReady
 }
 
 extension ConfigError: LocalizedError {
@@ -660,6 +698,8 @@ extension ConfigError: LocalizedError {
             return "Invalid shell command: \(message) in '\(command)'"
         case let .unknown(error):
             return "Unknown error processing configuration: \(error.localizedDescription)"
+        case .dependencyNotReady:
+            return "Configuration manager dependencies are not ready."
         }
     }
 }
