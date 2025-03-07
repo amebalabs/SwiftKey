@@ -118,7 +118,9 @@ struct MenuItem: Identifiable, Codable, Equatable {
                     // Only show notification with output if it's not empty
                     let message = out.out.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?
                         "Command completed successfully" : out.out
-                    notifyUser(title: "Finished running \(title)", message: message)
+                    if notify == true {
+                        notifyUser(title: "Command completed successfully", message: message)
+                    }
                 } catch {
                     if let shellError = error as? ShellOutError {
                         let errorMessage = shellError.message.isEmpty ?
