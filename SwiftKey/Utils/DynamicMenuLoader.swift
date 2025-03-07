@@ -1,8 +1,10 @@
 import Foundation
+import os
 import Yams
 
 class DynamicMenuLoader {
     static let shared = DynamicMenuLoader()
+    private let logger = AppLogger.utils
 
     /**
      Loads a dynamic menu for a MenuItem with a dynamic:// action
@@ -24,7 +26,7 @@ class DynamicMenuLoader {
 
         let command = String(actionString.dropFirst("dynamic://".count))
 
-        DispatchQueue.global(qos: .userInitiated).async {
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             do {
                 let result = try runScript(to: command, args: [])
                 let output = result.out
@@ -32,7 +34,7 @@ class DynamicMenuLoader {
                 let menuItems = try decoder.decode([MenuItem].self, from: output)
                 completion(menuItems)
             } catch {
-                print("Dynamic menu error: \(error)")
+                self?.logger.error("Dynamic menu error: \(error.localizedDescription)")
                 completion(nil)
             }
         }

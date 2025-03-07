@@ -1,15 +1,20 @@
 import AppKit
 import Foundation
+import os
 import SwiftUI
 
 class DeepLinkHandler: DependencyInjectable {
     static let shared = DeepLinkHandler()
+
+    // Logger for this class
+    private let logger = AppLogger.core
 
     // Dependencies
     var menuState: MenuState?
 
     func injectDependencies(_ container: DependencyContainer) {
         self.menuState = container.menuState
+        logger.debug("Dependencies injected")
     }
 
     func handle(url: URL) {
@@ -27,13 +32,13 @@ class DeepLinkHandler: DependencyInjectable {
         guard let pathQuery = queryItems?.first(where: { $0.name == "path" })?.value,
               !pathQuery.isEmpty
         else {
-            print("DeepLinkHandler: No path specified in URL \(url)")
+            logger.error("No path specified in URL \(url)")
             return
         }
         let pathKeys = pathQuery.components(separatedBy: ",")
 
         guard let state = self.menuState else {
-            print("DeepLinkHandler: MenuState not properly injected")
+            logger.error("MenuState not properly injected")
             return
         }
 
@@ -56,7 +61,7 @@ class DeepLinkHandler: DependencyInjectable {
             }
         }
         guard let item = lastFound else {
-            print("DeepLinkHandler: Menu item not found for path \(pathKeys)")
+            logger.error("Menu item not found for path \(pathKeys)")
             return
         }
         if item.submenu == nil, let action = item.actionClosure {
@@ -81,11 +86,11 @@ class DeepLinkHandler: DependencyInjectable {
         let snippetId = url.path.trimmingCharacters(in: .init(charactersIn: "/"))
 
         guard !snippetId.isEmpty else {
-            print("DeepLinkHandler: Invalid snippet ID in URL \(url)")
+            logger.error("Invalid snippet ID in URL \(url)")
             return
         }
 
-        print("DeepLinkHandler: Opening snippet gallery for snippet ID: \(snippetId)")
+        logger.info("Opening snippet gallery for snippet ID: \(snippetId, privacy: .public)")
 
         // Open snippets gallery with pre-selected snippet
         DispatchQueue.main.async {

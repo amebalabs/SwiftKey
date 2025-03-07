@@ -2,10 +2,14 @@ import AppKit
 import Carbon.HIToolbox
 import Combine
 import KeyboardShortcuts
+import os
 import SwiftUI
 
 class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, DependencyInjectable {
     static var shared: AppDelegate!
+
+    // Logger for this class
+    private let logger = AppLogger.app
 
     // Dependencies (will be injected)
     var container: DependencyContainer!
@@ -190,7 +194,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Dependency
 
     @objc func hideWindow() {
         guard menuState.isCurrentMenuSticky == false else { return }
-        print("hideWindow triggered")
+        logger.debug("hideWindow triggered")
         switch settings.overlayStyle {
         case .hud:
             menuState.reset()
@@ -208,7 +212,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Dependency
     }
 
     @objc func applicationDidResignActive(_: Notification) {
-        print("Resign active")
+        logger.debug("Application resigned active state")
         hideWindow()
     }
 
@@ -219,13 +223,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Dependency
         if menuState.hasSingleDynamicMenuItem,
            let item = menuState.singleDynamicMenuItem
         {
-            print("Detected single dynamic menu item: \(item.title)")
+            logger.debug("Detected single dynamic menu item: \(item.title, privacy: .public)")
 
             // Don't show the UI yet - first load the dynamic menu
             DynamicMenuLoader.shared.loadDynamicMenu(for: item) { [weak self] submenu in
                 guard let self = self, let submenu = submenu else {
                     DispatchQueue.main.async {
-                        print("Failed to load dynamic menu for: \(item.title)")
+                        self?.logger.error("Failed to load dynamic menu for: \(item.title, privacy: .public)")
                         self?.showOverlayWindow()
                     }
                     return

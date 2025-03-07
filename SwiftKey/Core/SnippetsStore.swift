@@ -1,5 +1,6 @@
 import Combine
 import Foundation
+import os
 import Yams
 
 // MARK: - ConfigSnippet
@@ -22,7 +23,8 @@ struct ConfigSnippet: Identifiable, Codable, Equatable {
             let decoder = YAMLDecoder()
             return try decoder.decode([MenuItem].self, from: content)
         } catch {
-            print("Error parsing snippet YAML: \(error)")
+            // Using static logger since this is called in a struct
+            AppLogger.snippets.error("Error parsing snippet YAML: \(error.localizedDescription)")
             return nil
         }
     }
@@ -50,6 +52,9 @@ struct ConfigSnippet: Identifiable, Codable, Equatable {
 
 /// Manages downloading, caching and providing access to config snippets
 class SnippetsStore: ObservableObject, DependencyInjectable {
+    // Logger for this class
+    private let logger = AppLogger.snippets
+
     // Published properties for reactive updates
     @Published private(set) var snippets: [ConfigSnippet] = []
     @Published private(set) var filteredSnippets: [ConfigSnippet] = []
@@ -63,7 +68,7 @@ class SnippetsStore: ObservableObject, DependencyInjectable {
     func injectDependencies(_ container: DependencyContainer) {
         self.settingsStore = container.settingsStore
         self.configManager = container.configManager
-        print("SnippetsStore: Dependencies injected successfully")
+        logger.debug("Dependencies injected successfully")
     }
 
     private let baseURL = URL(string: "http://localhost:3000")!
@@ -83,7 +88,7 @@ class SnippetsStore: ObservableObject, DependencyInjectable {
 
         // URL for the snippets index file
         let indexURL = baseURL.appendingPathComponent("index.json")
-        print("SnippetsStore: Fetching snippets from URL: \(indexURL.absoluteString)")
+        logger.info("Fetching snippets from URL: \(indexURL.absoluteString, privacy: .public)")
 
         // Configure JSON decoder
         let decoder = JSONDecoder()
@@ -98,7 +103,7 @@ class SnippetsStore: ObservableObject, DependencyInjectable {
                     self?.isLoading = false
 
                     if case let .failure(error) = completion {
-                        print("SnippetsStore: Failed to fetch snippets: \(error)")
+                        self?.logger.error("Failed to fetch snippets: \(error.localizedDescription)")
                         self?.lastError = error
 
                         // Load cached snippets if available
@@ -108,7 +113,7 @@ class SnippetsStore: ObservableObject, DependencyInjectable {
                     }
                 },
                 receiveValue: { [weak self] fetchedSnippets in
-                    print("SnippetsStore: Successfully fetched \(fetchedSnippets.count) snippets")
+                    self?.logger.info("Successfully fetched \(fetchedSnippets.count) snippets")
                     self?.snippets = fetchedSnippets
                     self?.filteredSnippets = fetchedSnippets
                     self?.cacheSnippets(fetchedSnippets)
@@ -198,9 +203,9 @@ class SnippetsStore: ObservableObject, DependencyInjectable {
                 self?.snippets = cachedSnippets
                 self?.filteredSnippets = cachedSnippets
             }
-            print("SnippetsStore: Loaded \(cachedSnippets.count) snippets from cache")
+            logger.info("Loaded \(cachedSnippets.count) snippets from cache")
         } catch {
-            print("SnippetsStore: Failed to load snippets from cache: \(error)")
+            logger.error("Failed to load snippets from cache: \(error.localizedDescription)")
             // If we can't load from cache, fetch fresh data
             fetchSnippets()
         }
@@ -208,14 +213,17 @@ class SnippetsStore: ObservableObject, DependencyInjectable {
 
     /// Caches snippets locally
     private func cacheSnippets(_ snippetsToCache: [ConfigSnippet]) {
-        guard let cacheURL = getCacheFileURL() else { return }
+        guard let cacheURL = getCacheFileURL() else {
+            logger.error("Failed to get cache URL")
+            return
+        }
 
         do {
             let data = try JSONEncoder().encode(snippetsToCache)
             try data.write(to: cacheURL)
-            print("SnippetsStore: Successfully cached \(snippetsToCache.count) snippets")
+            logger.debug("Successfully cached \(snippetsToCache.count) snippets")
         } catch {
-            print("SnippetsStore: Failed to cache snippets: \(error)")
+            logger.error("Failed to cache snippets: \(error.localizedDescription)")
         }
     }
 
@@ -230,7 +238,7 @@ class SnippetsStore: ObservableObject, DependencyInjectable {
             )
             return cacheDirectory.appendingPathComponent(cacheFileName)
         } catch {
-            print("SnippetsStore: Failed to get cache directory: \(error)")
+            logger.error("Failed to get cache directory: \(error.localizedDescription)")
             return nil
         }
     }

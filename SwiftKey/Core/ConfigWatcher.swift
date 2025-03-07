@@ -1,7 +1,9 @@
 import Foundation
+import os
 
 class ConfigMonitor {
     static let shared = ConfigMonitor()
+    private let logger = AppLogger.config
     private var lastModificationDate: Date?
 
     func hasConfigChanged(at url: URL) -> Bool {
@@ -22,7 +24,7 @@ class ConfigMonitor {
                 }
             }
         } catch {
-            print("Error reading file attributes: \(error)")
+            logger.error("Error reading file attributes: \(error.localizedDescription)")
         }
         return false
     }

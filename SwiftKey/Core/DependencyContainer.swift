@@ -1,8 +1,12 @@
 import Combine
 import Foundation
+import os
 
 class DependencyContainer {
     static let shared = DependencyContainer()
+
+    // Logger for this class
+    private let logger = AppLogger.core
 
     // Services
     let configManager: ConfigManager
@@ -61,11 +65,11 @@ class DependencyContainer {
             .sink { [weak self] items in
                 guard let self = self else { return }
                 self.menuState.rootMenu = items
-                print("DependencyContainer: Updated menu items: \(items.count) items")
+                self.logger.debug("Updated menu items: \(items.count) items")
 
                 // Re-register keyboard shortcuts whenever menu items are updated
                 self.keyboardManager.registerMenuHotkeys(items)
-                print("DependencyContainer: Re-registered keyboard shortcuts for menu items")
+                self.logger.debug("Re-registered keyboard shortcuts for menu items")
             }
             .store(in: &cancellables)
 
@@ -79,7 +83,7 @@ class DependencyContainer {
                     case .fileNotFound, .accessDenied:
                         notifyUser(title: "Configuration Error", message: configError.localizedDescription)
                     default:
-                        print("Config error: \(configError.localizedDescription)")
+                        self.logger.error("Config error: \(configError.localizedDescription)")
                     }
                 }
             }

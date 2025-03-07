@@ -1,6 +1,7 @@
 import AppKit
 import Combine
 import KeyboardShortcuts
+import os
 import Yams
 
 // MARK: - KeyboardShortcut Names
@@ -14,6 +15,9 @@ extension KeyboardShortcuts.Name {
 class KeyboardManager: DependencyInjectable, ObservableObject {
     // Singleton instance
     static let shared = KeyboardManager()
+
+    // Logger for this class
+    private let logger = AppLogger.keyboard
 
     // Dependencies
     var menuState: MenuState!
@@ -40,7 +44,7 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
         self.settingsStore = container.settingsStore
         self.configManager = container.configManager
 
-        print("KeyboardManager: Dependencies injected successfully")
+        logger.debug("Dependencies injected successfully")
     }
 
     // MARK: - Key Handling
@@ -50,7 +54,7 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
         modifierFlags: NSEvent.ModifierFlags? = nil,
         completion: @escaping (KeyPressResult) -> Void
     ) {
-        print("KeyboardManager: Key pressed: \(key)")
+        logger.debug("Key pressed: \(key, privacy: .public)")
         let normalizedKey = key
         menuState.currentKey = normalizedKey
 

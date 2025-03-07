@@ -1,6 +1,7 @@
 import AppKit
 import Carbon.HIToolbox
 import Foundation
+import os
 import UserNotifications
 
 // MARK: - Helper: FOUR_CHAR_CODE
@@ -43,7 +44,7 @@ func registerHotKey() -> EventHotKeyRef? {
     var hotKeyRef: EventHotKeyRef?
     let status = RegisterEventHotKey(keyCode, modifierFlags, hotKeyID, GetApplicationEventTarget(), 0, &hotKeyRef)
     if status != noErr {
-        print("Error registering hotkey: \(status)")
+        AppLogger.keyboard.error("Error registering hotkey: \(status)")
     }
     InstallEventHandler(GetApplicationEventTarget(),
                         hotKeyHandler,

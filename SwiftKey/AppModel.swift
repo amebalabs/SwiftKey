@@ -1,4 +1,5 @@
 import AppKit
+import os
 import SwiftUI
 import Yams
 
@@ -91,7 +92,7 @@ struct MenuItem: Identifiable, Codable, Equatable {
                         at: appURL, configuration: .init(), completionHandler: nil
                     )
                 } else {
-                    print("Application not found or invalid at path: \(appPath)")
+                    AppLogger.app.error("Application not found or invalid at path: \(appPath, privacy: .public)")
                 }
             }
         }

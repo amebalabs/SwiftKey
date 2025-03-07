@@ -10,14 +10,14 @@ enum ScriptError: Error {
     case dangerousCommand(String)
     case executionFailed(Int32, String)
     case invalidShell
-    
+
     var localizedDescription: String {
         switch self {
         case .emptyCommand:
             return "Empty command provided"
-        case .dangerousCommand(let cmd):
+        case let .dangerousCommand(cmd):
             return "Potentially dangerous command rejected: \(cmd)"
-        case .executionFailed(let status, let message):
+        case let .executionFailed(status, message):
             return "Command failed with status \(status): \(message)"
         case .invalidShell:
             return "Shell executable not found"
@@ -87,13 +87,13 @@ public struct ShellOutError: Swift.Error, CustomStringConvertible {
     public let outputData: Data
     /// The output of the command as a UTF8 string, as returned through `STDOUT`
     public var output: String { outputData.shellOutput() }
-    
+
     /// A human-readable description of the error
     public var description: String {
         let errorMessage = message.isEmpty ? "Unknown error" : message
         return "Command failed with status \(terminationStatus): \(errorMessage)"
     }
-    
+
     /// Convert this error to a ScriptError for consistent error handling
     func toScriptError() -> ScriptError {
         return .executionFailed(terminationStatus, message)
@@ -153,7 +153,7 @@ private extension Process {
                     outputData: outputData
                 )
             }
-            
+
             let output = String(data: outputData, encoding: .utf8) ?? ""
             let err = String(data: errorData, encoding: .utf8)
             return (out: output, err: err)
@@ -180,14 +180,14 @@ private extension Process {
                 try run()
             } catch {
                 logger.error("Failed to run streaming command: \(error.localizedDescription)")
-                
+
                 // Clean up handlers before throwing
                 outputPipe.fileHandleForReading.readabilityHandler = nil
                 errorPipe.fileHandleForReading.readabilityHandler = nil
-                
+
                 throw ShellOutError(
-                    terminationStatus: terminationStatus, 
-                    errorData: errorData, 
+                    terminationStatus: terminationStatus,
+                    errorData: errorData,
                     outputData: outputData
                 )
             }
@@ -202,14 +202,14 @@ private extension Process {
                 if terminationStatus != 0 {
                     let errorMessage = String(data: errorData, encoding: .utf8) ?? "Unknown error"
                     logger.error("Streaming command failed with status \(self.terminationStatus): \(errorMessage)")
-                    
+
                     throw ShellOutError(
                         terminationStatus: terminationStatus,
                         errorData: errorData,
                         outputData: outputData
                     )
                 }
-                
+
                 let output = String(data: outputData, encoding: .utf8) ?? ""
                 let err = String(data: errorData, encoding: .utf8)
                 return (out: output, err: err)

@@ -1,4 +1,5 @@
 import Foundation
+import os
 import SwiftUI
 import Yams
 
@@ -14,6 +15,8 @@ enum KeyPressResult: Equatable {
 }
 
 class KeyPressController: DependencyInjectable {
+    private let logger = AppLogger.keyboard
+
     var menuState: MenuState
     var settingsStore: SettingsStore?
 
@@ -31,7 +34,7 @@ class KeyPressController: DependencyInjectable {
         modifierFlags: NSEvent.ModifierFlags? = nil,
         completion: @escaping (KeyPressResult) -> Void
     ) {
-        print("Key pressed: \(key)")
+        logger.debug("Key pressed: \(key, privacy: .public)")
         let normalizedKey = key
         menuState.currentKey = normalizedKey
 

@@ -1,4 +1,5 @@
 import AppKit
+import os
 import SwiftUI
 
 @main
@@ -6,9 +7,10 @@ struct SwiftKeyApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     private let container = DependencyContainer.shared
+    private let logger = AppLogger.app
 
     init() {
-        print("SwiftKey starting with dependency container initialized")
+        logger.notice("SwiftKey starting with dependency container initialized")
     }
 
     var body: some Scene {
