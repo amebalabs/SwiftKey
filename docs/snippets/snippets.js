@@ -152,10 +152,22 @@ function displaySnippets(snippets) {
         const card = document.createElement('div');
         card.className = 'snippet-card';
         card.innerHTML = `
+            <div class="snippet-actions-top">
+                <a href="${snippet.id}.html" title="View Details">
+                    <i class="fas fa-eye"></i>
+                    <span>Preview</span>
+                </a>
+                <a href="swiftkey://snippets/${snippet.id}" title="Open in SwiftKey App">
+                    <i class="fas fa-download"></i>
+                    <span>Import</span>
+                </a>
+            </div>
             <div class="snippet-header">
-                <h3 class="snippet-title">${snippet.name}</h3>
-                <div class="snippet-author">By ${snippet.author}</div>
-                <div class="snippet-date">${formattedDate}</div>
+                <div class="snippet-header-content">
+                    <h3 class="snippet-title">${snippet.name}</h3>
+                    <div class="snippet-author">By ${snippet.author}</div>
+                    <div class="snippet-date">${formattedDate}</div>
+                </div>
             </div>
             <div class="snippet-description">
                 ${snippet.description}
@@ -166,14 +178,6 @@ function displaySnippets(snippets) {
                         <div class="snippet-tag">${tag}</div>
                     `).join('')}
                     ${snippet.tags.length > 3 ? `<div class="snippet-tag">+${snippet.tags.length - 3}</div>` : ''}
-                </div>
-                <div class="snippet-actions">
-                    <a href="${snippet.id}.html" title="View Details">
-                        <i class="fas fa-eye"></i>
-                    </a>
-                    <a href="swiftkey://snippets/${snippet.id}" title="Open in SwiftKey App">
-                        <i class="fas fa-download"></i>
-                    </a>
                 </div>
             </div>
         `;
