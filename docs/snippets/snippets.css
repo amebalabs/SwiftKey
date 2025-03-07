@@ -1,5 +1,26 @@
 /* Snippet-specific styles */
 
+/* Override body background to match main site */
+body {
+    background-color: var(--dark-bg);
+}
+
+/* Ensure consistent navigation height */
+nav.nav-blur {
+    height: 70px; /* Fixed height for the navigation bar */
+    display: flex;
+    align-items: center;
+}
+
+/* Text colors */
+h2 {
+    color: var(--text-color);
+}
+
+p {
+    color: var(--text-secondary);
+}
+
 /* Section spacing */
 section {
     padding: 5rem 0;
@@ -14,10 +35,31 @@ section.snippets {
 section.about {
     padding: 5rem 0;
     margin-bottom: 0;
+    background-color: var(--card-bg);
+}
+
+section.about h2,
+section.contribute h2 {
+    position: relative;
+    display: inline-block;
+    margin-bottom: 3rem;
+}
+
+section.about h2::after,
+section.contribute h2::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: -10px;
+    transform: translateX(-50%);
+    width: 50px;
+    height: 3px;
+    background-color: var(--primary-color);
 }
 
 section.contribute {
     padding: 5rem 0;
+    background-color: var(--dark-bg);
 }
 
 .snippet-filters {
@@ -94,42 +136,50 @@ section.contribute {
 .snippet-card {
     border-radius: 12px;
     overflow: hidden;
-    background-color: white;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    background-color: var(--card-bg);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
     display: flex;
     flex-direction: column;
     height: 100%;
-    border: 1px solid rgba(0, 0, 0, 0.05);
+    border: 1px solid var(--border-color);
 }
 
 .snippet-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+    background-color: var(--card-hover);
 }
 
 .snippet-header {
     padding: 1.5rem;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-    background-color: #f8f9fa;
+    border-bottom: 1px solid var(--border-color);
+    background-color: rgba(255, 255, 255, 0.03);
 }
 
 .snippet-title {
     font-size: 1.2rem;
     font-weight: 600;
     margin: 0;
-    color: #333;
+    color: var(--text-color);
 }
 
 .snippet-author {
-    color: #666;
+    color: var(--text-secondary);
     font-size: 0.9rem;
     margin-top: 0.5rem;
 }
 
+.snippet-date {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    margin-top: 0.5rem;
+    opacity: 0.8;
+}
+
 .snippet-description {
     padding: 1.5rem;
-    color: #555;
+    color: var(--text-secondary);
     font-size: 0.95rem;
     line-height: 1.5;
     flex-grow: 1; /* Allow description to fill available space */
@@ -139,11 +189,11 @@ section.contribute {
 
 .snippet-footer {
     padding: 1rem 1.5rem;
-    background-color: #f8f9fa;
+    background-color: rgba(255, 255, 255, 0.03);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    border-top: 1px solid var(--border-color);
 }
 
 .snippet-tags {
@@ -155,9 +205,10 @@ section.contribute {
 .snippet-tag {
     padding: 0.2rem 0.5rem;
     border-radius: 4px;
-    background-color: rgba(0, 122, 255, 0.1);
-    color: #007AFF;
+    background-color: rgba(0, 122, 255, 0.2);
+    color: var(--primary-color);
     font-size: 0.7rem;
+    border: 1px solid rgba(0, 122, 255, 0.3);
 }
 
 .snippet-actions {
@@ -198,15 +249,21 @@ section.contribute {
 }
 
 .step {
-    background-color: white;
+    background-color: var(--card-bg);
     border-radius: 12px;
     padding: 2.5rem 2rem 2rem;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
     position: relative;
     min-height: 220px; /* Ensure minimum height for each step */
     display: flex;
     flex-direction: column;
-    border: 1px solid rgba(0, 0, 0, 0.05);
+    border: 1px solid var(--border-color);
+}
+
+.step:hover {
+    background-color: var(--card-hover);
+    transform: translateY(-3px);
+    transition: all 0.3s ease;
 }
 
 .step-number {
@@ -215,7 +272,7 @@ section.contribute {
     left: 20px;
     width: 40px;
     height: 40px;
-    background-color: #007AFF;
+    background-color: var(--primary-color);
     color: white;
     border-radius: 50%;
     display: flex;
@@ -229,49 +286,56 @@ section.contribute {
 .step h3 {
     margin-top: 0.5rem;
     margin-bottom: 1.5rem;
-    color: #333;
+    color: var(--text-color);
     font-size: 1.3rem;
 }
 
 .step p {
-    color: #555;
+    color: var(--text-secondary);
     font-size: 0.95rem;
     line-height: 1.6;
     flex-grow: 1; /* Allow the paragraph to fill available space */
 }
 
+/* Snippet header with proper spacing */
+.snippet-header {
+    padding-top: 8rem; /* Create space for fixed navbar */
+    padding-bottom: 3rem;
+    background: var(--dark-bg);
+}
+
 /* Snippet detail page */
 .snippet-detail {
-    background-color: white;
+    background-color: var(--card-bg);
     border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-    margin: 8rem 0 3rem; /* Added top margin to account for fixed header */
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    margin: 0; /* No margin needed since it's inside a header with padding */
     overflow: hidden;
-    border: 1px solid rgba(0, 0, 0, 0.05);
+    border: 1px solid var(--border-color);
 }
 
 .snippet-detail-header {
     padding: 2.5rem;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-    background-color: #f8f9fa;
+    border-bottom: 1px solid var(--border-color);
+    background-color: rgba(255, 255, 255, 0.03);
 }
 
 .snippet-detail-header h1 {
-    color: #333;
+    color: var(--text-color);
     font-size: 2.2rem;
     margin-bottom: 0.5rem;
 }
 
 .snippet-detail-header .snippet-author,
 .snippet-detail-header .snippet-date {
-    color: #666;
+    color: var(--text-secondary);
     margin-bottom: 0.5rem;
 }
 
 .snippet-detail-header .snippet-description {
     font-size: 1.1rem;
     line-height: 1.6;
-    color: #555;
+    color: var(--text-secondary);
     margin: 1.5rem 0;
     padding: 0;
 }
@@ -287,6 +351,24 @@ section.contribute {
     padding: 2.5rem;
 }
 
+.snippet-detail-content h2 {
+    color: var(--text-color);
+    font-size: 1.6rem;
+    margin: 2rem 0 1rem;
+    position: relative;
+    display: inline-block;
+}
+
+.snippet-detail-content h2::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -8px;
+    width: 40px;
+    height: 3px;
+    background-color: var(--primary-color);
+}
+
 /* Snippet preview image */
 .snippet-preview {
     margin: 1.5rem 0 2.5rem;
@@ -296,18 +378,18 @@ section.contribute {
 .preview-image {
     max-width: 100%;
     height: auto;
-    border-radius: 8px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-    border: 1px solid rgba(0, 0, 0, 0.05);
+    border-radius: 12px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border-color);
 }
 
 .snippet-yaml {
-    background-color: #f6f8fa;
+    background-color: rgba(0, 0, 0, 0.2);
     padding: 1.5rem;
     border-radius: 8px;
     overflow-x: auto;
     margin: 1.5rem 0;
-    border: 1px solid rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--border-color);
     position: relative;
 }
 
@@ -316,7 +398,7 @@ section.contribute {
     font-family: "SF Mono", "Menlo", "Monaco", "Consolas", monospace;
     font-size: 0.9rem;
     white-space: pre-wrap;
-    color: #333;
+    color: var(--text-color);
     line-height: 1.6;
 }
 
@@ -358,6 +440,16 @@ section.contribute {
     border-radius: 8px;
     text-decoration: none;
     box-shadow: 0 2px 6px rgba(0, 122, 255, 0.3);
+    white-space: nowrap; /* Prevent text wrapping */
+    min-width: 200px; /* Ensure minimum width */
+    text-align: center;
+    justify-content: center;
+}
+
+.import-btn {
+    padding: 0.7rem 1.2rem;
+    white-space: nowrap;
+    min-width: 200px;
 }
 
 .snippet-actions .btn.primary:hover {
@@ -383,6 +475,11 @@ section.contribute {
         padding: 3rem 0;
     }
     
+    .snippet-header {
+        padding-top: 6.5rem;
+        padding-bottom: 2rem;
+    }
+    
     section.snippets {
         padding-top: 6rem;
     }
@@ -396,7 +493,7 @@ section.contribute {
     }
     
     .snippet-detail {
-        margin-top: 6rem;
+        margin-top: 0;
     }
     
     .snippet-detail-header,
@@ -414,12 +511,22 @@ section.contribute {
     
     .snippet-actions {
         flex-direction: column;
+        align-items: stretch;
     }
     
     .snippet-actions .btn,
     .copy-btn {
         width: 100%;
+        box-sizing: border-box;
         justify-content: center;
+        text-align: center;
+        padding: 0.8rem 1rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .import-btn {
+        min-width: 0;
+        width: 100%;
     }
 }
 
@@ -446,4 +553,42 @@ section.contribute {
         width: 100%;
         justify-content: space-between;
     }
+}
+
+/* Feature card styles matching main site theme */
+.feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-top: 3rem;
+}
+
+.feature-card {
+    padding: 2rem;
+    background-color: var(--card-bg);
+    border-radius: 16px;
+    text-align: center;
+    border: 1px solid var(--border-color);
+    transition: all 0.3s ease;
+}
+
+.feature-card:hover {
+    transform: translateY(-4px);
+    background-color: var(--card-hover);
+    box-shadow: 0 8px 24px var(--shadow-color);
+}
+
+.feature-card i {
+    font-size: 2rem;
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+}
+
+.feature-card h3 {
+    color: var(--text-color);
+    margin-bottom: 1rem;
+}
+
+.feature-card p {
+    color: var(--text-secondary);
 }
