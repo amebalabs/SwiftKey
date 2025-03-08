@@ -1,0 +1,24 @@
+class Swiftkey < Formula
+  desc "Hackable launcher for macOS"
+  homepage "https://swiftkey.app"
+  url "https://github.com/amebalabs/SwiftKey/releases/download/v{{VERSION}}/SwiftKey-{{VERSION}}.zip"
+  sha256 "{{SHA256}}"
+  version "{{VERSION}}"
+  
+  depends_on macos: ">= :monterey"
+  
+  app "SwiftKey.app"
+  
+  zap trash: [
+    "~/Library/Application Support/SwiftKey",
+    "~/Library/Caches/com.ameba.SwiftKey",
+    "~/Library/Preferences/com.ameba.SwiftKey.plist",
+  ]
+  
+  def caveats
+    <<~EOS
+      SwiftKey has been installed to:
+        #{appdir}/SwiftKey.app
+    EOS
+  end
+end

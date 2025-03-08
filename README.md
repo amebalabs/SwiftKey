@@ -19,7 +19,10 @@ SwiftKey is a powerful macOS productivity tool that provides quick access to app
 ### Installation
 
 - Download the app from the [Releases](https://github.com/amebalabs/SwiftKey/releases/latest) and drag it to your `Applications` folder
-- ...or `brew install --cask swiftkey` (TBD, THIS IS NOT WORKING YET)
+- ...or install with Homebrew:
+  ```bash
+  brew install amebalabs/SwiftKey/swiftkey
+  ```
 
 ## Features
 - 🎯 Multiple overlay styles:

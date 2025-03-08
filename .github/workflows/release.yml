@@ -317,13 +317,35 @@ jobs:
             cat "CHANGELOG.md" >> "$TEMP_FILE"
           fi
           mv "$TEMP_FILE" "CHANGELOG.md"
+          
+      - name: Generate Homebrew Formula
+        if: ${{ env.IS_BETA != 'true' }}
+        run: |
+          # Only generate formula for non-beta releases
+          echo "Generating Homebrew formula for version $VERSION"
+          
+          # Ensure Formula directory exists
+          mkdir -p Formula
+          
+          # Create the formula from template
+          FORMULA_FILE="Formula/swiftkey.rb"
+          cp docs/templates/swiftkey.rb.template "$FORMULA_FILE"
+          
+          # Replace template variables
+          sed -i '' "s/{{VERSION}}/$VERSION/g" "$FORMULA_FILE"
+          sed -i '' "s/{{SHA256}}/$ZIP_SHA/g" "$FORMULA_FILE"
+          
+          echo "Generated Homebrew formula at $FORMULA_FILE"
 
       - name: Commit and Push Changes
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add CHANGELOG.md docs/appcast*.xml
-          git commit -m "docs: update CHANGELOG.md and appcast for ${TAG}" || echo "Nothing to commit"
+          if [ "$IS_BETA" != "true" ] && [ -f "Formula/swiftkey.rb" ]; then
+            git add Formula/swiftkey.rb
+          fi
+          git commit -m "docs: update CHANGELOG.md, appcast and Homebrew formula for ${TAG}" || echo "Nothing to commit"
           # Instead of pushing directly to protected main, create a branch and push for a PR
           BRANCH="release-docs-${TAG}"
           git checkout -b "$BRANCH"
