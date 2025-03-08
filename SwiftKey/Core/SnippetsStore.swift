@@ -23,24 +23,20 @@ struct ConfigSnippet: Identifiable, Codable, Equatable {
             let decoder = YAMLDecoder()
             return try decoder.decode([MenuItem].self, from: content)
         } catch {
-            // Using static logger since this is called in a struct
             AppLogger.snippets.error("Error parsing snippet YAML: \(error.localizedDescription)")
             return nil
         }
     }
 
-    /// Parsed creation date
     var creationDate: Date? {
         return dateFromString(created)
     }
 
-    /// Parsed update date
     var updateDate: Date? {
         guard let updated = updated else { return nil }
         return dateFromString(updated)
     }
 
-    /// Converts a date string to a Date object
     private func dateFromString(_ dateString: String) -> Date? {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
@@ -52,7 +48,6 @@ struct ConfigSnippet: Identifiable, Codable, Equatable {
 
 /// Manages downloading, caching and providing access to config snippets
 class SnippetsStore: ObservableObject, DependencyInjectable {
-    // Logger for this class
     private let logger = AppLogger.snippets
 
     // Published properties for reactive updates
@@ -75,55 +70,70 @@ class SnippetsStore: ObservableObject, DependencyInjectable {
     private let cacheFileName = "snippets-cache.json"
     private var cancellables = Set<AnyCancellable>()
 
-    init() {
-        // Load cached snippets immediately
-        loadCachedSnippets()
+    // Track if we've already loaded data
+    private var didInitialLoad = false
+
+    /// Ensures snippets are loaded when needed
+    private func ensureSnippetsLoaded() {
+        if !didInitialLoad {
+            logger.debug("Performing deferred snippet load")
+            Task {
+                await loadCachedSnippets()
+            }
+            didInitialLoad = true
+        }
     }
 
     // MARK: - Public Methods
 
-    /// Fetches snippets from the remote repository
-    func fetchSnippets() {
-        isLoading = true
+    /// Fetches snippets from the remote repository using async/await
+    func fetchSnippets() async {
+        // Set loading state on main thread
+        await MainActor.run {
+            isLoading = true
+            didInitialLoad = true // Mark as loaded since we're explicitly fetching now
+        }
 
         // URL for the snippets index file
         let indexURL = baseURL.appendingPathComponent("index.json")
         logger.info("Fetching snippets from URL: \(indexURL.absoluteString, privacy: .public)")
 
-        // Configure JSON decoder
-        let decoder = JSONDecoder()
+        do {
+            let (data, _) = try await URLSession.shared.data(from: indexURL)
 
-        // Perform the network request
-        URLSession.shared.dataTaskPublisher(for: indexURL)
-            .map { $0.data }
-            .decode(type: [ConfigSnippet].self, decoder: decoder)
-            .receive(on: DispatchQueue.main)
-            .sink(
-                receiveCompletion: { [weak self] completion in
-                    self?.isLoading = false
+            let fetchedSnippets = try JSONDecoder().decode([ConfigSnippet].self, from: data)
 
-                    if case let .failure(error) = completion {
-                        self?.logger.error("Failed to fetch snippets: \(error.localizedDescription)")
-                        self?.lastError = error
+            // Update UI state on main thread
+            await MainActor.run {
+                logger.info("Successfully fetched \(fetchedSnippets.count) snippets")
+                snippets = fetchedSnippets
+                filteredSnippets = fetchedSnippets
+                isLoading = false
+                lastError = nil
+            }
 
-                        // Load cached snippets if available
-                        if self?.snippets.isEmpty == true {
-                            self?.loadCachedSnippets()
-                        }
+            try await cacheSnippets(fetchedSnippets)
+
+        } catch {
+            logger.error("Failed to fetch snippets: \(error.localizedDescription)")
+
+            await MainActor.run {
+                isLoading = false
+                lastError = error
+
+                if snippets.isEmpty {
+                    Task {
+                        await loadCachedSnippets()
                     }
-                },
-                receiveValue: { [weak self] fetchedSnippets in
-                    self?.logger.info("Successfully fetched \(fetchedSnippets.count) snippets")
-                    self?.snippets = fetchedSnippets
-                    self?.filteredSnippets = fetchedSnippets
-                    self?.cacheSnippets(fetchedSnippets)
                 }
-            )
-            .store(in: &cancellables)
+            }
+        }
     }
 
     /// Searches snippets based on a query string
     func searchSnippets(query: String) {
+        ensureSnippetsLoaded()
+
         guard !query.isEmpty else {
             filteredSnippets = snippets
             return
@@ -139,40 +149,30 @@ class SnippetsStore: ObservableObject, DependencyInjectable {
         }
     }
 
-    /// Imports a snippet and merges it with the existing config
-    func importSnippet(_ snippet: ConfigSnippet, mergeStrategy: MergeStrategy = .append) -> Result<Void, Error> {
+    func importSnippet(_ snippet: ConfigSnippet, mergeStrategy: MergeStrategy = .append) async throws {
         guard let menuItems = snippet.menuItems else {
-            return .failure(SnippetError.invalidYamlFormat)
+            throw SnippetError.invalidYamlFormat
         }
 
-        // Use ConfigManager to merge and save the snippet
-        let result = configManager.importSnippet(menuItems: menuItems, strategy: mergeStrategy)
-        switch result {
-        case .success:
-            return .success(())
-        case let .failure(error):
-            return .failure(error)
-        }
+        try await configManager.importSnippet(menuItems: menuItems, strategy: mergeStrategy)
     }
 
-    /// Creates a snippet from a subset of current config
     func createSnippet(
         from menuItems: [MenuItem],
         name: String,
         description: String,
         author: String,
         tags: [String]
-    ) -> Result<ConfigSnippet, Error> {
-        do {
+    ) async throws -> ConfigSnippet {
+        return try await Task {
             let encoder = YAMLEncoder()
             let yamlContent = try encoder.encode(menuItems)
 
-            // Format today's date as ISO string
             let dateFormatter = DateFormatter()
             dateFormatter.dateFormat = "yyyy-MM-dd"
             let createdString = dateFormatter.string(from: Date())
 
-            let snippet = ConfigSnippet(
+            return ConfigSnippet(
                 id: "\(author.lowercased())/\(name.lowercased().replacingOccurrences(of: " ", with: "-"))",
                 name: name,
                 description: description,
@@ -183,51 +183,51 @@ class SnippetsStore: ObservableObject, DependencyInjectable {
                 content: yamlContent,
                 previewImageURL: nil
             )
-
-            return .success(snippet)
-        } catch {
-            return .failure(error)
-        }
+        }.value
     }
 
     // MARK: - Private Methods
 
-    /// Loads snippets from local cache
-    private func loadCachedSnippets() {
+    private func loadCachedSnippets() async {
         guard let cacheURL = getCacheFileURL() else { return }
 
         do {
             let data = try Data(contentsOf: cacheURL)
             let cachedSnippets = try JSONDecoder().decode([ConfigSnippet].self, from: data)
-            DispatchQueue.main.async { [weak self] in
-                self?.snippets = cachedSnippets
-                self?.filteredSnippets = cachedSnippets
+
+            await MainActor.run {
+                snippets = cachedSnippets
+                filteredSnippets = cachedSnippets
+                logger.info("Loaded \(cachedSnippets.count) snippets from cache")
             }
-            logger.info("Loaded \(cachedSnippets.count) snippets from cache")
         } catch {
             logger.error("Failed to load snippets from cache: \(error.localizedDescription)")
-            // If we can't load from cache, fetch fresh data
-            fetchSnippets()
+
+            await fetchSnippets()
         }
     }
 
-    /// Caches snippets locally
-    private func cacheSnippets(_ snippetsToCache: [ConfigSnippet]) {
+    private func cacheSnippets(_ snippetsToCache: [ConfigSnippet]) async throws {
         guard let cacheURL = getCacheFileURL() else {
             logger.error("Failed to get cache URL")
-            return
+            throw NSError(
+                domain: "com.swiftkey.snippets",
+                code: -1,
+                userInfo: [NSLocalizedDescriptionKey: "Failed to get cache URL"]
+            )
         }
 
         do {
             let data = try JSONEncoder().encode(snippetsToCache)
+
             try data.write(to: cacheURL)
             logger.debug("Successfully cached \(snippetsToCache.count) snippets")
         } catch {
             logger.error("Failed to cache snippets: \(error.localizedDescription)")
+            throw error
         }
     }
 
-    /// Gets the URL for the cache file
     private func getCacheFileURL() -> URL? {
         do {
             let cacheDirectory = try FileManager.default.url(

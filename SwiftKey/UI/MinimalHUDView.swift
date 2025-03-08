@@ -3,8 +3,13 @@ import SwiftUI
 struct MinimalHUDView: View {
     @ObservedObject var state: MenuState
     @EnvironmentObject var settings: SettingsStore
+    @EnvironmentObject var keyboardManager: KeyboardManager
     @State private var lastKey: String = ""
     @State private var error: Bool = false
+
+    init(state: MenuState) {
+        self.state = state
+    }
 
     var body: some View {
         VStack(spacing: 8) {
@@ -41,29 +46,38 @@ struct MinimalHUDView: View {
     }
 
     func handleKeyPress(_ key: String) {
-        KeyboardManager.shared.handleKey(key: key) { result in
-            switch result {
-            case .escape:
-                NotificationCenter.default.post(name: .hideOverlay, object: nil)
-            case .help:
-                AppDelegate.shared.presentOverlay()
-            case .up:
-                break
-            case .submenuPushed:
-                lastKey = ""
-            case .actionExecuted:
-                NotificationCenter.default.post(name: .hideOverlay, object: nil)
-            case .dynamicLoading:
-                lastKey = "Loading..."
-            case let .error(errorKey):
+        Task {
+            await processKeyPress(key)
+        }
+    }
+
+    func processKeyPress(_ key: String) async {
+        let result = await keyboardManager.handleKey(key: key)
+
+        switch result {
+        case .escape:
+            NotificationCenter.default.post(name: .hideOverlay, object: nil)
+        case .help:
+            NotificationCenter.default.post(name: .presentOverlay, object: nil)
+        case .up:
+            break
+        case .submenuPushed:
+            lastKey = ""
+        case .actionExecuted:
+            NotificationCenter.default.post(name: .hideOverlay, object: nil)
+        case .dynamicLoading:
+            lastKey = "Loading..."
+        case let .error(errorKey):
+            await MainActor.run {
                 withAnimation(.easeInOut(duration: 0.1)) { lastKey = errorKey }
                 error = true
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                    withAnimation { error = false }
-                }
-            case .none:
-                break
             }
+
+            await MainActor.run {
+                withAnimation { error = false }
+            }
+        case .none:
+            break
         }
     }
 }

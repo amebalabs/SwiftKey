@@ -2,13 +2,15 @@ import Combine
 import Foundation
 import os
 
+/// Central container for all application dependencies
+/// This class manages the lifecycle and dependencies of all major services in the app
 class DependencyContainer {
-    static let shared = DependencyContainer()
+    // No more singleton - each instance is a complete container of all application services
 
     // Logger for this class
     private let logger = AppLogger.core
 
-    // Services
+    // Services - all non-optional since they're fully managed by the container
     let configManager: ConfigManager
     let settingsStore: SettingsStore
     let menuState: MenuState
@@ -16,45 +18,51 @@ class DependencyContainer {
     let deepLinkHandler: DeepLinkHandler
     let keyboardManager: KeyboardManager
     let snippetsStore: SnippetsStore
+    let dynamicMenuLoader: DynamicMenuLoader
 
+    // Track active subscriptions
     private var cancellables = Set<AnyCancellable>()
 
     init(
-        configManager: ConfigManager = ConfigManager.shared,
+        // Use factory methods instead of singletons for better testability
+        configManager: ConfigManager? = nil,
         settingsStore: SettingsStore? = nil,
-        menuState: MenuState = MenuState(),
-        sparkleUpdater: SparkleUpdater = SparkleUpdater.shared,
-        deepLinkHandler: DeepLinkHandler = DeepLinkHandler.shared,
-        keyboardManager: KeyboardManager = KeyboardManager.shared,
-        snippetsStore: SnippetsStore = SnippetsStore()
+        menuState: MenuState? = nil,
+        sparkleUpdater: SparkleUpdater? = nil,
+        deepLinkHandler: DeepLinkHandler? = nil,
+        keyboardManager: KeyboardManager? = nil,
+        snippetsStore: SnippetsStore? = nil,
+        dynamicMenuLoader: DynamicMenuLoader? = nil
     ) {
-        // Create a new SettingsStore if one wasn't provided
-        let settings = settingsStore ?? SettingsStore(sparkleUpdater: sparkleUpdater)
-        self.configManager = configManager
-        self.settingsStore = settings
-        self.menuState = menuState
-        self.sparkleUpdater = sparkleUpdater
-        self.deepLinkHandler = deepLinkHandler
-        self.keyboardManager = keyboardManager
-        self.snippetsStore = snippetsStore
+        self.sparkleUpdater = sparkleUpdater ?? SparkleUpdater.shared
+
+        // Now create other components using factory methods or constructors
+        self.settingsStore = settingsStore ?? SettingsStore(sparkleUpdater: self.sparkleUpdater)
+        self.configManager = configManager ?? ConfigManager.create()
+        self.menuState = menuState ?? MenuState()
+        self.deepLinkHandler = deepLinkHandler ?? DeepLinkHandler.create()
+        self.keyboardManager = keyboardManager ?? KeyboardManager.create()
+        self.snippetsStore = snippetsStore ?? SnippetsStore()
+        self.dynamicMenuLoader = dynamicMenuLoader ?? DynamicMenuLoader.create()
 
         // Inject dependencies into components in the correct order
         // First inject into services that don't depend on others
-        sparkleUpdater.injectDependencies(self)
-        settings.injectDependencies(self)
+        self.settingsStore.injectDependencies(self)
 
         // Then inject into services that depend on the above
-        configManager.injectDependencies(self)
-        menuState.injectDependencies(self)
-        deepLinkHandler.injectDependencies(self)
-        keyboardManager.injectDependencies(self)
-        snippetsStore.injectDependencies(self)
+        self.configManager.injectDependencies(self)
+        self.deepLinkHandler.injectDependencies(self)
+        self.keyboardManager.injectDependencies(self)
+        self.snippetsStore.injectDependencies(self)
+        self.dynamicMenuLoader.injectDependencies(self)
 
-        // Set up services that need post-injection initialization
-        configManager.setupAfterDependenciesInjected()
+        logger.notice("Initializing SwiftKey dependency container")
 
-        // Set up initial connections between components
         setupComponentConnections()
+
+        Task {
+            await configManager?.setupAfterDependenciesInjected()
+        }
     }
 
     /// Connect components via publishers/subscribers
@@ -62,14 +70,15 @@ class DependencyContainer {
         // Connect ConfigManager to MenuState
         configManager.menuItemsPublisher
             .receive(on: RunLoop.main)
+            .filter { !$0.isEmpty } // Skip empty arrays completely
             .sink { [weak self] items in
                 guard let self = self else { return }
-                self.menuState.rootMenu = items
-                self.logger.debug("Updated menu items: \(items.count) items")
 
-                // Re-register keyboard shortcuts whenever menu items are updated
+                self.logger.debug("Menu publisher received update: \(items.count) items")
+                self.menuState.rootMenu = items
+                self.menuState.reset()
                 self.keyboardManager.registerMenuHotkeys(items)
-                self.logger.debug("Re-registered keyboard shortcuts for menu items")
+                self.logger.debug("Re-registered keyboard shortcuts with \(items.count) menu items")
             }
             .store(in: &cancellables)
 

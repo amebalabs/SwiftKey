@@ -9,25 +9,20 @@ class FacelessMenuController: DependencyInjectable {
     var animationTimer: Timer?
     var indicatorState: Bool = false
     var sessionActive: Bool = false
-    // Dependencies
-    var menuState: MenuState
-    var settingsStore: SettingsStore?
-    var keyboardManager: KeyboardManager?
+    // Dependencies - non-optional for consistent dependency handling
+    var menuState: MenuState!
+    var settingsStore: SettingsStore!
+    var keyboardManager: KeyboardManager!
 
     init(
         rootMenu: [MenuItem],
         statusItem: NSStatusItem,
-        resetDelay: TimeInterval,
-        menuState: MenuState,
-        settingsStore: SettingsStore? = nil,
-        keyboardManager: KeyboardManager? = KeyboardManager.shared
+        resetDelay: TimeInterval
     ) {
         self.rootMenu = rootMenu
         self.statusItem = statusItem
         self.resetDelay = resetDelay
-        self.menuState = menuState
-        self.settingsStore = settingsStore
-        self.keyboardManager = keyboardManager
+
         updateStatusItem()
     }
 
@@ -42,16 +37,21 @@ class FacelessMenuController: DependencyInjectable {
     }
 
     func updateStatusItem() {
-        let imageConfig = NSImage.SymbolConfiguration(pointSize: 20, weight: .medium, scale: .small)
-        if sessionActive {
-            statusItem.button?.title = ""
-            let imageName = indicatorState ? "circle.fill" : "circle"
-            statusItem.button?.image = NSImage(systemSymbolName: imageName, accessibilityDescription: "Active session")?
-                .withSymbolConfiguration(imageConfig)
-        } else {
-            statusItem.button?
-                .image = NSImage(systemSymbolName: "k.circle", accessibilityDescription: "Active session")?
-                .withSymbolConfiguration(imageConfig)
+        Task { @MainActor in
+            let imageConfig = NSImage.SymbolConfiguration(pointSize: 20, weight: .medium, scale: .small)
+            if sessionActive {
+                statusItem.button?.title = ""
+                let imageName = indicatorState ? "circle.fill" : "circle"
+                statusItem.button?.image = NSImage(
+                    systemSymbolName: imageName,
+                    accessibilityDescription: "Active session"
+                )?
+                    .withSymbolConfiguration(imageConfig)
+            } else {
+                statusItem.button?
+                    .image = NSImage(systemSymbolName: "k.circle", accessibilityDescription: "Active session")?
+                    .withSymbolConfiguration(imageConfig)
+            }
         }
     }
 
@@ -67,12 +67,18 @@ class FacelessMenuController: DependencyInjectable {
         updateStatusItem()
     }
 
-    func blinkIndicator(success: Bool) {
+    func blinkIndicator(success: Bool) async {
         animationTimer?.invalidate()
         animationTimer = nil
+
         if let button = statusItem.button {
-            button.contentTintColor = success ? NSColor.systemGreen : NSColor.systemRed
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+            await MainActor.run {
+                button.contentTintColor = success ? NSColor.systemGreen : NSColor.systemRed
+            }
+
+            try? await Task.sleep(nanoseconds: 300000000)
+
+            await MainActor.run { [weak self] in
                 button.contentTintColor = nil
                 self?.startAnimationTimer()
             }
@@ -93,34 +99,41 @@ class FacelessMenuController: DependencyInjectable {
         startAnimationTimer()
         updateStatusItem()
         resetSessionTimer()
+
         localMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard let self = self,
                   let key = englishCharactersForKeyEvent(event: event),
                   !key.isEmpty else { return event }
 
-            self.keyboardManager?.handleKey(key: key) { result in
+            // Spawn a Task to handle the key press asynchronously
+            Task { [weak self] in
+                guard let self = self else { return }
+
+                let result = await keyboardManager.handleKey(key: key)
+
                 switch result {
                 case .escape:
                     self.endSession()
                 case .help:
                     self.endSession()
-                    AppDelegate.shared.presentOverlay()
+                    NotificationCenter.default.post(name: .presentOverlay, object: nil)
                 case .up:
                     break
                 case .submenuPushed:
-                    self.blinkIndicator(success: true)
+                    await self.blinkIndicator(success: true)
                     self.updateStatusItem()
                 case .actionExecuted:
                     self.endSession()
                 case .dynamicLoading:
                     break
                 case .error:
-                    self.blinkIndicator(success: false)
+                    await self.blinkIndicator(success: false)
                 case .none:
                     break
                 }
                 self.resetSessionTimer()
             }
+
             return nil
         }
     }
@@ -135,8 +148,10 @@ class FacelessMenuController: DependencyInjectable {
         animationTimer = nil
         sessionTimer?.invalidate()
         sessionTimer = nil
-        menuState.menuStack = []
-        menuState.breadcrumbs = []
+        Task { @MainActor in
+            menuState.menuStack = []
+            menuState.breadcrumbs = []
+        }
         updateStatusItem()
     }
 }

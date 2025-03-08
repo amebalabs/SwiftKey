@@ -2,7 +2,6 @@ import Foundation
 import os
 
 class ConfigMonitor {
-    static let shared = ConfigMonitor()
     private let logger = AppLogger.config
     private var lastModificationDate: Date?
 

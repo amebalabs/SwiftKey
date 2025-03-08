@@ -4,8 +4,8 @@ import SwiftUI
 struct GeneralSettingsView: View {
     @EnvironmentObject var settings: SettingsStore
     @ObservedObject private var launchAtLogin = LaunchAtLogin.observable
-    @StateObject private var updater = SparkleUpdater.shared
-    @ObservedObject private var configManager = ConfigManager.shared
+    @EnvironmentObject private var sparkleUpdater: SparkleUpdater
+    @EnvironmentObject private var configManager: ConfigManager
 
     var body: some View {
         Form {
@@ -89,7 +89,9 @@ struct GeneralSettingsView: View {
 
                     HStack {
                         Button("Reload Configuration") {
-                            configManager.loadConfig()
+                            Task {
+                                await configManager.loadConfig()
+                            }
                         }
                         .buttonStyle(.borderedProminent)
                         .controlSize(.small)
@@ -124,11 +126,11 @@ struct GeneralSettingsView: View {
             Section {
                 HStack {
                     Button("Check for Updates Now") {
-                        updater.checkForUpdates()
+                        sparkleUpdater.checkForUpdates()
                     }
-                    .disabled(!updater.canCheckForUpdates)
+                    .disabled(!sparkleUpdater.canCheckForUpdates)
 
-                    if !updater.canCheckForUpdates {
+                    if !sparkleUpdater.canCheckForUpdates {
                         ProgressView()
                             .controlSize(.small)
                             .padding(.leading, 4)

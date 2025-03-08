@@ -18,7 +18,8 @@ struct SettingsView: View {
                 .tag(Tabs.general)
 
             SnippetsSettingsView(openGallery: {
-                showGalleryWindow()
+                NotificationCenter.default
+                    .post(name: .presentGalleryWindow, object: nil)
             })
             .tabItem {
                 Label("Snippets", systemImage: "square.grid.2x2")
@@ -31,10 +32,6 @@ struct SettingsView: View {
                 }
                 .tag(Tabs.about)
         }.padding(20)
-    }
-
-    private func showGalleryWindow() {
-        AppDelegate.showGalleryWindow()
     }
 }
 
@@ -51,7 +48,8 @@ struct SnippetsSettingsView: View {
                 .lineLimit(nil)
 
             Button("Open Snippets Gallery") {
-                openGallery()
+                NotificationCenter.default
+                    .post(name: .presentGalleryWindow, object: nil)
             }
             .controlSize(.large)
 
@@ -81,5 +79,5 @@ struct SnippetsSettingsView: View {
 #Preview {
     SettingsView()
         .environmentObject(SettingsStore())
-        .environmentObject(ConfigManager.shared)
+        .environmentObject(ConfigManager())
 }

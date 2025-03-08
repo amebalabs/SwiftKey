@@ -3,21 +3,26 @@ import Foundation
 import os
 import SwiftUI
 
+/// Handles deep links to the app
 class DeepLinkHandler: DependencyInjectable {
-    static let shared = DeepLinkHandler()
+    static func create() -> DeepLinkHandler {
+        return DeepLinkHandler()
+    }
 
-    // Logger for this class
     private let logger = AppLogger.core
 
-    // Dependencies
-    var menuState: MenuState?
+    private(set) var menuState: MenuState
+
+    init() {
+        self.menuState = MenuState()
+    }
 
     func injectDependencies(_ container: DependencyContainer) {
         self.menuState = container.menuState
-        logger.debug("Dependencies injected")
+        logger.debug("DeepLinkHandler: Dependencies injected")
     }
 
-    func handle(url: URL) {
+    func handle(url: URL) async {
         guard url.scheme?.lowercased() == "swiftkey" else { return }
 
         // Handle snippet import URLs (format: swiftkey://snippets/author/name)
@@ -37,52 +42,43 @@ class DeepLinkHandler: DependencyInjectable {
         }
         let pathKeys = pathQuery.components(separatedBy: ",")
 
-        guard let state = self.menuState else {
-            logger.error("MenuState not properly injected")
-            return
-        }
-
-        state.reset()
-        var currentMenu = state.rootMenu
-        var lastFound: MenuItem?
-        for key in pathKeys {
-            if let found = currentMenu.first(where: { $0.key == key }) {
-                lastFound = found
-                if let submenu = found.submenu {
-                    state.breadcrumbs.append(found.title)
-                    state.menuStack.append(submenu)
-                    currentMenu = submenu
+        await MainActor.run {
+            menuState.reset()
+            var currentMenu = menuState.rootMenu
+            var lastFound: MenuItem?
+            for key in pathKeys {
+                if let found = currentMenu.first(where: { $0.key == key }) {
+                    lastFound = found
+                    if let submenu = found.submenu {
+                        menuState.breadcrumbs.append(found.title)
+                        menuState.menuStack.append(submenu)
+                        currentMenu = submenu
+                    } else {
+                        break
+                    }
                 } else {
+                    lastFound = nil
                     break
                 }
-            } else {
-                lastFound = nil
-                break
             }
-        }
-        guard let item = lastFound else {
-            logger.error("Menu item not found for path \(pathKeys)")
-            return
-        }
-        if item.submenu == nil, let action = item.actionClosure {
-            DispatchQueue.main.async {
-                action()
+            guard let item = lastFound else {
+                logger.error("Menu item not found for path \(pathKeys)")
+                return
             }
-        } else {
-            // Open the overlay UI with the submenu open.
-            if let appDelegate = AppDelegate.shared {
-                DispatchQueue.main.async {
-                    // Use presentOverlay method to handle any single dynamic menu items
-                    appDelegate.presentOverlay()
-                    NSApp.activate(ignoringOtherApps: true)
+
+            Task {
+                if item.submenu == nil, let action = item.actionClosure {
+                    Task { @MainActor in
+                        action()
+                    }
+                } else {
+                    NotificationCenter.default.post(name: .presentOverlay, object: nil)
                 }
             }
         }
     }
 
-    /// Handles importing a snippet from a deep link
     private func handleSnippetImport(url: URL) {
-        // Get snippet ID from URL path
         let snippetId = url.path.trimmingCharacters(in: .init(charactersIn: "/"))
 
         guard !snippetId.isEmpty else {
@@ -92,10 +88,13 @@ class DeepLinkHandler: DependencyInjectable {
 
         logger.info("Opening snippet gallery for snippet ID: \(snippetId, privacy: .public)")
 
-        // Open snippets gallery with pre-selected snippet
-        DispatchQueue.main.async {
-            AppDelegate.showGalleryWindow(preselectedSnippetId: snippetId)
-            NSApp.activate(ignoringOtherApps: true)
+        Task { @MainActor in
+            NotificationCenter.default
+                .post(
+                    name: .presentGalleryWindow,
+                    object: nil,
+                    userInfo: ["snippetId": snippetId]
+                )
         }
     }
 }

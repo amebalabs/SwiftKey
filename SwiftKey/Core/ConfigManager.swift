@@ -4,130 +4,164 @@ import Foundation
 import os
 import Yams
 
+/// Manages loading, parsing, and updating configuration files
 class ConfigManager: DependencyInjectable, ObservableObject {
-    static let shared = ConfigManager()
-
-    // Logger for this class
     private let logger = AppLogger.config
+
+    /// Factory method to create a new ConfigManager instance
+    static func create() -> ConfigManager {
+        return ConfigManager()
+    }
 
     // Published properties for reactive updates
     @Published private(set) var menuItems: [MenuItem] = []
     @Published private(set) var lastError: Error?
-    @Published private(set) var lastUpdateTime: Date?
 
     private var lastModificationDate: Date?
 
-    // Dependencies
-    var settingsStore: SettingsStore!
+    // Dependencies - using non-optional since this is a required dependency
+    private(set) var settingsStore: SettingsStore
+
+    // Default initializer for container creation
+    init() {
+        // Default empty initialization, proper values will be set by injectDependencies
+        self.settingsStore = SettingsStore()
+    }
 
     func injectDependencies(_ container: DependencyContainer) {
         self.settingsStore = container.settingsStore
         logger.debug("SettingsStore injected successfully")
     }
 
-    // Publishers
+    // Private subject to control when menu items are published
+    private let menuItemsSubject = CurrentValueSubject<[MenuItem], Never>([])
+
+    // Publishers - using the subject to avoid initial empty array publish
     var menuItemsPublisher: AnyPublisher<[MenuItem], Never> {
-        $menuItems.eraseToAnyPublisher()
+        menuItemsSubject.eraseToAnyPublisher()
     }
 
     var errorPublisher: AnyPublisher<Error?, Never> {
         $lastError.eraseToAnyPublisher()
     }
 
-    init() {
-        // Initialization without loading config
-        // Config will be loaded after dependencies are injected
-    }
-
     // This will be called after dependencies are injected
     private var didSetupDependencies = false
-    func setupAfterDependenciesInjected() {
-        guard !didSetupDependencies else { return }
+
+    /// Setup after dependencies are injected using async/await
+    /// Performs one-time initialization after dependencies are injected
+    func setupAfterDependenciesInjected() async {
+        guard !didSetupDependencies else {
+            return // Silent return - avoid unnecessary logging
+        }
+
         didSetupDependencies = true
 
-        logger.info("Setting up after dependencies injected")
+        let result = await loadConfig()
 
-        // Load config and make sure it's processed
-        DispatchQueue.main.async { [weak self] in
-            _ = self?.loadConfig()
-
-            // If no config was loaded yet, try again with a delay
-            // This helps with first launch scenarios
-            if let self = self, self.menuItems.isEmpty {
-                logger.notice("Menu items empty after initial load, retrying...")
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    _ = self.loadConfig()
-                }
+        if case let .success(items) = result {
+            if items.isEmpty {
+                logger.notice("Initial config load: No menu items found")
+            } else {
+                logger.info("Initial config load completed with \(items.count) items")
             }
+        } else if case let .failure(error) = result {
+            logger.error("Initial config load failed: \(error.localizedDescription)")
         }
     }
 
     // MARK: - Public Methods
 
-    /// Loads the configuration from the YAML file
-    /// - Returns: A Result indicating success or failure with detailed error information
     @discardableResult
-    func loadConfig() -> Result<[MenuItem], ConfigError> {
-        logger.debug("loadConfig() called")
-
-        // Make sure dependencies are ready
-        guard settingsStore != nil else {
-            logger.error("SettingsStore not yet injected, delaying load")
-            self.lastError = ConfigError.dependencyNotReady
-            return .failure(.dependencyNotReady)
-        }
+    func loadConfig() async -> Result<[MenuItem], ConfigError> {
+        logger.debug("loadConfig() called - will attempt to load menu configuration")
 
         guard let configURL = resolveConfigFileURL() else {
             logger.error("Failed to resolve config file URL")
-            self.lastError = ConfigError.fileNotFound
+            await MainActor.run {
+                self.lastError = ConfigError.fileNotFound
+            }
             return .failure(.fileNotFound)
         }
 
         logger.info("Loading config from \(configURL.path, privacy: .public)")
 
-        // Read the file content
-        let fileReadResult = readConfigFile(from: configURL)
+        // Use Task to read the file asynchronously
+        let fileReadResult = await Task {
+            readConfigFile(from: configURL)
+        }.value
+
         switch fileReadResult {
         case let .failure(error):
-            self.lastError = error
+            await MainActor.run {
+                self.lastError = error
+            }
             return .failure(error)
+
         case let .success(yamlString):
             logger.debug("Successfully read YAML file, length: \(yamlString.count) characters")
 
             // Validate the YAML format before parsing
             if yamlString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 logger.error("Config file is empty")
-                self.lastError = ConfigError.emptyFile
+                await MainActor.run {
+                    self.lastError = ConfigError.emptyFile
+                }
                 return .failure(.emptyFile)
             }
 
-            // Parse the YAML
-            let parseResult = parseYAML(yamlString)
+            let parseResult = await Task {
+                parseYAML(yamlString)
+            }.value
+
             switch parseResult {
             case let .failure(error):
-                self.lastError = error
+                await MainActor.run {
+                    self.lastError = error
+                }
                 return .failure(error)
+
             case let .success(config):
                 // Validate the parsed config
                 if config.isEmpty {
                     logger.error("Config is empty, no menu items found")
-                    self.lastError = ConfigError.emptyConfiguration
+                    await MainActor.run {
+                        self.lastError = ConfigError.emptyConfiguration
+                    }
                     return .failure(.emptyConfiguration)
                 }
 
                 // Validate the menu items structure
-                let validationResult = validateMenuItemsResult(config)
+                let validationResult = validateMenuItems(config)
                 switch validationResult {
                 case let .failure(error):
-                    self.lastError = error
+                    await MainActor.run {
+                        self.lastError = error
+                    }
                     return .failure(error)
+
                 case .success:
-                    // Successfully parsed, update the menu items
-                    DispatchQueue.main.async { [weak self] in
-                        self?.logger.info("Updating menu items: \(config.count) items")
-                        self?.menuItems = config
-                        self?.lastError = nil
-                        self?.lastUpdateTime = Date()
+                    // Successfully parsed, update the menu items on the main actor
+                    await MainActor.run {
+                        logger.info("Config load successful, publishing \(config.count) menu items")
+                        // Debug each menu item to verify their actions
+                        for item in config {
+                            logger.debug("Menu item: '\(item.title)' with key '\(item.key)'")
+                            if let action = item.action {
+                                logger.debug(" - Action: '\(action)'")
+                                if item.actionClosure == nil {
+                                    logger.error(" - No action closure generated for action: '\(action)'")
+                                } else {
+                                    logger.debug(" - Action closure successfully generated")
+                                }
+                            } else if let submenu = item.submenu {
+                                logger.debug(" - Has submenu with \(submenu.count) items")
+                            }
+                        }
+
+                        menuItems = config // Update the @Published property
+                        menuItemsSubject.send(config) // Explicitly send to subject
+                        lastError = nil
                     }
                     return .success(config)
                 }
@@ -135,7 +169,6 @@ class ConfigManager: DependencyInjectable, ObservableObject {
         }
     }
 
-    /// Read configuration file from the specified URL
     private func readConfigFile(from url: URL) -> Result<String, ConfigError> {
         do {
             let yamlString = try String(contentsOf: url, encoding: .utf8)
@@ -160,7 +193,6 @@ class ConfigManager: DependencyInjectable, ObservableObject {
         }
     }
 
-    /// Parse YAML string into menu items
     private func parseYAML(_ yamlString: String) -> Result<[MenuItem], ConfigError> {
         let decoder = YAMLDecoder()
 
@@ -244,39 +276,38 @@ class ConfigManager: DependencyInjectable, ObservableObject {
 
         guard dialog.runModal() == .OK, let url = dialog.url else { return }
         settingsStore.configFilePath = url.path
-        loadConfig()
+        Task {
+            await loadConfig()
+        }
     }
 
-    /// Opens the current configuration file in Finder
     func openConfigFile() {
         guard let url = resolveConfigFileURL() else { return }
-
-        // Reveal the file in Finder by selecting it
         NSWorkspace.shared.selectFile(
             url.path,
             inFileViewerRootedAtPath: url.deletingLastPathComponent().path
         )
     }
 
-    /// Imports and merges menu items from a snippet into the current configuration
-    func importSnippet(menuItems: [MenuItem], strategy: MergeStrategy) -> Result<Void, ConfigError> {
-        // Validation
-        do {
-            try validateMenuItems(menuItems)
-        } catch let validationError as ConfigError {
+    func importSnippet(menuItems: [MenuItem], strategy: MergeStrategy) async throws {
+        let validationResult = await Task {
+            validateMenuItems(menuItems)
+        }.value
+
+        switch validationResult {
+        case let .failure(validationError):
             logger.error("Snippet validation failed: \(validationError.localizedDescription)")
-            self.lastError = validationError
-            return .failure(validationError)
-        } catch {
-            logger.error("Unexpected validation error: \(error.localizedDescription)")
-            self.lastError = ConfigError.unknown(underlying: error)
-            return .failure(ConfigError.unknown(underlying: error))
+            await MainActor.run {
+                self.lastError = validationError
+            }
+            throw validationError
+        case .success:
+            break
         }
 
-        // Get current config
-        var currentConfig = self.menuItems
+        var currentConfig = menuItems
 
-        // Apply merge strategy
+        // Apply merge strategy (can be done off main thread)
         switch strategy {
         case .append:
             currentConfig.append(contentsOf: menuItems)
@@ -289,46 +320,70 @@ class ConfigManager: DependencyInjectable, ObservableObject {
         }
 
         // Save back to file
-        return saveMenuItems(currentConfig)
+        let result = await saveMenuItems(currentConfig)
+        switch result {
+        case .success:
+            return
+        case let .failure(error):
+            throw error
+        }
     }
 
-    /// Saves the menu items to the current config file
-    func saveMenuItems(_ items: [MenuItem]) -> Result<Void, ConfigError> {
+    func saveMenuItems(_ items: [MenuItem]) async -> Result<Void, ConfigError> {
         guard let url = resolveConfigFileURL() else {
             return .failure(ConfigError.fileNotFound)
         }
 
-        do {
-            // Create a YAML encoder with a custom encoding function that strips out IDs
-            let yamlString = try createCleanYaml(from: items)
+        let yamlResult = await Task {
+            createCleanYaml(from: items)
+        }.value
 
-            try yamlString.write(to: url, atomically: true, encoding: .utf8)
-            logger.info("Successfully saved \(items.count) menu items to \(url.path, privacy: .public)")
-
-            // Update the menu items
-            DispatchQueue.main.async { [weak self] in
-                self?.menuItems = items
-                self?.lastError = nil
-                self?.lastUpdateTime = Date()
+        // Check for YAML generation errors
+        switch yamlResult {
+        case let .failure(error):
+            await MainActor.run {
+                self.lastError = error
             }
+            return .failure(error)
 
-            return .success(())
-        } catch {
-            logger.error("Failed to save config: \(error.localizedDescription)")
-            self.lastError = ConfigError.readFailed(underlying: error)
-            return .failure(ConfigError.readFailed(underlying: error))
+        case let .success(yamlString):
+            do {
+                // Write to file
+                try yamlString.write(to: url, atomically: true, encoding: .utf8)
+                logger.info("Successfully saved \(items.count) menu items to \(url.path, privacy: .public)")
+
+                // Update the menu items on the main actor
+                await MainActor.run {
+                    menuItems = items
+                    menuItemsSubject.send(items)
+                    lastError = nil
+                }
+
+                return .success(())
+            } catch {
+                logger.error("Failed to save config: \(error.localizedDescription)")
+
+                let wrappedError = ConfigError.readFailed(underlying: error)
+                await MainActor.run {
+                    self.lastError = wrappedError
+                }
+
+                return .failure(wrappedError)
+            }
         }
     }
 
     /// Creates YAML using the standard encoder
     /// The MenuItem.encode(to:) method already handles skipping the ID
-    private func createCleanYaml(from items: [MenuItem]) -> String {
+    /// - Returns: A Result with the YAML string or an error
+    private func createCleanYaml(from items: [MenuItem]) -> Result<String, ConfigError> {
         let encoder = YAMLEncoder()
         do {
-            return try encoder.encode(items)
+            let yamlString = try encoder.encode(items)
+            return .success(yamlString)
         } catch {
             logger.error("Error creating YAML: \(error.localizedDescription)")
-            return ""
+            return .failure(ConfigError.parsingFailed(underlying: error))
         }
     }
 
@@ -341,7 +396,7 @@ class ConfigManager: DependencyInjectable, ObservableObject {
             if let existingIndex = result.firstIndex(where: { $0.key == newItem.key && $0.title == newItem.title }) {
                 // If same key+title, replace the item completely
                 result[existingIndex] = newItem
-            } else if let existingKeyIndex = result.firstIndex(where: { $0.key == newItem.key }) {
+            } else if result.contains(where: { $0.key == newItem.key }) {
                 // If only same key, add as a new item (avoids key conflicts)
                 let uniqueItem = makeKeyUnique(newItem, existingItems: result)
                 result.append(uniqueItem)
@@ -404,31 +459,37 @@ class ConfigManager: DependencyInjectable, ObservableObject {
         return false
     }
 
-    @discardableResult func refreshIfNeeded() -> Bool {
-        if hasConfigChanged() {
-            _ = loadConfig()
+    @discardableResult
+    func refreshIfNeeded() async -> Bool {
+        if await checkConfigChanged() {
+            await loadConfig()
             return true
         }
         return false
     }
 
-    /// Helper to resolve the config file URL using direct file path
-    func resolveConfigFileURL() -> URL? {
-        // Ensure we have a valid reference to settings store
-        guard let settings = settingsStore else {
-            logger.error("SettingsStore is not properly injected into ConfigManager")
-            return nil
-        }
+    private func checkConfigChanged() async -> Bool {
+        return await Task {
+            hasConfigChanged()
+        }.value
+    }
 
+    func resolveConfigFileURL() -> URL? {
         // Use the direct path
-        if let url = settings.configFileResolvedURL {
+        if let url = settingsStore.configFileResolvedURL {
             logger.debug("Using direct path: \(url.path, privacy: .public)")
             return url
         } else {
-            logger.notice("No configuration file path available, creating default")
+            logger.notice("No configuration file path available, creating default config file")
             // Default to bundle location or create one in user Documents
             let defaultConfigPath = createDefaultConfigIfNeeded()
-            logger.debug("Using default config at: \(defaultConfigPath?.path ?? "none", privacy: .public)")
+
+            if let path = defaultConfigPath?.path {
+                logger.notice("Created default config at: \(path, privacy: .public)")
+            } else {
+                logger.error("Failed to create default config file")
+            }
+
             return defaultConfigPath
         }
     }
@@ -499,7 +560,7 @@ class ConfigManager: DependencyInjectable, ObservableObject {
     }
 
     /// Validates menu items recursively using Result
-    private func validateMenuItemsResult(_ items: [MenuItem]) -> Result<Void, ConfigError> {
+    private func validateMenuItems(_ items: [MenuItem]) -> Result<Void, ConfigError> {
         for item in items {
             // Validate key format (should be a single character)
             if item.key.count != 1 {
@@ -555,7 +616,7 @@ class ConfigManager: DependencyInjectable, ObservableObject {
 
             // Recursively validate submenu if present
             if let submenu = item.submenu {
-                let result = validateMenuItemsResult(submenu)
+                let result = validateMenuItems(submenu)
                 if case let .failure(error) = result {
                     return .failure(error)
                 }
@@ -563,17 +624,6 @@ class ConfigManager: DependencyInjectable, ObservableObject {
         }
 
         return .success(())
-    }
-
-    /// Legacy method that uses throws for backward compatibility
-    private func validateMenuItems(_ items: [MenuItem]) throws {
-        let result = validateMenuItemsResult(items)
-        switch result {
-        case .success:
-            return
-        case let .failure(error):
-            throw error
-        }
     }
 
     /// Validates the action string format

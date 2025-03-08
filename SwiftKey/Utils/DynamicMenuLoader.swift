@@ -2,41 +2,39 @@ import Foundation
 import os
 import Yams
 
-class DynamicMenuLoader {
+/// Responsible for loading dynamic menus by executing shell scripts
+class DynamicMenuLoader: DependencyInjectable {
+    // Keep singleton for backward compatibility during transition to DI
     static let shared = DynamicMenuLoader()
+
     private let logger = AppLogger.utils
 
-    /**
-     Loads a dynamic menu for a MenuItem with a dynamic:// action
+    /// Factory method for creating a DynamicMenuLoader instance
+    static func create() -> DynamicMenuLoader {
+        return DynamicMenuLoader()
+    }
 
-     - Parameters:
-       - menuItem: The menu item containing a dynamic:// action
-       - completion: Closure called with the parsed menu items or nil if an error occurred
+    // DynamicMenuLoader has no dependencies but implements the protocol
+    // for consistency with the rest of the codebase
+    func injectDependencies(_ container: DependencyContainer) {
+        // Nothing to inject
+    }
 
-     - Note: This function executes the shell command asynchronously and calls the completion handler on a background thread.
-     */
-    func loadDynamicMenu(
-        for menuItem: MenuItem,
-        completion: @escaping ([MenuItem]?) -> Void
-    ) {
+    func loadDynamicMenu(for menuItem: MenuItem) async -> [MenuItem]? {
         guard let actionString = menuItem.action, actionString.hasPrefix("dynamic://") else {
-            completion(nil)
-            return
+            return nil
         }
 
         let command = String(actionString.dropFirst("dynamic://".count))
 
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            do {
-                let result = try runScript(to: command, args: [])
-                let output = result.out
-                let decoder = YAMLDecoder()
-                let menuItems = try decoder.decode([MenuItem].self, from: output)
-                completion(menuItems)
-            } catch {
-                self?.logger.error("Dynamic menu error: \(error.localizedDescription)")
-                completion(nil)
-            }
+        do {
+            let result = try await runScript(to: command, args: [])
+            let output = result.out
+            let decoder = YAMLDecoder()
+            return try decoder.decode([MenuItem].self, from: output)
+        } catch {
+            logger.error("Dynamic menu error: \(error.localizedDescription)")
+            return nil
         }
     }
 }

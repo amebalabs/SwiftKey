@@ -14,8 +14,15 @@ import ScriptingBridge
 extension SBApplication: ShortcutsEvents {}
 extension SBObject: Shortcut {}
 
+/// Manages interactions with Apple Shortcuts app
 public class ShortcutsManager: ObservableObject {
     static let shared = ShortcutsManager()
+
+    // Create factory method for DI
+    static func create() -> ShortcutsManager {
+        return ShortcutsManager()
+    }
+
     var task: Process?
     var shortcutsURL = URL(fileURLWithPath: "/usr/bin/shortcuts")
     var shellURL = URL(fileURLWithPath: "/bin/zsh")

@@ -4,12 +4,18 @@ import SwiftUI
 
 @main
 struct SwiftKeyApp: App {
-    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-
-    private let container = DependencyContainer.shared
     private let logger = AppLogger.app
 
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate: AppDelegate
+
+    var container: DependencyContainer {
+        return appDelegate.container
+    }
+
     init() {
+        let container = DependencyContainer()
+        AppDelegate.initialContainer = container
+
         logger.notice("SwiftKey starting with dependency container initialized")
     }
 
@@ -18,6 +24,8 @@ struct SwiftKeyApp: App {
             SettingsView()
                 .environmentObject(container.settingsStore)
                 .environmentObject(container.menuState)
+                .environmentObject(container.configManager)
+                .environmentObject(container.sparkleUpdater)
         }
     }
 }

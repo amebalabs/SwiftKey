@@ -5,129 +5,147 @@ import KeyboardShortcuts
 import os
 import SwiftUI
 
-class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, DependencyInjectable {
-    static var shared: AppDelegate!
+class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
+    // Static container for initializing new AppDelegate instances
+    static var initialContainer: DependencyContainer?
 
-    // Logger for this class
     private let logger = AppLogger.app
 
-    // Dependencies (will be injected)
-    var container: DependencyContainer!
-    var settings: SettingsStore!
-    var menuState: MenuState!
-    var configManager: ConfigManager!
-    var keyboardManager: KeyboardManager!
-    var deepLinkHandler: DeepLinkHandler!
+    // Dependencies - now properly initialized in constructor
+    private(set) var container: DependencyContainer
+    private(set) var settings: SettingsStore
+    private(set) var menuState: MenuState
+    private(set) var configManager: ConfigManager
+    private(set) var keyboardManager: KeyboardManager
+    private(set) var deepLinkHandler: DeepLinkHandler
+    private(set) var dynamicMenuLoader: DynamicMenuLoader
 
-    // Local state
-    var overlayWindow: OverlayWindow?
-    var notchContext: NotchContext?
-    var hotKeyRef: EventHotKeyRef?
-    var lastHideTime: Date?
-    var statusItem: NSStatusItem?
-    var facelessMenuController: FacelessMenuController?
-    var defaultsObserver: AnyCancellable?
-    var hotkeyHandlers: [String: KeyboardShortcuts.Name] = [:]
-    private var sparkle: SparkleUpdater?
+    override init() {
+        logger.debug("AppDelegate init called")
 
-    func injectDependencies(_ container: DependencyContainer) {
+        // Use the provided initial container if available, or create a new one
+        let container = AppDelegate.initialContainer ?? DependencyContainer()
         self.container = container
         self.settings = container.settingsStore
         self.menuState = container.menuState
         self.configManager = container.configManager
         self.keyboardManager = container.keyboardManager
         self.deepLinkHandler = container.deepLinkHandler
+        self.dynamicMenuLoader = container.dynamicMenuLoader
+
+        super.init()
+
+        // Reset the static container to avoid memory leaks
+        AppDelegate.initialContainer = nil
+
+        // Start loading the config immediately
+        Task {
+            logger.notice("Loading initial configuration in AppDelegate.init")
+            await configManager.setupAfterDependenciesInjected()
+        }
     }
 
+    // Local state
+    var overlayWindow: OverlayWindow?
+    var notchContext: NotchContext?
+    var lastHideTime: Date?
+    var statusItem: NSStatusItem?
+    var facelessMenuController: FacelessMenuController?
+    var defaultsObserver: AnyCancellable?
+
     func applicationDidFinishLaunching(_: Notification) {
-        AppDelegate.shared = self
-        sparkle = SparkleUpdater.shared
+        logger.notice("SwiftKey application starting")
 
-        // Set up dependency container
-        let container = DependencyContainer.shared
-        injectDependencies(container)
-
-        // Register hotkeys based on initial menu state using KeyboardManager
-        keyboardManager.registerMenuHotkeys(menuState.rootMenu)
-        menuState.reset()
-
-        let contentView = OverlayView(state: menuState).environmentObject(settings)
+        let contentView = OverlayView(state: menuState)
+            .environmentObject(settings)
+            .environmentObject(keyboardManager)
         overlayWindow = OverlayWindow.makeWindow(view: contentView)
         overlayWindow?.delegate = self
 
-        if settings.facelessMode {
-            if statusItem == nil {
-                statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-                if let button = statusItem?.button {
-                    button.action = #selector(statusItemClicked)
-                    button.target = self
-                }
-            }
-            if facelessMenuController == nil, let statusItem = statusItem {
-                facelessMenuController = FacelessMenuController(
-                    rootMenu: menuState.rootMenu,
-                    statusItem: statusItem,
-                    resetDelay: settings.menuStateResetDelay == 0 ? 2 : settings.menuStateResetDelay,
-                    menuState: menuState,
-                    settingsStore: settings
-                )
-            } else {
-                facelessMenuController?.resetDelay = settings.menuStateResetDelay
+        setupFacelessMenuController()
+
+        _ = SparkleUpdater.shared
+
+        KeyboardShortcuts.onKeyDown(for: .toggleApp) { [self] in
+            Task {
+                await toggleSession()
             }
         }
 
-        hotKeyRef = registerHotKey()
-        KeyboardShortcuts.onKeyDown(for: .toggleApp) { [self] in
-            toggleSession()
-        }
         KeyboardShortcuts.onKeyUp(for: .toggleApp) { [self] in
             if settings.triggerKeyHoldMode {
-                hideWindow()
+                Task {
+                    await hideWindow()
+                }
             }
         }
 
         if settings.needsOnboarding {
-            showOnboardingWindow()
+            Task {
+                await showOnboardingWindow()
+            }
         }
 
         defaultsObserver = NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)
-            .sink { [weak self] _ in self?.applySettings() }
+            .sink { [weak self] _ in
+                guard let self = self else { return }
+                Task {
+                    await self.applySettings()
+                }
+            }
 
-        NotificationCenter.default.addObserver(self, selector: #selector(hideWindow), name: .hideOverlay, object: nil)
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(applicationDidResignActive(_:)),
-            name: NSApplication.didResignActiveNotification,
-            object: nil
-        )
+        NotificationCenter.default.addObserver(forName: .hideOverlay, object: nil, queue: nil) { [weak self] _ in
+            guard let self = self else { return }
+            Task {
+                await self.hideWindow()
+            }
+        }
+        NotificationCenter.default
+            .addObserver(forName: .presentOverlay, object: nil, queue: nil) { [weak self] _ in
+                guard let self = self else { return }
+                Task {
+                    await self.presentOverlay()
+                }
+            }
+
+        NotificationCenter.default
+            .addObserver(forName: .presentGalleryWindow, object: nil, queue: nil) { [weak self] notification in
+                guard let self = self else { return }
+
+                // Extract the snippetId from the notification's userInfo
+                if let snippetId = notification.userInfo?["snippetId"] as? String {
+                    Task { @MainActor in
+                        await self.showGalleryWindow(preselectedSnippetId: snippetId)
+                    }
+                }
+            }
+    }
+
+    func applicationOpenUrls(_ application: NSApplication, open urls: [URL]) async {
+        for url in urls {
+            Task {
+                await deepLinkHandler.handle(url: url)
+            }
+        }
     }
 
     func application(_ application: NSApplication, open urls: [URL]) {
         for url in urls {
-            deepLinkHandler.handle(url: url)
+            Task {
+                await applicationOpenUrls(application, open: [url])
+            }
         }
     }
 
-    func applySettings() {
-        NotificationCenter.default.post(name: .hideOverlay, object: nil)
+    @MainActor
+    func applySettings() async {
+        if overlayWindow?.isVisible == true || notchContext?.presented == true {
+            logger.debug("Hiding overlay due to settings change")
+            NotificationCenter.default.post(name: .hideOverlay, object: nil)
+        }
+
         if settings.facelessMode {
-            if statusItem == nil {
-                statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-                if let button = statusItem?.button {
-                    button.action = #selector(statusItemClicked)
-                    button.target = self
-                }
-            }
-            if facelessMenuController == nil, let statusItem = statusItem {
-                let controller = FacelessMenuController(
-                    rootMenu: menuState.rootMenu,
-                    statusItem: statusItem,
-                    resetDelay: settings.menuStateResetDelay, menuState: menuState
-                )
-                facelessMenuController = controller
-            } else {
-                facelessMenuController?.resetDelay = settings.menuStateResetDelay
-            }
+            setupFacelessMenuController()
         } else {
             facelessMenuController?.endSession()
             facelessMenuController = nil
@@ -139,19 +157,24 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Dependency
     }
 
     @objc func statusItemClicked() {
-        configManager.refreshIfNeeded()
+        Task {
+            await configManager.refreshIfNeeded()
 
-        if let controller = facelessMenuController {
-            if controller.sessionActive {
-                controller.endSession()
-            } else {
-                controller.startSession()
+            await MainActor.run {
+                if let controller = facelessMenuController {
+                    if controller.sessionActive {
+                        controller.endSession()
+                    } else {
+                        controller.startSession()
+                    }
+                }
             }
         }
     }
 
-    func toggleSession() {
-        configManager.refreshIfNeeded()
+    @MainActor
+    func toggleSession() async {
+        await configManager.refreshIfNeeded()
 
         switch settings.overlayStyle {
         case .faceless:
@@ -163,8 +186,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Dependency
                     headerLeadingView: EmptyView(),
                     headerTrailingView: EmptyView(),
                     bodyView: AnyView(
-                        MinimalHUDView(state: self.menuState)
+                        MinimalHUDView(state: menuState)
                             .environmentObject(settings)
+                            .environment(keyboardManager)
                     ),
                     animated: true,
                     settingsStore: settings
@@ -192,30 +216,54 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Dependency
         }
     }
 
-    @objc func hideWindow() {
+    /// Hides any visible overlay windows
+    @MainActor
+    func hideWindow() async {
+        // Skip hiding if menu is sticky
         guard menuState.isCurrentMenuSticky == false else { return }
-        logger.debug("hideWindow triggered")
+
+        // Skip if no windows are visible (prevents unnecessary hide operations)
+        let isVisible = overlayWindow?.isVisible == true || notchContext?.presented == true
+        if !isVisible && settings.overlayStyle != .faceless {
+            return
+        }
+
+        logger
+            .debug(
+                "hideWindow: hiding \(self.settings.overlayStyle.rawValue) overlay"
+            )
+
         switch settings.overlayStyle {
         case .hud:
+            overlayWindow?.orderOut(nil)
             menuState.reset()
             notchContext?.close()
         case .panel:
             overlayWindow?.orderOut(nil)
             lastHideTime = Date()
         case .faceless:
+            overlayWindow?.orderOut(nil)
             facelessMenuController?.endSession()
         }
     }
 
     func windowDidResignKey(_: Notification) {
-        hideWindow()
+        Task {
+            await hideWindow()
+        }
     }
 
     @objc func applicationDidResignActive(_: Notification) {
         logger.debug("Application resigned active state")
-        hideWindow()
+        // Only hide windows if app is already initialized
+        if overlayWindow != nil {
+            Task {
+                await hideWindow()
+            }
+        }
     }
 
+    @MainActor
     func presentOverlay() {
         notchContext?.close()
 
@@ -225,23 +273,23 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Dependency
         {
             logger.debug("Detected single dynamic menu item: \(item.title, privacy: .public)")
 
-            // Don't show the UI yet - first load the dynamic menu
-            DynamicMenuLoader.shared.loadDynamicMenu(for: item) { [weak self] submenu in
-                guard let self = self, let submenu = submenu else {
-                    DispatchQueue.main.async {
-                        self?.logger.error("Failed to load dynamic menu for: \(item.title, privacy: .public)")
-                        self?.showOverlayWindow()
+            Task {
+                // Don't show the UI yet - first load the dynamic menu
+                if let submenu = await dynamicMenuLoader.loadDynamicMenu(for: item) {
+                    // Update the menu state with the loaded submenu on the main actor
+                    await MainActor.run {
+                        self.menuState.breadcrumbs.append(item.title)
+                        self.menuState.menuStack.append(submenu)
+
+                        // Now that the menu is loaded, present the UI
+                        self.showOverlayWindow()
                     }
-                    return
-                }
-
-                DispatchQueue.main.async {
-                    // Update the menu state with the loaded submenu
-                    self.menuState.breadcrumbs.append(item.title)
-                    self.menuState.menuStack.append(submenu)
-
-                    // Now that the menu is loaded, present the UI
-                    self.showOverlayWindow()
+                } else {
+                    // Handle failure
+                    await MainActor.run {
+                        self.logger.error("Failed to load dynamic menu for: \(item.title, privacy: .public)")
+                        self.showOverlayWindow()
+                    }
                 }
             }
             return
@@ -249,9 +297,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Dependency
 
         // Regular case - show the window directly
         showOverlayWindow()
+        overlayWindow?.becomeKey()
     }
 
     /// Shows the overlay window positioned appropriately on screen
+    @MainActor
     private func showOverlayWindow() {
         guard let window = overlayWindow, let screen = chosenScreen() else { return }
         let frame = window.frame
@@ -264,6 +314,33 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Dependency
         )
         window.setFrameOrigin(newOrigin)
         window.makeKeyAndOrderFront(nil)
+    }
+
+    @MainActor
+    func setupFacelessMenuController() {
+        guard settings.facelessMode else { return }
+
+        if statusItem == nil {
+            statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+            if let button = statusItem?.button {
+                button.action = #selector(statusItemClicked)
+                button.target = self
+            }
+        }
+
+        let resetDelay = settings.menuStateResetDelay == 0 ? 2 : settings.menuStateResetDelay
+
+        if facelessMenuController == nil, let statusItem = statusItem {
+            facelessMenuController = FacelessMenuController(
+                rootMenu: menuState.rootMenu,
+                statusItem: statusItem,
+                resetDelay: resetDelay
+            )
+        } else {
+            facelessMenuController?.resetDelay = resetDelay
+        }
+
+        facelessMenuController?.injectDependencies(container)
     }
 
     private func chosenScreen() -> NSScreen? {
@@ -279,7 +356,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Dependency
 }
 
 extension AppDelegate {
-    func showOnboardingWindow() {
+    @MainActor
+    func showOnboardingWindow() async {
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 400, height: 300),
                               styleMask: [.titled, .closable],
                               backing: .buffered,
@@ -288,15 +366,17 @@ extension AppDelegate {
         window.title = "Welcome to SwiftKey"
         let onboardingView = OnboardingView(onFinish: { [weak window, self] in
             window?.orderOut(nil)
-            self.toggleSession()
+            Task {
+                await self.toggleSession()
+            }
         })
         .environmentObject(settings)
         window.contentView = NSHostingView(rootView: onboardingView)
         window.makeKeyAndOrderFront(nil)
     }
 
-    // Called from SwiftUI SettingsView and DeepLinkHandler
-    static func showGalleryWindow(preselectedSnippetId: String? = nil) {
+    @MainActor
+    func showGalleryWindow(preselectedSnippetId: String? = nil) async {
         if let existingWindow = NSApp.windows.first(where: { $0.title == "SwiftKey Snippets Gallery" }) {
             existingWindow.makeKeyAndOrderFront(nil)
             return
@@ -311,18 +391,18 @@ extension AppDelegate {
         window.title = "SwiftKey Snippets Gallery"
         window.center()
 
-        // Create view model with preselected snippet if provided
         let viewModel = SnippetsGalleryViewModel(
-            snippetsStore: DependencyContainer.shared.snippetsStore,
+            snippetsStore: container.snippetsStore,
             preselectedSnippetId: preselectedSnippetId
         )
 
         let hostingController = NSHostingController(
             rootView: SnippetsGalleryView(viewModel: viewModel)
-                .environmentObject(DependencyContainer.shared.configManager)
-                .environmentObject(DependencyContainer.shared.settingsStore)
+                .environmentObject(container.configManager)
+                .environmentObject(container.settingsStore)
         )
         window.contentViewController = hostingController
         window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
     }
 }

@@ -10,10 +10,6 @@ struct SnippetsGalleryView: View {
     @State private var errorMessage = ""
     @State private var mergeStrategy: MergeStrategy = .smart
 
-    init(viewModel: SnippetsGalleryViewModel = SnippetsGalleryViewModel()) {
-        self.viewModel = viewModel
-    }
-
     private let columns = [
         GridItem(.adaptive(minimum: 250, maximum: 350), spacing: 20),
     ]
@@ -410,29 +406,30 @@ class SnippetsGalleryViewModel: ObservableObject {
     private let snippetsStore: SnippetsStore
     private let preselectedSnippetId: String?
 
-    init(snippetsStore: SnippetsStore? = nil, preselectedSnippetId: String? = nil) {
-        // Use provided store or get from dependency container
-        self.snippetsStore = snippetsStore ?? DependencyContainer.shared.snippetsStore
+    init(snippetsStore: SnippetsStore, preselectedSnippetId: String? = nil) {
+        self.snippetsStore = snippetsStore
         self.preselectedSnippetId = preselectedSnippetId
     }
 
     func fetchSnippets() {
         isLoading = true
-        snippetsStore.fetchSnippets()
 
-        // Update our local snippets directly
-        DispatchQueue.main.async { [weak self] in
-            guard let self = self else { return }
-            self.snippets = self.snippetsStore.snippets
-            self.isLoading = false
+        Task {
+            await snippetsStore.fetchSnippets()
 
-            // Check for preselected snippet if needed
-            if let preselectedId = self.preselectedSnippetId,
-               !self.snippets.isEmpty
-            {
-                if let snippet = self.snippets.first(where: { $0.id == preselectedId }) {
-                    self.selectedSnippet = snippet
-                    self.isDetailPresented = true
+            // Update UI on main thread
+            await MainActor.run {
+                snippets = snippetsStore.snippets
+                isLoading = false
+
+                // Check for preselected snippet if needed
+                if let preselectedId = preselectedSnippetId,
+                   !snippets.isEmpty
+                {
+                    if let snippet = snippets.first(where: { $0.id == preselectedId }) {
+                        selectedSnippet = snippet
+                        isDetailPresented = true
+                    }
                 }
             }
         }
@@ -443,12 +440,20 @@ class SnippetsGalleryViewModel: ObservableObject {
         objectWillChange.send()
     }
 
+    /// Imports a snippet using the async API
     func importSnippet(
         _ snippet: ConfigSnippet,
         strategy: MergeStrategy,
         completion: @escaping (Result<Void, Error>) -> Void
     ) {
-        let result = snippetsStore.importSnippet(snippet, mergeStrategy: strategy)
-        completion(result)
+        // Use Task to bridge between async/await and completion handler
+        Task {
+            do {
+                try await snippetsStore.importSnippet(snippet, mergeStrategy: strategy)
+                completion(.success(()))
+            } catch {
+                completion(.failure(error))
+            }
+        }
     }
 }
