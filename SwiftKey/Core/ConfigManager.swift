@@ -4,9 +4,15 @@ import Foundation
 import os
 import Yams
 
+/// Manages loading, parsing, and updating configuration files
 class ConfigManager: DependencyInjectable, ObservableObject {
-    static let shared = ConfigManager()
+
     private let logger = AppLogger.config
+    
+    /// Factory method to create a new ConfigManager instance
+    static func create() -> ConfigManager {
+        return ConfigManager()
+    }
 
     // Published properties for reactive updates
     @Published private(set) var menuItems: [MenuItem] = []
@@ -15,8 +21,14 @@ class ConfigManager: DependencyInjectable, ObservableObject {
 
     private var lastModificationDate: Date?
 
-    // Dependencies
-    var settingsStore: SettingsStore!
+    // Dependencies - using non-optional since this is a required dependency
+    private(set) var settingsStore: SettingsStore
+
+    // Default initializer for container creation
+    init() {
+        // Default empty initialization, proper values will be set by injectDependencies
+        self.settingsStore = SettingsStore()
+    }
 
     func injectDependencies(_ container: DependencyContainer) {
         self.settingsStore = container.settingsStore
@@ -64,7 +76,7 @@ class ConfigManager: DependencyInjectable, ObservableObject {
 
     @discardableResult
     func loadConfig() async -> Result<[MenuItem], ConfigError> {
-        logger.debug("loadConfig() called")
+        logger.debug("loadConfig() called - will attempt to load menu configuration")
 
         guard let configURL = resolveConfigFileURL() else {
             logger.error("Failed to resolve config file URL")
@@ -134,6 +146,21 @@ class ConfigManager: DependencyInjectable, ObservableObject {
                     // Successfully parsed, update the menu items on the main actor
                     await MainActor.run {
                         logger.info("Config load successful, publishing \(config.count) menu items")
+                        // Debug each menu item to verify their actions
+                        for item in config {
+                            logger.debug("Menu item: '\(item.title)' with key '\(item.key)'")
+                            if let action = item.action {
+                                logger.debug(" - Action: '\(action)'")
+                                if item.actionClosure == nil {
+                                    logger.error(" - No action closure generated for action: '\(action)'")
+                                } else {
+                                    logger.debug(" - Action closure successfully generated")
+                                }
+                            } else if let submenu = item.submenu {
+                                logger.debug(" - Has submenu with \(submenu.count) items")
+                            }
+                        }
+                        
                         menuItems = config // Update the @Published property
                         menuItemsSubject.send(config) // Explicitly send to subject
                         lastError = nil
@@ -452,21 +479,21 @@ class ConfigManager: DependencyInjectable, ObservableObject {
     }
 
     func resolveConfigFileURL() -> URL? {
-        // Ensure we have a valid reference to settings store
-        guard let settings = settingsStore else {
-            logger.error("SettingsStore is not properly injected into ConfigManager")
-            return nil
-        }
-
         // Use the direct path
-        if let url = settings.configFileResolvedURL {
+        if let url = settingsStore.configFileResolvedURL {
             logger.debug("Using direct path: \(url.path, privacy: .public)")
             return url
         } else {
-            logger.notice("No configuration file path available, creating default")
+            logger.notice("No configuration file path available, creating default config file")
             // Default to bundle location or create one in user Documents
             let defaultConfigPath = createDefaultConfigIfNeeded()
-            logger.debug("Using default config at: \(defaultConfigPath?.path ?? "none", privacy: .public)")
+            
+            if let path = defaultConfigPath?.path {
+                logger.notice("Created default config at: \(path, privacy: .public)")
+            } else {
+                logger.error("Failed to create default config file")
+            }
+            
             return defaultConfigPath
         }
     }

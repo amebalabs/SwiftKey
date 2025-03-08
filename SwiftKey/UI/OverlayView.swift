@@ -3,9 +3,14 @@ import SwiftUI
 
 struct OverlayView: View {
     @EnvironmentObject var settings: SettingsStore
+    @EnvironmentObject var keyboardManager: KeyboardManager
     @ObservedObject var state: MenuState
     @State private var errorMessage: String = ""
     @State private var altMode: Bool = false
+    
+    init(state: MenuState) {
+        self.state = state
+    }
 
     var currentMenu: [MenuItem] {
         state.visibleMenu
@@ -160,7 +165,7 @@ struct OverlayView: View {
     }
 
     private func handleKey(key: String, modifierFlags: NSEvent.ModifierFlags?) async {
-        let result = await KeyboardManager.shared.handleKey(key: key, modifierFlags: modifierFlags)
+        let result = await keyboardManager.handleKey(key: key, modifierFlags: modifierFlags)
 
         switch result {
         case .escape:
@@ -305,5 +310,13 @@ struct HorizontalMenuItemView: View {
 #Preview {
     let settingsStore = SettingsStore()
     let menuState = MenuState()
+    
+    // Set up AppDelegate.shared for the preview
+    if AppDelegate.shared == nil {
+        let container = DependencyContainer()
+        let appDelegate = AppDelegate(container: container)
+        AppDelegate.shared = appDelegate
+    }
+    
     return OverlayView(state: menuState).environmentObject(settingsStore)
 }

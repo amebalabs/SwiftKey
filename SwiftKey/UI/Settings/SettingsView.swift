@@ -79,5 +79,5 @@ struct SnippetsSettingsView: View {
 #Preview {
     SettingsView()
         .environmentObject(SettingsStore())
-        .environmentObject(ConfigManager.shared)
+        .environmentObject(ConfigManager())
 }

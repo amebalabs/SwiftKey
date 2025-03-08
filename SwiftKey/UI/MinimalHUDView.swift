@@ -3,8 +3,14 @@ import SwiftUI
 struct MinimalHUDView: View {
     @ObservedObject var state: MenuState
     @EnvironmentObject var settings: SettingsStore
+    @EnvironmentObject var keyboardManager: KeyboardManager
     @State private var lastKey: String = ""
     @State private var error: Bool = false
+    
+    
+    init(state: MenuState) {
+        self.state = state
+    }
 
     var body: some View {
         VStack(spacing: 8) {
@@ -47,7 +53,7 @@ struct MinimalHUDView: View {
     }
 
     func processKeyPress(_ key: String) async {
-        let result = await KeyboardManager.shared.handleKey(key: key)
+        let result = await keyboardManager.handleKey(key: key)
 
         switch result {
         case .escape:

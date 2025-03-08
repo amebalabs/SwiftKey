@@ -4,8 +4,22 @@ import SwiftUI
 struct GeneralSettingsView: View {
     @EnvironmentObject var settings: SettingsStore
     @ObservedObject private var launchAtLogin = LaunchAtLogin.observable
-    @StateObject private var updater = SparkleUpdater.shared
-    @ObservedObject private var configManager = ConfigManager.shared
+    // Get services from AppDelegate's container
+    @StateObject private var updater: SparkleUpdater
+    @ObservedObject private var configManager: ConfigManager
+    
+    init() {
+        // Get services from AppDelegate's container
+        if let appDelegate = NSApp.delegate as? AppDelegate {
+            // Use _updater for StateObject initialization
+            _updater = StateObject(wrappedValue: appDelegate.container.sparkleUpdater)
+            self.configManager = appDelegate.container.configManager
+        } else {
+            // Fallback to create new instances if needed
+            _updater = StateObject(wrappedValue: SparkleUpdater.shared)
+            self.configManager = ConfigManager.create()
+        }
+    }
 
     var body: some View {
         Form {

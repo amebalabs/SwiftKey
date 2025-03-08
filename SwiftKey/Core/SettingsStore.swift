@@ -9,7 +9,6 @@ class SettingsStore: ObservableObject, DependencyInjectable {
     }
 
     func injectDependencies(_ container: DependencyContainer) {
-        // Inject dependencies from the container
         self.sparkleUpdater = container.sparkleUpdater
     }
 

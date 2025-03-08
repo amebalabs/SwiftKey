@@ -9,18 +9,18 @@ class FacelessMenuController: DependencyInjectable {
     var animationTimer: Timer?
     var indicatorState: Bool = false
     var sessionActive: Bool = false
-    // Dependencies
+    // Dependencies - non-optional for consistent dependency handling
     var menuState: MenuState
-    var settingsStore: SettingsStore?
-    var keyboardManager: KeyboardManager?
+    var settingsStore: SettingsStore
+    var keyboardManager: KeyboardManager
 
     init(
         rootMenu: [MenuItem],
         statusItem: NSStatusItem,
         resetDelay: TimeInterval,
         menuState: MenuState,
-        settingsStore: SettingsStore? = nil,
-        keyboardManager: KeyboardManager? = KeyboardManager.shared
+        settingsStore: SettingsStore,
+        keyboardManager: KeyboardManager
     ) {
         self.rootMenu = rootMenu
         self.statusItem = statusItem
@@ -29,6 +29,35 @@ class FacelessMenuController: DependencyInjectable {
         self.settingsStore = settingsStore
         self.keyboardManager = keyboardManager
         updateStatusItem()
+    }
+    
+    // Convenience initializer that gets dependencies from AppDelegate
+    convenience init(
+        rootMenu: [MenuItem],
+        statusItem: NSStatusItem,
+        resetDelay: TimeInterval,
+        menuState: MenuState
+    ) {
+        if let appDelegate = NSApp.delegate as? AppDelegate {
+            self.init(
+                rootMenu: rootMenu,
+                statusItem: statusItem,
+                resetDelay: resetDelay,
+                menuState: menuState,
+                settingsStore: appDelegate.settings,
+                keyboardManager: appDelegate.keyboardManager
+            )
+        } else {
+            // Fallback to create minimal dependencies
+            self.init(
+                rootMenu: rootMenu,
+                statusItem: statusItem,
+                resetDelay: resetDelay,
+                menuState: menuState,
+                settingsStore: SettingsStore(),
+                keyboardManager: KeyboardManager()
+            )
+        }
     }
 
     func injectDependencies(_ container: DependencyContainer) {
@@ -109,31 +138,29 @@ class FacelessMenuController: DependencyInjectable {
             Task { [weak self] in
                 guard let self = self else { return }
 
-                if let keyboardManager = self.keyboardManager {
-                    let result = await keyboardManager.handleKey(key: key)
+                let result = await keyboardManager.handleKey(key: key)
 
-                    switch result {
-                    case .escape:
-                        self.endSession()
-                    case .help:
-                        self.endSession()
-                        AppDelegate.shared.presentOverlay()
-                    case .up:
-                        break
-                    case .submenuPushed:
-                        await self.blinkIndicator(success: true)
-                        self.updateStatusItem()
-                    case .actionExecuted:
-                        self.endSession()
-                    case .dynamicLoading:
-                        break
-                    case .error:
-                        await self.blinkIndicator(success: false)
-                    case .none:
-                        break
-                    }
-                    self.resetSessionTimer()
+                switch result {
+                case .escape:
+                    self.endSession()
+                case .help:
+                    self.endSession()
+                    AppDelegate.shared.presentOverlay()
+                case .up:
+                    break
+                case .submenuPushed:
+                    await self.blinkIndicator(success: true)
+                    self.updateStatusItem()
+                case .actionExecuted:
+                    self.endSession()
+                case .dynamicLoading:
+                    break
+                case .error:
+                    await self.blinkIndicator(success: false)
+                case .none:
+                    break
                 }
+                self.resetSessionTimer()
             }
 
             return nil

@@ -14,11 +14,24 @@ import ScriptingBridge
 extension SBApplication: ShortcutsEvents {}
 extension SBObject: Shortcut {}
 
-public class ShortcutsManager: ObservableObject {
+/// Manages interactions with Apple Shortcuts app
+public class ShortcutsManager: ObservableObject, DependencyInjectable {
+    // Singleton instance for backward compatibility, will be phased out
     static let shared = ShortcutsManager()
+    
+    // Create factory method for DI
+    static func create() -> ShortcutsManager {
+        return ShortcutsManager()
+    }
+    
     var task: Process?
     var shortcutsURL = URL(fileURLWithPath: "/usr/bin/shortcuts")
     var shellURL = URL(fileURLWithPath: "/bin/zsh")
+    
+    // No dependencies to inject
+    func injectDependencies(_ container: DependencyContainer) {
+        // Nothing to inject
+    }
 
     @Published public var shortcuts: [String] = []
 

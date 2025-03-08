@@ -84,56 +84,102 @@ struct MenuItem: Identifiable, Codable, Equatable {
         if action.hasPrefix("launch://") {
             let appPath = String(action.dropFirst("launch://".count))
             return {
-                let expandedPath = (appPath as NSString).expandingTildeInPath
-                let appURL = URL(fileURLWithPath: expandedPath)
+                // Add debug logging
+                AppLogger.app.debug("Launching application at path: \(appPath)")
+                
+                // Use Task to handle async work and Main actor for UI
+                Task { @MainActor in
+                    let expandedPath = (appPath as NSString).expandingTildeInPath
+                    let appURL = URL(fileURLWithPath: expandedPath)
 
-                if FileManager.default.fileExists(atPath: appURL.path) {
-                    NSWorkspace.shared.openApplication(
-                        at: appURL, configuration: .init(), completionHandler: nil
-                    )
-                } else {
-                    AppLogger.app.error("Application not found or invalid at path: \(appPath, privacy: .public)")
+                    if FileManager.default.fileExists(atPath: appURL.path) {
+                        NSWorkspace.shared.openApplication(
+                            at: appURL, configuration: .init(), completionHandler: nil
+                        )
+                        AppLogger.app.debug("Successfully launched app at: \(appURL.path)")
+                    } else {
+                        AppLogger.app.error("Application not found or invalid at path: \(appPath, privacy: .public)")
+                    }
                 }
             }
         }
         if action.hasPrefix("open://") {
             let urlString = String(action.dropFirst("open://".count))
             return {
-                if let url = URL(string: urlString) {
-                    NSWorkspace.shared.open(url)
+                // Add debug logging
+                AppLogger.app.debug("Opening URL: \(urlString)")
+                
+                // Use Task to handle async work and Main actor for UI
+                Task { @MainActor in
+                    if let url = URL(string: urlString) {
+                        NSWorkspace.shared.open(url)
+                        AppLogger.app.debug("Successfully opened URL: \(url)")
+                    } else {
+                        AppLogger.app.error("Invalid URL: \(urlString)")
+                    }
                 }
             }
         }
         if action.hasPrefix("shortcut://") {
             let shortcutName = String(action.dropFirst("shortcut://".count))
             return {
-                ShortcutsManager.shared.runShortcut(shortcut: shortcutName)
+                // Add debug logging
+                AppLogger.app.debug("Running shortcut: \(shortcutName)")
+                
+                // Use Task to handle async work
+                Task {
+                    // Get the shortcuts manager from the DI container via the AppDelegate
+                    if let appDelegate = NSApp.delegate as? AppDelegate {
+                        AppLogger.app.debug("Using ShortcutsManager from AppDelegate")
+                        appDelegate.container.shortcutsManager.runShortcut(shortcut: shortcutName)
+                    } else {
+                        // Fallback to the singleton for backward compatibility
+                        AppLogger.app.debug("Using ShortcutsManager.shared (fallback)")
+                        ShortcutsManager.shared.runShortcut(shortcut: shortcutName)
+                    }
+                }
             }
         }
         if action.hasPrefix("shell://") {
             let command = String(action.dropFirst("shell://".count))
             return {
-                do {
-                    let out = try runScript(to: command, env: [:])
-
-                    // Only show notification with output if it's not empty
-                    let message = out.out.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?
-                        "Command completed successfully" : out.out
-                    if notify == true {
-                        notifyUser(title: "Command completed successfully", message: message)
-                    }
-                } catch {
-                    if let shellError = error as? ShellOutError {
-                        let errorMessage = shellError.message.isEmpty ?
-                            "Command failed with exit code \(shellError.terminationStatus)" :
-                            shellError.message
-                        notifyUser(title: "Error running \(title)", message: errorMessage)
-                    } else {
-                        // Handle other types of errors
-                        notifyUser(
-                            title: "Error running \(title)",
-                            message: "Unknown error: \(error.localizedDescription)"
-                        )
+                // Add debug logging to see if this code path is executed
+                AppLogger.app.debug("Executing shell command: \(command)")
+                
+                // Create a Task for async execution
+                Task {
+                    do {
+                        // For shell commands, we need to use the legacy version that doesn't require await
+                        // since this closure isn't marked async
+                        let out = try await runScript(to: command, env: [:])
+                        
+                        AppLogger.app.debug("Shell command completed successfully")
+                        
+                        // Only show notification with output if it's not empty
+                        let message = out.out.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?
+                            "Command completed successfully" : out.out
+                        if notify == true {
+                            await MainActor.run {
+                                notifyUser(title: "Command completed successfully", message: message)
+                            }
+                        }
+                    } catch {
+                        AppLogger.app.error("Shell command failed: \(error.localizedDescription)")
+                        
+                        await MainActor.run {
+                            if let shellError = error as? ShellOutError {
+                                let errorMessage = shellError.message.isEmpty ?
+                                    "Command failed with exit code \(shellError.terminationStatus)" :
+                                    shellError.message
+                                notifyUser(title: "Error running \(title)", message: errorMessage)
+                            } else {
+                                // Handle other types of errors
+                                notifyUser(
+                                    title: "Error running \(title)",
+                                    message: "Unknown error: \(error.localizedDescription)"
+                                )
+                            }
+                        }
                     }
                 }
             }

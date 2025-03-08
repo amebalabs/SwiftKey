@@ -10,17 +10,38 @@ extension KeyboardShortcuts.Name {
     static let toggleApp = Self("toggleApp")
 }
 
+// MARK: - KeyPressResult
+
+/// Result of handling a keyboard press
+enum KeyPressResult: Equatable {
+    case escape
+    case help
+    case up
+    case submenuPushed(title: String)
+    case actionExecuted
+    case dynamicLoading
+    case error(key: String)
+    case none
+}
+
 // MARK: - KeyboardManager
 
+/// Manages keyboard shortcuts and key event handling
+@Observable
 class KeyboardManager: DependencyInjectable, ObservableObject {
-    static let shared = KeyboardManager()
+    
+    /// Factory method to create a new KeyboardManager instance
+    static func create() -> KeyboardManager {
+        return KeyboardManager()
+    }
 
     private let logger = AppLogger.keyboard
 
-    // Dependencies
-    var menuState: MenuState!
-    var settingsStore: SettingsStore!
-    var configManager: ConfigManager!
+    // Dependencies using proper initialization
+    private(set) var menuState: MenuState!
+    private(set) var settingsStore: SettingsStore!
+    private(set) var configManager: ConfigManager!
+    private(set) var dynamicMenuLoader: DynamicMenuLoader!
 
     // Event publishers
     let keyPressSubject = PassthroughSubject<KeyEvent, Never>()
@@ -30,11 +51,31 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
 
     // Global key handlers map for menu hotkeys
     private var hotkeyHandlers: [String: KeyboardShortcuts.Name] = [:]
+    
+//    // Default initialization for container creation
+    init() {
+        // Default initialization - will be properly set in injectDependencies
+        self.menuState = MenuState()
+        self.settingsStore = SettingsStore()
+        self.configManager = ConfigManager.create()
+        self.dynamicMenuLoader = DynamicMenuLoader.create()
+    }
+    
+    // Convenience initializer for testing with dependency injection
+    init(menuState: MenuState, settingsStore: SettingsStore, 
+         configManager: ConfigManager, dynamicMenuLoader: DynamicMenuLoader) {
+        self.menuState = menuState
+        self.settingsStore = settingsStore
+        self.configManager = configManager
+        self.dynamicMenuLoader = dynamicMenuLoader
+    }
 
     func injectDependencies(_ container: DependencyContainer) {
+        // Replace existing instances with the container ones
         self.menuState = container.menuState
         self.settingsStore = container.settingsStore
         self.configManager = container.configManager
+        self.dynamicMenuLoader = container.dynamicMenuLoader
 
         logger.debug("Dependencies injected successfully")
     }
@@ -104,7 +145,7 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
             }
 
             // Handle sticky flag for panel mode
-            let overlayStyle = await MainActor.run { settingsStore?.overlayStyle ?? .panel }
+            let overlayStyle = settingsStore.overlayStyle
             if item.sticky == false, overlayStyle == .panel {
                 return .none
             } else {
@@ -122,7 +163,9 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
             return .error(key: item.key)
         }
 
-        if let submenu = await DynamicMenuLoader.shared.loadDynamicMenu(for: item) {
+        // Use the injected instance rather than the shared singleton
+        if let submenu = await dynamicMenuLoader.loadDynamicMenu(for: item)
+        {
             // Update UI state on the main actor
             await MainActor.run {
                 menuState.breadcrumbs.append(item.title)
@@ -195,7 +238,12 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
                 }
             }
 
-            AppDelegate.shared.presentOverlay()
+            // Find the AppDelegate via NSApp.delegate
+            if let appDelegate = NSApp.delegate as? AppDelegate {
+                appDelegate.presentOverlay()
+            } else {
+                logger.error("Could not find AppDelegate to present overlay")
+            }
         }
     }
 

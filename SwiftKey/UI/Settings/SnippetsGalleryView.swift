@@ -411,8 +411,15 @@ class SnippetsGalleryViewModel: ObservableObject {
     private let preselectedSnippetId: String?
 
     init(snippetsStore: SnippetsStore? = nil, preselectedSnippetId: String? = nil) {
-        // Use provided store or get from dependency container
-        self.snippetsStore = snippetsStore ?? DependencyContainer.shared.snippetsStore
+        // Use provided store or get from app delegate's container
+        if let store = snippetsStore {
+            self.snippetsStore = store
+        } else if let appDelegate = NSApp.delegate as? AppDelegate {
+            self.snippetsStore = appDelegate.container.snippetsStore
+        } else {
+            // Create a standalone store as last resort
+            self.snippetsStore = SnippetsStore()
+        }
         self.preselectedSnippetId = preselectedSnippetId
     }
 

@@ -14,7 +14,6 @@ func FOUR_CHAR_CODE(_ string: String) -> UInt32 {
     return result
 }
 
-
 // MARK: - English Key Conversion
 
 func englishCharactersForKeyEvent(event: NSEvent) -> String? {

@@ -6,17 +6,72 @@ import os
 import SwiftUI
 
 class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, DependencyInjectable {
+    // This static access will be maintained temporarily for backward compatibility
+    // but we'll update all references to use proper DI instead
     static var shared: AppDelegate!
+    
+    // Static container for initializing new AppDelegate instances
+    static var initialContainer: DependencyContainer?
 
     private let logger = AppLogger.app
 
-    // Dependencies (will be injected)
-    var container: DependencyContainer!
-    var settings: SettingsStore!
-    var menuState: MenuState!
-    var configManager: ConfigManager!
-    var keyboardManager: KeyboardManager!
-    var deepLinkHandler: DeepLinkHandler!
+    // Dependencies - now properly initialized in constructor
+    private(set) var container: DependencyContainer
+    private(set) var settings: SettingsStore
+    private(set) var menuState: MenuState
+    private(set) var configManager: ConfigManager
+    private(set) var keyboardManager: KeyboardManager
+    private(set) var deepLinkHandler: DeepLinkHandler
+    private(set) var dynamicMenuLoader: DynamicMenuLoader
+    private(set) var shortcutsManager: ShortcutsManager
+    
+    // Designated initializer that receives the dependency container
+    init(container: DependencyContainer) {
+        self.container = container
+        self.settings = container.settingsStore
+        self.menuState = container.menuState  
+        self.configManager = container.configManager
+        self.keyboardManager = container.keyboardManager
+        self.deepLinkHandler = container.deepLinkHandler
+        self.dynamicMenuLoader = container.dynamicMenuLoader
+        self.shortcutsManager = container.shortcutsManager
+        
+        super.init()
+        
+        // Set the shared reference - we will remove this once all DI is complete
+        AppDelegate.shared = self
+    }
+    
+    // Default initializer required by NSApplicationDelegate
+    // This will be called when initialized by SwiftUI's @NSApplicationDelegateAdaptor
+    override init() {
+        logger.debug("AppDelegate init called")
+        
+        // Use the provided initial container if available, or create a new one
+        let container = AppDelegate.initialContainer ?? DependencyContainer()
+        self.container = container
+        self.settings = container.settingsStore
+        self.menuState = container.menuState
+        self.configManager = container.configManager
+        self.keyboardManager = container.keyboardManager
+        self.deepLinkHandler = container.deepLinkHandler
+        self.dynamicMenuLoader = container.dynamicMenuLoader
+        self.shortcutsManager = container.shortcutsManager
+        
+        super.init()
+        
+        // Set the shared reference - we will remove this once all DI is complete
+        AppDelegate.shared = self
+        
+        // Reset the static container to avoid memory leaks
+        AppDelegate.initialContainer = nil
+        
+        // Start loading the config immediately
+        Task {
+            logger.notice("Loading initial configuration in AppDelegate.init")
+            await configManager.setupAfterDependenciesInjected()
+        }
+    }
 
     // Local state
     var overlayWindow: OverlayWindow?
@@ -29,24 +84,33 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Dependency
     var hotkeyHandlers: [String: KeyboardShortcuts.Name] = [:]
     private var sparkle: SparkleUpdater?
 
+    // This method is maintained for compatibility with DependencyInjectable protocol
+    // but isn't necessary since we now initialize everything in the constructor
     func injectDependencies(_ container: DependencyContainer) {
-        self.container = container
-        self.settings = container.settingsStore
-        self.menuState = container.menuState
-        self.configManager = container.configManager
-        self.keyboardManager = container.keyboardManager
-        self.deepLinkHandler = container.deepLinkHandler
+        // We could just ignore this since we've already initialized in the constructor,
+        // but for safety let's log that this was called unexpectedly
+        logger.warning("injectDependencies called on AppDelegate which was already initialized with dependencies")
     }
 
     func applicationDidFinishLaunching(_: Notification) {
         AppDelegate.shared = self
 
         logger.notice("SwiftKey application starting")
-        logger.debug("Initializing dependency container")
-        let container = DependencyContainer.shared
-        injectDependencies(container)
+        
+        // Ensure the config manager loads the menu
+        Task.detached(priority: .userInitiated) {
+            self.logger.debug("Triggering initial config load in applicationDidFinishLaunching")
+            await self.configManager.setupAfterDependenciesInjected()
+            
+            // Try to refresh menu again after a slight delay to ensure it's loaded
+            try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
+            self.logger.debug("Refreshing config after delay")
+            await self.configManager.refreshIfNeeded()
+        }
 
-        let contentView = OverlayView(state: menuState).environmentObject(settings)
+        let contentView = OverlayView(state: menuState)
+                                .environmentObject(settings)
+                                .environmentObject(keyboardManager)   
         overlayWindow = OverlayWindow.makeWindow(view: contentView)
         overlayWindow?.delegate = self
 
@@ -64,7 +128,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Dependency
                     statusItem: statusItem,
                     resetDelay: settings.menuStateResetDelay == 0 ? 2 : settings.menuStateResetDelay,
                     menuState: menuState,
-                    settingsStore: settings
+                    settingsStore: settings,
+                    keyboardManager: keyboardManager
                 )
             } else {
                 facelessMenuController?.resetDelay = settings.menuStateResetDelay
@@ -140,12 +205,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Dependency
                 }
             }
             if facelessMenuController == nil, let statusItem = statusItem {
-                let controller = FacelessMenuController(
-                    rootMenu: menuState.rootMenu,
-                    statusItem: statusItem,
-                    resetDelay: settings.menuStateResetDelay, menuState: menuState
-                )
-                facelessMenuController = controller
+                facelessMenuController = createFacelessMenuController(for: statusItem)
             } else {
                 facelessMenuController?.resetDelay = settings.menuStateResetDelay
             }
@@ -159,6 +219,16 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Dependency
         }
     }
 
+    // Helper method to create a FacelessMenuController
+    private func createFacelessMenuController(for statusItem: NSStatusItem) -> FacelessMenuController {
+        return FacelessMenuController(
+            rootMenu: menuState.rootMenu,
+            statusItem: statusItem,
+            resetDelay: settings.menuStateResetDelay,
+            menuState: menuState
+        )
+    }
+    
     func applySettings() {
         NotificationCenter.default.post(name: .hideOverlay, object: nil)
         if settings.facelessMode {
@@ -170,12 +240,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Dependency
                 }
             }
             if facelessMenuController == nil, let statusItem = statusItem {
-                let controller = FacelessMenuController(
-                    rootMenu: menuState.rootMenu,
-                    statusItem: statusItem,
-                    resetDelay: settings.menuStateResetDelay, menuState: menuState
-                )
-                facelessMenuController = controller
+                facelessMenuController = createFacelessMenuController(for: statusItem)
             } else {
                 facelessMenuController?.resetDelay = settings.menuStateResetDelay
             }
@@ -221,6 +286,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Dependency
                     bodyView: AnyView(
                         MinimalHUDView(state: self.menuState)
                             .environmentObject(settings)
+                            .environment(keyboardManager)
                     ),
                     animated: true,
                     settingsStore: settings
@@ -305,7 +371,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Dependency
 
             Task {
                 // Don't show the UI yet - first load the dynamic menu
-                if let submenu = await DynamicMenuLoader.shared.loadDynamicMenu(for: item) {
+                if let submenu = await dynamicMenuLoader.loadDynamicMenu(for: item) {
                     // Update the menu state with the loaded submenu on the main actor
                     await MainActor.run {
                         self.menuState.breadcrumbs.append(item.title)
@@ -393,16 +459,22 @@ extension AppDelegate {
         window.title = "SwiftKey Snippets Gallery"
         window.center()
 
+        // Get container from the shared app delegate
+        guard let appDelegate = NSApp.delegate as? AppDelegate,
+              let container = appDelegate.container as? DependencyContainer else {
+            return
+        }
+        
         // Create view model with preselected snippet if provided
         let viewModel = SnippetsGalleryViewModel(
-            snippetsStore: DependencyContainer.shared.snippetsStore,
+            snippetsStore: container.snippetsStore,
             preselectedSnippetId: preselectedSnippetId
         )
 
         let hostingController = NSHostingController(
             rootView: SnippetsGalleryView(viewModel: viewModel)
-                .environmentObject(DependencyContainer.shared.configManager)
-                .environmentObject(DependencyContainer.shared.settingsStore)
+                .environmentObject(container.configManager)
+                .environmentObject(container.settingsStore)
         )
         window.contentViewController = hostingController
         window.makeKeyAndOrderFront(nil)

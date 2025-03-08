@@ -3,16 +3,37 @@ import Foundation
 import os
 import SwiftUI
 
+/// Handles deep links to the app
 class DeepLinkHandler: DependencyInjectable {
+    // Singleton instance for backward compatibility
     static let shared = DeepLinkHandler()
-
+    
+    /// Factory method to create a new DeepLinkHandler instance
+    static func create() -> DeepLinkHandler {
+        return DeepLinkHandler()
+    }
+    
     private let logger = AppLogger.core
 
-    // Dependencies
-    var menuState: MenuState?
+    // Dependencies with proper initialization
+    private(set) var menuState: MenuState
+    private(set) var snippetsStore: SnippetsStore
+    
+    init() {
+        // Default initialization - will be properly set in injectDependencies
+        self.menuState = MenuState()
+        self.snippetsStore = SnippetsStore()
+    }
+    
+    // Convenience initializer for testing
+    init(menuState: MenuState, snippetsStore: SnippetsStore) {
+        self.menuState = menuState
+        self.snippetsStore = snippetsStore
+    }
 
     func injectDependencies(_ container: DependencyContainer) {
         self.menuState = container.menuState
+        self.snippetsStore = container.snippetsStore
         logger.debug("Dependencies injected")
     }
 
@@ -36,21 +57,16 @@ class DeepLinkHandler: DependencyInjectable {
         }
         let pathKeys = pathQuery.components(separatedBy: ",")
 
-        guard let state = self.menuState else {
-            logger.error("MenuState not properly injected")
-            return
-        }
-
         await MainActor.run {
-            state.reset()
-            var currentMenu = state.rootMenu
+            menuState.reset()
+            var currentMenu = menuState.rootMenu
             var lastFound: MenuItem?
             for key in pathKeys {
                 if let found = currentMenu.first(where: { $0.key == key }) {
                     lastFound = found
                     if let submenu = found.submenu {
-                        state.breadcrumbs.append(found.title)
-                        state.menuStack.append(submenu)
+                        menuState.breadcrumbs.append(found.title)
+                        menuState.menuStack.append(submenu)
                         currentMenu = submenu
                     } else {
                         break
