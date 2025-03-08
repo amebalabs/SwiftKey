@@ -86,7 +86,7 @@ struct MenuItem: Identifiable, Codable, Equatable {
             return {
                 // Add debug logging
                 AppLogger.app.debug("Launching application at path: \(appPath)")
-                
+
                 // Use Task to handle async work and Main actor for UI
                 Task { @MainActor in
                     let expandedPath = (appPath as NSString).expandingTildeInPath
@@ -108,7 +108,7 @@ struct MenuItem: Identifiable, Codable, Equatable {
             return {
                 // Add debug logging
                 AppLogger.app.debug("Opening URL: \(urlString)")
-                
+
                 // Use Task to handle async work and Main actor for UI
                 Task { @MainActor in
                     if let url = URL(string: urlString) {
@@ -124,7 +124,7 @@ struct MenuItem: Identifiable, Codable, Equatable {
             let shortcutName = String(action.dropFirst("shortcut://".count))
             return {
                 AppLogger.app.debug("Running shortcut: \(shortcutName)")
-                
+
                 Task(priority: .userInitiated) {
                     ShortcutsManager.shared.runShortcut(shortcut: shortcutName)
                 }
@@ -134,15 +134,15 @@ struct MenuItem: Identifiable, Codable, Equatable {
             let command = String(action.dropFirst("shell://".count))
             return {
                 AppLogger.app.debug("Executing shell command: \(command)")
-                
+
                 Task {
                     do {
                         // For shell commands, we need to use the legacy version that doesn't require await
                         // since this closure isn't marked async
                         let out = try await runScript(to: command, env: [:])
-                        
+
                         AppLogger.app.debug("Shell command completed successfully")
-                        
+
                         // Only show notification with output if it's not empty
                         let message = out.out.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?
                             "Command completed successfully" : out.out
@@ -153,7 +153,7 @@ struct MenuItem: Identifiable, Codable, Equatable {
                         }
                     } catch {
                         AppLogger.app.error("Shell command failed: \(error.localizedDescription)")
-                        
+
                         await MainActor.run {
                             if let shellError = error as? ShellOutError {
                                 let errorMessage = shellError.message.isEmpty ?
@@ -269,10 +269,5 @@ extension MenuItem {
         }
 
         return nil
-    }
-
-    static func clearImageCache() {
-        imageCache.removeAll()
-        nsImageCache.removeAll()
     }
 }

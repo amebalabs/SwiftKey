@@ -6,9 +6,8 @@ import Yams
 
 /// Manages loading, parsing, and updating configuration files
 class ConfigManager: DependencyInjectable, ObservableObject {
-
     private let logger = AppLogger.config
-    
+
     /// Factory method to create a new ConfigManager instance
     static func create() -> ConfigManager {
         return ConfigManager()
@@ -17,7 +16,6 @@ class ConfigManager: DependencyInjectable, ObservableObject {
     // Published properties for reactive updates
     @Published private(set) var menuItems: [MenuItem] = []
     @Published private(set) var lastError: Error?
-    @Published private(set) var lastUpdateTime: Date?
 
     private var lastModificationDate: Date?
 
@@ -160,11 +158,10 @@ class ConfigManager: DependencyInjectable, ObservableObject {
                                 logger.debug(" - Has submenu with \(submenu.count) items")
                             }
                         }
-                        
+
                         menuItems = config // Update the @Published property
                         menuItemsSubject.send(config) // Explicitly send to subject
                         lastError = nil
-                        lastUpdateTime = Date()
                     }
                     return .success(config)
                 }
@@ -360,7 +357,6 @@ class ConfigManager: DependencyInjectable, ObservableObject {
                     menuItems = items
                     menuItemsSubject.send(items)
                     lastError = nil
-                    lastUpdateTime = Date()
                 }
 
                 return .success(())
@@ -487,13 +483,13 @@ class ConfigManager: DependencyInjectable, ObservableObject {
             logger.notice("No configuration file path available, creating default config file")
             // Default to bundle location or create one in user Documents
             let defaultConfigPath = createDefaultConfigIfNeeded()
-            
+
             if let path = defaultConfigPath?.path {
                 logger.notice("Created default config at: \(path, privacy: .public)")
             } else {
                 logger.error("Failed to create default config file")
             }
-            
+
             return defaultConfigPath
         }
     }

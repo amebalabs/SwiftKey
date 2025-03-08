@@ -7,7 +7,7 @@ struct OverlayView: View {
     @ObservedObject var state: MenuState
     @State private var errorMessage: String = ""
     @State private var altMode: Bool = false
-    
+
     init(state: MenuState) {
         self.state = state
     }
@@ -310,6 +310,6 @@ struct HorizontalMenuItemView: View {
 #Preview {
     let settingsStore = SettingsStore()
     let menuState = MenuState()
-    
+
     return OverlayView(state: menuState).environmentObject(settingsStore)
 }

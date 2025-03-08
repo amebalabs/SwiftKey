@@ -19,7 +19,6 @@ class DependencyContainer {
     let keyboardManager: KeyboardManager
     let snippetsStore: SnippetsStore
     let dynamicMenuLoader: DynamicMenuLoader
-    let shortcutsManager: ShortcutsManager
 
     // Track active subscriptions
     private var cancellables = Set<AnyCancellable>()
@@ -33,11 +32,10 @@ class DependencyContainer {
         deepLinkHandler: DeepLinkHandler? = nil,
         keyboardManager: KeyboardManager? = nil,
         snippetsStore: SnippetsStore? = nil,
-        dynamicMenuLoader: DynamicMenuLoader? = nil,
-        shortcutsManager: ShortcutsManager? = nil
+        dynamicMenuLoader: DynamicMenuLoader? = nil
     ) {
         self.sparkleUpdater = sparkleUpdater ?? SparkleUpdater.shared
-        
+
         // Now create other components using factory methods or constructors
         self.settingsStore = settingsStore ?? SettingsStore(sparkleUpdater: self.sparkleUpdater)
         self.configManager = configManager ?? ConfigManager.create()
@@ -46,21 +44,17 @@ class DependencyContainer {
         self.keyboardManager = keyboardManager ?? KeyboardManager.create()
         self.snippetsStore = snippetsStore ?? SnippetsStore()
         self.dynamicMenuLoader = dynamicMenuLoader ?? DynamicMenuLoader.create()
-        self.shortcutsManager = shortcutsManager ?? ShortcutsManager.create()
 
         // Inject dependencies into components in the correct order
         // First inject into services that don't depend on others
-        self.sparkleUpdater.injectDependencies(self)
         self.settingsStore.injectDependencies(self)
 
         // Then inject into services that depend on the above
         self.configManager.injectDependencies(self)
-        self.menuState.injectDependencies(self)
         self.deepLinkHandler.injectDependencies(self)
         self.keyboardManager.injectDependencies(self)
         self.snippetsStore.injectDependencies(self)
         self.dynamicMenuLoader.injectDependencies(self)
-        self.shortcutsManager.injectDependencies(self)
 
         logger.notice("Initializing SwiftKey dependency container")
 

@@ -6,9 +6,9 @@ import Yams
 class DynamicMenuLoader: DependencyInjectable {
     // Keep singleton for backward compatibility during transition to DI
     static let shared = DynamicMenuLoader()
-    
+
     private let logger = AppLogger.utils
-    
+
     /// Factory method for creating a DynamicMenuLoader instance
     static func create() -> DynamicMenuLoader {
         return DynamicMenuLoader()

@@ -10,10 +10,6 @@ struct SnippetsGalleryView: View {
     @State private var errorMessage = ""
     @State private var mergeStrategy: MergeStrategy = .smart
 
-    init(viewModel: SnippetsGalleryViewModel = SnippetsGalleryViewModel()) {
-        self.viewModel = viewModel
-    }
-
     private let columns = [
         GridItem(.adaptive(minimum: 250, maximum: 350), spacing: 20),
     ]
@@ -410,16 +406,8 @@ class SnippetsGalleryViewModel: ObservableObject {
     private let snippetsStore: SnippetsStore
     private let preselectedSnippetId: String?
 
-    init(snippetsStore: SnippetsStore? = nil, preselectedSnippetId: String? = nil) {
-        // Use provided store or get from app delegate's container
-        if let store = snippetsStore {
-            self.snippetsStore = store
-        } else if let appDelegate = NSApp.delegate as? AppDelegate {
-            self.snippetsStore = appDelegate.container.snippetsStore
-        } else {
-            // Create a standalone store as last resort
-            self.snippetsStore = SnippetsStore()
-        }
+    init(snippetsStore: SnippetsStore, preselectedSnippetId: String? = nil) {
+        self.snippetsStore = snippetsStore
         self.preselectedSnippetId = preselectedSnippetId
     }
 

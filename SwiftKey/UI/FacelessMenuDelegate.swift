@@ -10,54 +10,20 @@ class FacelessMenuController: DependencyInjectable {
     var indicatorState: Bool = false
     var sessionActive: Bool = false
     // Dependencies - non-optional for consistent dependency handling
-    var menuState: MenuState
-    var settingsStore: SettingsStore
-    var keyboardManager: KeyboardManager
+    var menuState: MenuState!
+    var settingsStore: SettingsStore!
+    var keyboardManager: KeyboardManager!
 
     init(
         rootMenu: [MenuItem],
         statusItem: NSStatusItem,
-        resetDelay: TimeInterval,
-        menuState: MenuState,
-        settingsStore: SettingsStore,
-        keyboardManager: KeyboardManager
+        resetDelay: TimeInterval
     ) {
         self.rootMenu = rootMenu
         self.statusItem = statusItem
         self.resetDelay = resetDelay
-        self.menuState = menuState
-        self.settingsStore = settingsStore
-        self.keyboardManager = keyboardManager
+
         updateStatusItem()
-    }
-    
-    // Convenience initializer that gets dependencies from AppDelegate
-    convenience init(
-        rootMenu: [MenuItem],
-        statusItem: NSStatusItem,
-        resetDelay: TimeInterval,
-        menuState: MenuState
-    ) {
-        if let appDelegate = NSApp.delegate as? AppDelegate {
-            self.init(
-                rootMenu: rootMenu,
-                statusItem: statusItem,
-                resetDelay: resetDelay,
-                menuState: menuState,
-                settingsStore: appDelegate.settings,
-                keyboardManager: appDelegate.keyboardManager
-            )
-        } else {
-            // Fallback to create minimal dependencies
-            self.init(
-                rootMenu: rootMenu,
-                statusItem: statusItem,
-                resetDelay: resetDelay,
-                menuState: menuState,
-                settingsStore: SettingsStore(),
-                keyboardManager: KeyboardManager()
-            )
-        }
     }
 
     func injectDependencies(_ container: DependencyContainer) {
@@ -71,16 +37,21 @@ class FacelessMenuController: DependencyInjectable {
     }
 
     func updateStatusItem() {
-        let imageConfig = NSImage.SymbolConfiguration(pointSize: 20, weight: .medium, scale: .small)
-        if sessionActive {
-            statusItem.button?.title = ""
-            let imageName = indicatorState ? "circle.fill" : "circle"
-            statusItem.button?.image = NSImage(systemSymbolName: imageName, accessibilityDescription: "Active session")?
-                .withSymbolConfiguration(imageConfig)
-        } else {
-            statusItem.button?
-                .image = NSImage(systemSymbolName: "k.circle", accessibilityDescription: "Active session")?
-                .withSymbolConfiguration(imageConfig)
+        Task { @MainActor in
+            let imageConfig = NSImage.SymbolConfiguration(pointSize: 20, weight: .medium, scale: .small)
+            if sessionActive {
+                statusItem.button?.title = ""
+                let imageName = indicatorState ? "circle.fill" : "circle"
+                statusItem.button?.image = NSImage(
+                    systemSymbolName: imageName,
+                    accessibilityDescription: "Active session"
+                )?
+                    .withSymbolConfiguration(imageConfig)
+            } else {
+                statusItem.button?
+                    .image = NSImage(systemSymbolName: "k.circle", accessibilityDescription: "Active session")?
+                    .withSymbolConfiguration(imageConfig)
+            }
         }
     }
 
@@ -177,8 +148,10 @@ class FacelessMenuController: DependencyInjectable {
         animationTimer = nil
         sessionTimer?.invalidate()
         sessionTimer = nil
-        menuState.menuStack = []
-        menuState.breadcrumbs = []
+        Task { @MainActor in
+            menuState.menuStack = []
+            menuState.breadcrumbs = []
+        }
         updateStatusItem()
     }
 }

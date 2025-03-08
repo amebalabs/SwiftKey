@@ -5,33 +5,21 @@ import SwiftUI
 
 /// Handles deep links to the app
 class DeepLinkHandler: DependencyInjectable {
-    /// Factory method to create a new DeepLinkHandler instance
     static func create() -> DeepLinkHandler {
         return DeepLinkHandler()
     }
-    
+
     private let logger = AppLogger.core
 
-    // Dependencies with proper initialization
     private(set) var menuState: MenuState
-    private(set) var snippetsStore: SnippetsStore
-    
+
     init() {
-        // Default initialization - will be properly set in injectDependencies
         self.menuState = MenuState()
-        self.snippetsStore = SnippetsStore()
-    }
-    
-    // Convenience initializer for testing
-    init(menuState: MenuState, snippetsStore: SnippetsStore) {
-        self.menuState = menuState
-        self.snippetsStore = snippetsStore
     }
 
     func injectDependencies(_ container: DependencyContainer) {
         self.menuState = container.menuState
-        self.snippetsStore = container.snippetsStore
-        logger.debug("Dependencies injected")
+        logger.debug("DeepLinkHandler: Dependencies injected")
     }
 
     func handle(url: URL) async {
@@ -101,8 +89,12 @@ class DeepLinkHandler: DependencyInjectable {
         logger.info("Opening snippet gallery for snippet ID: \(snippetId, privacy: .public)")
 
         Task { @MainActor in
-            await AppDelegate.showGalleryWindow(preselectedSnippetId: snippetId)
-            NSApp.activate(ignoringOtherApps: true)
+            NotificationCenter.default
+                .post(
+                    name: .presentGalleryWindow,
+                    object: nil,
+                    userInfo: ["snippetId": snippetId]
+                )
         }
     }
 }

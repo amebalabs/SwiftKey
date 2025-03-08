@@ -12,25 +12,24 @@ class SettingsStore: ObservableObject, DependencyInjectable {
         self.sparkleUpdater = container.sparkleUpdater
     }
 
-    public enum OverlayStyle: String, CaseIterable {
+    enum OverlayStyle: String, CaseIterable {
         case panel = "Default"
         case hud = "Compact: HUD"
         case faceless = "Compact: Menu Bar"
     }
 
-    public enum OverlayScreenOption: String, CaseIterable, Codable {
+    enum OverlayScreenOption: String, CaseIterable, Codable {
         case primary = "Primary Screen"
         case mouse = "Screen with Mouse"
     }
 
-    @AppStorage("IsShowingMenuBar") public var isShowingMenuBar: Bool = true
-    @AppStorage("ConfigFilePath") public var configFilePath: String = ""
-    @AppStorage("MenuStateResetDelay") public var menuStateResetDelay: Double = 3.0
-    @AppStorage("UseHorizontalOverlayLayout") public var useHorizontalOverlayLayout: Bool = true
-    @AppStorage("OverlayStyle") public var overlayStyle: OverlayStyle = .panel
-    @AppStorage("OverlayScreenOption") public var overlayScreenOption: OverlayScreenOption = .primary
-    @AppStorage("TriggerKeyHoldMode") public var triggerKeyHoldMode: Bool = false
-    @AppStorage("NeedsOnboarding") public var needsOnboarding: Bool = true
+    @AppStorage("ConfigFilePath") var configFilePath: String = ""
+    @AppStorage("MenuStateResetDelay") var menuStateResetDelay: Double = 3.0
+    @AppStorage("UseHorizontalOverlayLayout") var useHorizontalOverlayLayout: Bool = true
+    @AppStorage("OverlayStyle") var overlayStyle: OverlayStyle = .panel
+    @AppStorage("OverlayScreenOption") var overlayScreenOption: OverlayScreenOption = .primary
+    @AppStorage("TriggerKeyHoldMode") var triggerKeyHoldMode: Bool = false
+    @AppStorage("NeedsOnboarding") var needsOnboarding: Bool = true
     @AppStorage("AutomaticallyCheckForUpdates")
     public var automaticallyCheckForUpdates: Bool = true {
         didSet {

@@ -6,8 +6,7 @@ struct MinimalHUDView: View {
     @EnvironmentObject var keyboardManager: KeyboardManager
     @State private var lastKey: String = ""
     @State private var error: Bool = false
-    
-    
+
     init(state: MenuState) {
         self.state = state
     }

@@ -2,7 +2,7 @@ import Cocoa
 import Foundation
 import SwiftUI
 
-class NotchContext: DependencyInjectable {
+class NotchContext {
     let screen: NSScreen
     let headerLeadingView: AnyView
     let headerTrailingView: AnyView
@@ -10,15 +10,10 @@ class NotchContext: DependencyInjectable {
     let animated: Bool
     private var viewModel: NotchViewModel?
 
-    // Dependencies
     var settingsStore: SettingsStore?
 
     var presented: Bool {
         viewModel?.status == .opened
-    }
-
-    func injectDependencies(_ container: DependencyContainer) {
-        self.settingsStore = container.settingsStore
     }
 
     init(screen: NSScreen, headerLeadingView: AnyView, headerTrailingView: AnyView, bodyView: AnyView, animated: Bool) {

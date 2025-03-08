@@ -4,22 +4,8 @@ import SwiftUI
 struct GeneralSettingsView: View {
     @EnvironmentObject var settings: SettingsStore
     @ObservedObject private var launchAtLogin = LaunchAtLogin.observable
-    // Get services from AppDelegate's container
-    @StateObject private var updater: SparkleUpdater
-    @ObservedObject private var configManager: ConfigManager
-    
-    init() {
-        // Get services from AppDelegate's container
-        if let appDelegate = NSApp.delegate as? AppDelegate {
-            // Use _updater for StateObject initialization
-            _updater = StateObject(wrappedValue: appDelegate.container.sparkleUpdater)
-            self.configManager = appDelegate.container.configManager
-        } else {
-            // Fallback to create new instances if needed
-            _updater = StateObject(wrappedValue: SparkleUpdater.shared)
-            self.configManager = ConfigManager.create()
-        }
-    }
+    @EnvironmentObject private var sparkleUpdater: SparkleUpdater
+    @EnvironmentObject private var configManager: ConfigManager
 
     var body: some View {
         Form {
@@ -140,11 +126,11 @@ struct GeneralSettingsView: View {
             Section {
                 HStack {
                     Button("Check for Updates Now") {
-                        updater.checkForUpdates()
+                        sparkleUpdater.checkForUpdates()
                     }
-                    .disabled(!updater.canCheckForUpdates)
+                    .disabled(!sparkleUpdater.canCheckForUpdates)
 
-                    if !updater.canCheckForUpdates {
+                    if !sparkleUpdater.canCheckForUpdates {
                         ProgressView()
                             .controlSize(.small)
                             .padding(.leading, 4)

@@ -29,7 +29,6 @@ enum KeyPressResult: Equatable {
 /// Manages keyboard shortcuts and key event handling
 @Observable
 class KeyboardManager: DependencyInjectable, ObservableObject {
-    
     /// Factory method to create a new KeyboardManager instance
     static func create() -> KeyboardManager {
         return KeyboardManager()
@@ -43,31 +42,16 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
     private(set) var configManager: ConfigManager!
     private(set) var dynamicMenuLoader: DynamicMenuLoader!
 
-    // Event publishers
-    let keyPressSubject = PassthroughSubject<KeyEvent, Never>()
-    var keyPressPublisher: AnyPublisher<KeyEvent, Never> {
-        keyPressSubject.eraseToAnyPublisher()
-    }
-
     // Global key handlers map for menu hotkeys
     private var hotkeyHandlers: [String: KeyboardShortcuts.Name] = [:]
-    
-//    // Default initialization for container creation
+
+    // Default initialization for container creation
     init() {
         // Default initialization - will be properly set in injectDependencies
         self.menuState = MenuState()
         self.settingsStore = SettingsStore()
         self.configManager = ConfigManager.create()
         self.dynamicMenuLoader = DynamicMenuLoader.create()
-    }
-    
-    // Convenience initializer for testing with dependency injection
-    init(menuState: MenuState, settingsStore: SettingsStore, 
-         configManager: ConfigManager, dynamicMenuLoader: DynamicMenuLoader) {
-        self.menuState = menuState
-        self.settingsStore = settingsStore
-        self.configManager = configManager
-        self.dynamicMenuLoader = dynamicMenuLoader
     }
 
     func injectDependencies(_ container: DependencyContainer) {
@@ -164,8 +148,7 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
         }
 
         // Use the injected instance rather than the shared singleton
-        if let submenu = await dynamicMenuLoader.loadDynamicMenu(for: item)
-        {
+        if let submenu = await dynamicMenuLoader.loadDynamicMenu(for: item) {
             // Update UI state on the main actor
             await MainActor.run {
                 menuState.breadcrumbs.append(item.title)
@@ -263,18 +246,6 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
             }
         }
         return nil
-    }
-}
-
-// MARK: - KeyEvent Data Structure
-
-struct KeyEvent {
-    let key: String
-    let modifiers: NSEvent.ModifierFlags?
-
-    init(key: String, modifiers: NSEvent.ModifierFlags? = nil) {
-        self.key = key
-        self.modifiers = modifiers
     }
 }
 
