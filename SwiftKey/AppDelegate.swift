@@ -37,9 +37,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Dependency
         self.shortcutsManager = container.shortcutsManager
         
         super.init()
-        
-        // Set the shared reference - we will remove this once all DI is complete
-        AppDelegate.shared = self
     }
     
     // Default initializer required by NSApplicationDelegate
@@ -59,9 +56,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Dependency
         self.shortcutsManager = container.shortcutsManager
         
         super.init()
-        
-        // Set the shared reference - we will remove this once all DI is complete
-        AppDelegate.shared = self
         
         // Reset the static container to avoid memory leaks
         AppDelegate.initialContainer = nil
@@ -93,8 +87,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Dependency
     }
 
     func applicationDidFinishLaunching(_: Notification) {
-        AppDelegate.shared = self
-
         logger.notice("SwiftKey application starting")
         
         // Ensure the config manager loads the menu
@@ -169,6 +161,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Dependency
             guard let self = self else { return }
             Task {
                 await self.hideWindow()
+            }
+        }
+        NotificationCenter.default
+            .addObserver(forName: .presentOverlay, object: nil, queue: nil) { [weak self] _ in
+            guard let self = self else { return }
+            Task {
+                await self.presentOverlay()
             }
         }
     }
@@ -315,7 +314,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Dependency
     }
 
     /// Hides any visible overlay windows
-    /// This method prevents duplicate hide operations for better performance
     @MainActor
     func hideWindow() async {
         // Skip hiding if menu is sticky
@@ -359,7 +357,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Dependency
             }
         }
     }
-
+    
+    @MainActor
     func presentOverlay() {
         notchContext?.close()
 
@@ -396,6 +395,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Dependency
     }
 
     /// Shows the overlay window positioned appropriately on screen
+    @MainActor
     private func showOverlayWindow() {
         guard let window = overlayWindow, let screen = chosenScreen() else { return }
         let frame = window.frame
@@ -423,24 +423,23 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Dependency
 }
 
 extension AppDelegate {
+    @MainActor
     func showOnboardingWindow() async {
-        await MainActor.run {
-            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 400, height: 300),
-                                  styleMask: [.titled, .closable],
-                                  backing: .buffered,
-                                  defer: false)
-            window.center()
-            window.title = "Welcome to SwiftKey"
-            let onboardingView = OnboardingView(onFinish: { [weak window, self] in
-                window?.orderOut(nil)
-                Task {
-                    await self.toggleSession()
-                }
-            })
-            .environmentObject(settings)
-            window.contentView = NSHostingView(rootView: onboardingView)
-            window.makeKeyAndOrderFront(nil)
-        }
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 400, height: 300),
+                              styleMask: [.titled, .closable],
+                              backing: .buffered,
+                              defer: false)
+        window.center()
+        window.title = "Welcome to SwiftKey"
+        let onboardingView = OnboardingView(onFinish: { [weak window, self] in
+            window?.orderOut(nil)
+            Task {
+                await self.toggleSession()
+            }
+        })
+        .environmentObject(settings)
+        window.contentView = NSHostingView(rootView: onboardingView)
+        window.makeKeyAndOrderFront(nil)
     }
 
     @MainActor
@@ -461,7 +460,7 @@ extension AppDelegate {
 
         // Get container from the shared app delegate
         guard let appDelegate = NSApp.delegate as? AppDelegate,
-              let container = appDelegate.container as? DependencyContainer else {
+              case let container = appDelegate.container else {
             return
         }
         

@@ -5,9 +5,6 @@ import SwiftUI
 
 /// Handles deep links to the app
 class DeepLinkHandler: DependencyInjectable {
-    // Singleton instance for backward compatibility
-    static let shared = DeepLinkHandler()
-    
     /// Factory method to create a new DeepLinkHandler instance
     static func create() -> DeepLinkHandler {
         return DeepLinkHandler()
@@ -87,12 +84,7 @@ class DeepLinkHandler: DependencyInjectable {
                         action()
                     }
                 } else {
-                    if let appDelegate = AppDelegate.shared {
-                        Task { @MainActor in
-                            appDelegate.presentOverlay()
-                            NSApp.activate(ignoringOtherApps: true)
-                        }
-                    }
+                    NotificationCenter.default.post(name: .presentOverlay, object: nil)
                 }
             }
         }

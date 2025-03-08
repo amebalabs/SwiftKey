@@ -238,12 +238,7 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
                 }
             }
 
-            // Find the AppDelegate via NSApp.delegate
-            if let appDelegate = NSApp.delegate as? AppDelegate {
-                appDelegate.presentOverlay()
-            } else {
-                logger.error("Could not find AppDelegate to present overlay")
-            }
+            NotificationCenter.default.post(name: .presentOverlay, object: nil)
         }
     }
 

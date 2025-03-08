@@ -311,12 +311,5 @@ struct HorizontalMenuItemView: View {
     let settingsStore = SettingsStore()
     let menuState = MenuState()
     
-    // Set up AppDelegate.shared for the preview
-    if AppDelegate.shared == nil {
-        let container = DependencyContainer()
-        let appDelegate = AppDelegate(container: container)
-        AppDelegate.shared = appDelegate
-    }
-    
     return OverlayView(state: menuState).environmentObject(settingsStore)
 }

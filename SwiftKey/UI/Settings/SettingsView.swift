@@ -49,7 +49,9 @@ struct SnippetsSettingsView: View {
                 .lineLimit(nil)
 
             Button("Open Snippets Gallery") {
-                openGallery()
+                Task {
+                    await AppDelegate.showGalleryWindow()
+                }
             }
             .controlSize(.large)
 

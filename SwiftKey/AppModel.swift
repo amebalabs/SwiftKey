@@ -123,30 +123,18 @@ struct MenuItem: Identifiable, Codable, Equatable {
         if action.hasPrefix("shortcut://") {
             let shortcutName = String(action.dropFirst("shortcut://".count))
             return {
-                // Add debug logging
                 AppLogger.app.debug("Running shortcut: \(shortcutName)")
                 
-                // Use Task to handle async work
-                Task {
-                    // Get the shortcuts manager from the DI container via the AppDelegate
-                    if let appDelegate = NSApp.delegate as? AppDelegate {
-                        AppLogger.app.debug("Using ShortcutsManager from AppDelegate")
-                        appDelegate.container.shortcutsManager.runShortcut(shortcut: shortcutName)
-                    } else {
-                        // Fallback to the singleton for backward compatibility
-                        AppLogger.app.debug("Using ShortcutsManager.shared (fallback)")
-                        ShortcutsManager.shared.runShortcut(shortcut: shortcutName)
-                    }
+                Task(priority: .userInitiated) {
+                    ShortcutsManager.shared.runShortcut(shortcut: shortcutName)
                 }
             }
         }
         if action.hasPrefix("shell://") {
             let command = String(action.dropFirst("shell://".count))
             return {
-                // Add debug logging to see if this code path is executed
                 AppLogger.app.debug("Executing shell command: \(command)")
                 
-                // Create a Task for async execution
                 Task {
                     do {
                         // For shell commands, we need to use the legacy version that doesn't require await

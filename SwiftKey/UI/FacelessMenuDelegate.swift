@@ -145,7 +145,7 @@ class FacelessMenuController: DependencyInjectable {
                     self.endSession()
                 case .help:
                     self.endSession()
-                    AppDelegate.shared.presentOverlay()
+                    NotificationCenter.default.post(name: .presentOverlay, object: nil)
                 case .up:
                     break
                 case .submenuPushed:

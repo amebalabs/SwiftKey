@@ -57,19 +57,15 @@ struct MinimalHUDView: View {
 
         switch result {
         case .escape:
-            await MainActor.run {
-                NotificationCenter.default.post(name: .hideOverlay, object: nil)
-            }
+            NotificationCenter.default.post(name: .hideOverlay, object: nil)
         case .help:
-            AppDelegate.shared.presentOverlay()
+            NotificationCenter.default.post(name: .presentOverlay, object: nil)
         case .up:
             break
         case .submenuPushed:
             lastKey = ""
         case .actionExecuted:
-            await MainActor.run {
-                NotificationCenter.default.post(name: .hideOverlay, object: nil)
-            }
+            NotificationCenter.default.post(name: .hideOverlay, object: nil)
         case .dynamicLoading:
             lastKey = "Loading..."
         case let .error(errorKey):
@@ -77,8 +73,6 @@ struct MinimalHUDView: View {
                 withAnimation(.easeInOut(duration: 0.1)) { lastKey = errorKey }
                 error = true
             }
-
-            try? await Task.sleep(nanoseconds: 300000000) // 0.3 seconds
 
             await MainActor.run {
                 withAnimation { error = false }
