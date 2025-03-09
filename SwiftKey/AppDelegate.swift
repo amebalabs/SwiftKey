@@ -52,6 +52,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     var statusItem: NSStatusItem?
     var facelessMenuController: FacelessMenuController?
     var defaultsObserver: AnyCancellable?
+    var galleryWindow: NSWindow?
 
     func applicationDidFinishLaunching(_: Notification) {
         logger.notice("SwiftKey application starting")
@@ -118,18 +119,15 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             }
     }
 
-    func applicationOpenUrls(_ application: NSApplication, open urls: [URL]) async {
+    func application(_ application: NSApplication, open urls: [URL]) {
+        logger.notice("Received URL open request with \(urls.count) URLs")
+
         for url in urls {
+            logger.info("Processing URL: \(url.absoluteString)")
+
+            // Start a task to handle the URL
             Task {
                 await deepLinkHandler.handle(url: url)
-            }
-        }
-    }
-
-    func application(_ application: NSApplication, open urls: [URL]) {
-        for url in urls {
-            Task {
-                await applicationOpenUrls(application, open: [url])
             }
         }
     }
@@ -216,7 +214,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     /// Hides any visible overlay windows
     @MainActor
     func hideWindow() async {
-
         // Skip if no windows are visible (prevents unnecessary hide operations)
         let isVisible = overlayWindow?.isVisible == true || notchContext?.presented == true
         if !isVisible && settings.overlayStyle != .faceless {
@@ -372,8 +369,8 @@ extension AppDelegate {
 
     @MainActor
     func showGalleryWindow(preselectedSnippetId: String? = nil) async {
-        if let existingWindow = NSApp.windows.first(where: { $0.title == "SwiftKey Snippets Gallery" }) {
-            existingWindow.makeKeyAndOrderFront(nil)
+        if let window = galleryWindow, window.isVisible {
+            window.makeKeyAndOrderFront(nil)
             return
         }
 
@@ -385,6 +382,7 @@ extension AppDelegate {
         )
         window.title = "SwiftKey Snippets Gallery"
         window.center()
+        window.delegate = self
 
         let viewModel = SnippetsGalleryViewModel(
             snippetsStore: container.snippetsStore,
@@ -399,5 +397,6 @@ extension AppDelegate {
         window.contentViewController = hostingController
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+        galleryWindow = window // Keep a strong reference
     }
 }
