@@ -219,8 +219,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     /// Hides any visible overlay windows
     @MainActor
     func hideWindow() async {
-        // Skip hiding if menu is sticky
-        guard menuState.isCurrentMenuSticky == false else { return }
 
         // Skip if no windows are visible (prevents unnecessary hide operations)
         let isVisible = overlayWindow?.isVisible == true || notchContext?.presented == true
