@@ -111,12 +111,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         NotificationCenter.default
             .addObserver(forName: .presentGalleryWindow, object: nil, queue: nil) { [weak self] notification in
                 guard let self = self else { return }
-
-                // Extract the snippetId from the notification's userInfo
-                if let snippetId = notification.userInfo?["snippetId"] as? String {
-                    Task { @MainActor in
-                        await self.showGalleryWindow(preselectedSnippetId: snippetId)
-                    }
+                let snippetId = notification.userInfo?["snippetId"] as? String
+                Task { @MainActor in
+                    await self.showGalleryWindow(preselectedSnippetId: snippetId)
                 }
             }
     }
