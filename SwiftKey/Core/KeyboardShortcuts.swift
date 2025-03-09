@@ -18,7 +18,7 @@ enum KeyPressResult: Equatable {
     case help
     case up
     case submenuPushed(title: String)
-    case actionExecuted
+    case actionExecuted(sticky: Bool)
     case dynamicLoading
     case error(key: String)
     case none
@@ -111,7 +111,7 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
             // Batch execution mode (Alt key or batch flag)
             if modifierFlags?.isOption == true || item.batch == true {
                 await executeBatchActions(in: submenu)
-                return .actionExecuted
+                return .actionExecuted(sticky: false)
             }
 
             // Normal submenu navigation
@@ -130,10 +130,18 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
 
             // Handle sticky flag for panel mode
             let overlayStyle = settingsStore.overlayStyle
-            if item.sticky == false, overlayStyle == .panel {
-                return .none
+            
+            // Check for Option key to invert sticky behavior (similar to how batch works)
+            let isOptionPressed = modifierFlags?.isOption == true
+            let stickyValue = item.sticky ?? false
+            let effectiveStickyValue = isOptionPressed ? !stickyValue : stickyValue
+            
+            logger.debug("Sticky: original=\(stickyValue), option=\(isOptionPressed), effective=\(effectiveStickyValue)")
+            
+            if effectiveStickyValue, overlayStyle == .panel {
+               return .actionExecuted(sticky: true)
             } else {
-                return .actionExecuted
+                return .actionExecuted(sticky: false)
             }
         }
 
@@ -196,6 +204,9 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
                         Task(priority: .userInitiated) {
                             action()
                         }
+                        
+                        // Note: We can't detect the Option key in the hotkey handler,
+                        // so hotkey-triggered actions will always use the default sticky behavior
                     }
                 }
 
