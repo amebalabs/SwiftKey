@@ -1,14 +1,14 @@
 import SwiftUI
 
-struct SnippetsSettingsView: View {  
+struct SnippetsSettingsView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             Text("Snippets Gallery")
                 .font(.headline)
 
             Text("Browse and install shared configuration snippets from the SwiftKey community.")
-            .fixedSize(horizontal: false, vertical: true)
-            .lineLimit(nil)
+                .fixedSize(horizontal: false, vertical: true)
+                .lineLimit(nil)
 
             Button("Open Snippets Gallery") {
                 NotificationCenter.default

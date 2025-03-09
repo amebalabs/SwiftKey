@@ -130,16 +130,17 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
 
             // Handle sticky flag for panel mode
             let overlayStyle = settingsStore.overlayStyle
-            
+
             // Check for Option key to invert sticky behavior (similar to how batch works)
             let isOptionPressed = modifierFlags?.isOption == true
             let stickyValue = item.sticky ?? false
             let effectiveStickyValue = isOptionPressed ? !stickyValue : stickyValue
-            
-            logger.debug("Sticky: original=\(stickyValue), option=\(isOptionPressed), effective=\(effectiveStickyValue)")
-            
+
+            logger
+                .debug("Sticky: original=\(stickyValue), option=\(isOptionPressed), effective=\(effectiveStickyValue)")
+
             if effectiveStickyValue, overlayStyle == .panel {
-               return .actionExecuted(sticky: true)
+                return .actionExecuted(sticky: true)
             } else {
                 return .actionExecuted(sticky: false)
             }
@@ -204,7 +205,7 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
                         Task(priority: .userInitiated) {
                             action()
                         }
-                        
+
                         // Note: We can't detect the Option key in the hotkey handler,
                         // so hotkey-triggered actions will always use the default sticky behavior
                     }

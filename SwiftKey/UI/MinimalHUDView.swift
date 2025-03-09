@@ -63,8 +63,8 @@ struct MinimalHUDView: View {
             break
         case .submenuPushed:
             lastKey = ""
-        case .actionExecuted(sticky: let sticky):
-            guard sticky == false else {break}
+        case let .actionExecuted(sticky: sticky):
+            guard sticky == false else { break }
             NotificationCenter.default.post(name: .hideOverlay, object: nil)
         case .dynamicLoading:
             lastKey = "Loading..."

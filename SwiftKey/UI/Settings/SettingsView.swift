@@ -18,10 +18,10 @@ struct SettingsView: View {
                 .tag(Tabs.general)
 
             SnippetsSettingsView()
-            .tabItem {
-                Label("Snippets", systemImage: "square.grid.2x2")
-            }
-            .tag(Tabs.snippets)
+                .tabItem {
+                    Label("Snippets", systemImage: "square.grid.2x2")
+                }
+                .tag(Tabs.snippets)
 
             AboutSettingsView()
                 .tabItem {

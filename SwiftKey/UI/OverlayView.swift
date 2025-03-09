@@ -182,8 +182,8 @@ struct OverlayView: View {
             break
         case .submenuPushed:
             errorMessage = ""
-        case .actionExecuted(sticky: let sticky):
-            guard sticky == false else {break}
+        case let .actionExecuted(sticky: sticky):
+            guard sticky == false else { break }
             await MainActor.run {
                 NotificationCenter.default.post(name: .hideOverlay, object: nil)
             }

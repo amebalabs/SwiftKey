@@ -305,7 +305,7 @@ class ConfigManager: DependencyInjectable, ObservableObject {
         case .success:
             break
         }
-        
+
         // Load the current configuration
         guard let url = resolveConfigFileURL() else {
             throw ConfigError.fileNotFound
@@ -353,10 +353,10 @@ class ConfigManager: DependencyInjectable, ObservableObject {
                 logger.debug("No file to backup at \(configURL.path, privacy: .public)")
                 return .success(nil) // No file to backup
             }
-            
+
             let backupDir = configURL.deletingLastPathComponent()
                 .appendingPathComponent("backups", isDirectory: true)
-            
+
             if !FileManager.default.fileExists(atPath: backupDir.path) {
                 try FileManager.default.createDirectory(
                     at: backupDir,
@@ -364,24 +364,24 @@ class ConfigManager: DependencyInjectable, ObservableObject {
                 )
                 logger.debug("Created backup directory at \(backupDir.path, privacy: .public)")
             }
-            
+
             let dateFormatter = DateFormatter()
             dateFormatter.dateFormat = "yyyy-MM-dd_HH-mm-ss"
             let timestamp = dateFormatter.string(from: Date())
             let fileName = configURL.lastPathComponent
             let backupName = "\(fileName.replacingOccurrences(of: ".yaml", with: ""))_\(timestamp).yaml"
             let backupURL = backupDir.appendingPathComponent(backupName)
-            
+
             try FileManager.default.copyItem(at: configURL, to: backupURL)
             logger.info("Created backup at \(backupURL.path, privacy: .public)")
-            
+
             return .success(backupURL)
         } catch {
             logger.error("Failed to create backup: \(error.localizedDescription)")
             return .failure(.readFailed(underlying: error))
         }
     }
-    
+
     func saveMenuItems(_ items: [MenuItem]) async -> Result<Void, ConfigError> {
         guard let url = resolveConfigFileURL() else {
             return .failure(ConfigError.fileNotFound)
