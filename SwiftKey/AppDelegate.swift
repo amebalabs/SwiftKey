@@ -91,7 +91,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             }
         }
 
-        defaultsObserver = NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)
+        defaultsObserver = settings.settingsChanged
             .sink { [weak self] _ in
                 guard let self = self else { return }
                 Task {

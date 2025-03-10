@@ -1,6 +1,12 @@
 import SwiftUI
+import Combine
 
 class SettingsStore: ObservableObject, DependencyInjectable {
+    // Publisher for settings changes
+    private let settingsChangedSubject = PassthroughSubject<Void, Never>()
+    var settingsChanged: AnyPublisher<Void, Never> {
+        settingsChangedSubject.eraseToAnyPublisher()
+    }
     // Dependencies
     private var sparkleUpdater: SparkleUpdater?
 
@@ -23,13 +29,27 @@ class SettingsStore: ObservableObject, DependencyInjectable {
         case mouse = "Screen with Mouse"
     }
 
-    @AppStorage("ConfigFilePath") var configFilePath: String = ""
-    @AppStorage("MenuStateResetDelay") var menuStateResetDelay: Double = 3.0
-    @AppStorage("UseHorizontalOverlayLayout") var useHorizontalOverlayLayout: Bool = true
-    @AppStorage("OverlayStyle") var overlayStyle: OverlayStyle = .panel
-    @AppStorage("OverlayScreenOption") var overlayScreenOption: OverlayScreenOption = .primary
-    @AppStorage("TriggerKeyHoldMode") var triggerKeyHoldMode: Bool = false
-    @AppStorage("NeedsOnboarding") var needsOnboarding: Bool = true
+    @AppStorage("ConfigFilePath") var configFilePath: String = "" {
+        didSet { settingsChangedSubject.send() }
+    }
+    @AppStorage("MenuStateResetDelay") var menuStateResetDelay: Double = 3.0 {
+        didSet { settingsChangedSubject.send() }
+    }
+    @AppStorage("UseHorizontalOverlayLayout") var useHorizontalOverlayLayout: Bool = true {
+        didSet { settingsChangedSubject.send() }
+    }
+    @AppStorage("OverlayStyle") var overlayStyle: OverlayStyle = .panel {
+        didSet { settingsChangedSubject.send() }
+    }
+    @AppStorage("OverlayScreenOption") var overlayScreenOption: OverlayScreenOption = .primary {
+        didSet { settingsChangedSubject.send() }
+    }
+    @AppStorage("TriggerKeyHoldMode") var triggerKeyHoldMode: Bool = false {
+        didSet { settingsChangedSubject.send() }
+    }
+    @AppStorage("NeedsOnboarding") var needsOnboarding: Bool = true {
+        didSet { settingsChangedSubject.send() }
+    }
     @AppStorage("AutomaticallyCheckForUpdates")
     public var automaticallyCheckForUpdates: Bool = true {
         didSet {
@@ -39,6 +59,7 @@ class SettingsStore: ObservableObject, DependencyInjectable {
             } else {
                 SparkleUpdater.shared.automaticallyChecksForUpdates = automaticallyCheckForUpdates
             }
+            settingsChangedSubject.send()
         }
     }
 
@@ -50,6 +71,7 @@ class SettingsStore: ObservableObject, DependencyInjectable {
             } else {
                 SparkleUpdater.shared.automaticallyDownloadsUpdates = automaticallyDownloadUpdates
             }
+            settingsChangedSubject.send()
         }
     }
 
@@ -61,6 +83,7 @@ class SettingsStore: ObservableObject, DependencyInjectable {
             } else {
                 SparkleUpdater.shared.configureFeedURLs()
             }
+            settingsChangedSubject.send()
         }
     }
 
