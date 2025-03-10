@@ -4,7 +4,6 @@ import SwiftUI
 struct SnippetsGalleryView: View {
     @ObservedObject var viewModel: SnippetsGalleryViewModel
     @State private var searchText = ""
-    @State private var isDetailPresented = false
     @State private var selectedSnippet: ConfigSnippet?
     @State private var showingErrorAlert = false
     @State private var errorMessage = ""
@@ -31,13 +30,15 @@ struct SnippetsGalleryView: View {
         .onAppear {
             viewModel.fetchSnippets()
         }
-        .sheet(isPresented: $isDetailPresented) {
-            if let snippet = selectedSnippet {
-                SnippetDetailView(snippet: snippet, mergeStrategy: $mergeStrategy) { strategy in
+        .sheet(item: $selectedSnippet) { snippet in
+            SnippetDetailView(
+                snippet: snippet,
+                mergeStrategy: $mergeStrategy,
+                onImport: { strategy in
                     importSnippet(snippet, strategy: strategy)
                 }
-                .frame(width: 700, height: 600) // Increase size to prevent clipping
-            }
+            )
+            .frame(width: 700, height: 550)
         }
         .alert(isPresented: $showingErrorAlert) {
             Alert(
@@ -109,11 +110,11 @@ struct SnippetsGalleryView: View {
                 ForEach(viewModel.filteredSnippets) { snippet in
                     SnippetCard(snippet: snippet)
                         .onTapGesture {
+                            // Just set selectedSnippet - no need for isDetailPresented anymore
                             selectedSnippet = snippet
-                            isDetailPresented = true
                         }
+                        .id(snippet.id) // Ensure each card has a stable ID
                 }
-                .id(UUID()) // Force refresh when snippets change
             }
             .padding(.horizontal)
         }
@@ -123,14 +124,15 @@ struct SnippetsGalleryView: View {
 
     private func importSnippet(_ snippet: ConfigSnippet, strategy: MergeStrategy) {
         viewModel.importSnippet(snippet, strategy: strategy) { result in
+
             switch result {
             case .success:
-                // Successfully imported
-                isDetailPresented = false
+                // Successfully imported - clear selectedSnippet to dismiss sheet
+                self.selectedSnippet = nil
             case let .failure(error):
                 // Handle error
-                errorMessage = error.localizedDescription
-                showingErrorAlert = true
+                self.errorMessage = error.localizedDescription
+                self.showingErrorAlert = true
             }
         }
     }
@@ -198,7 +200,7 @@ struct SnippetDetailView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 10) {
                 HStack {
                     Text(snippet.name)
                         .font(.largeTitle)
@@ -273,44 +275,36 @@ struct SnippetDetailView: View {
                 }
 
                 Divider()
-
+                Spacer()
                 VStack(alignment: .leading) {
                     Text("Merge Strategy:")
                         .font(.headline)
 
-                    Picker("", selection: $mergeStrategy) {
-                        Text("Smart Merge").tag(MergeStrategy.smart)
-                        Text("Append").tag(MergeStrategy.append)
-                        Text("Prepend").tag(MergeStrategy.prepend)
-                        Text("Replace").tag(MergeStrategy.replace)
-                    }
-                    .pickerStyle(SegmentedPickerStyle())
+                    HStack {
+                        Picker("", selection: $mergeStrategy) {
+                            Text("Smart Merge").tag(MergeStrategy.smart)
+                            Text("Append").tag(MergeStrategy.append)
+                            Text("Prepend").tag(MergeStrategy.prepend)
+                            Text("Replace").tag(MergeStrategy.replace)
+                        }
+                        .pickerStyle(.automatic)
 
+                        Spacer()
+
+                        Button("Cancel") {
+                            dismiss()
+                        }
+
+                        Button("Import") {
+                            onImport(mergeStrategy)
+                        }
+                        .buttonStyle(BorderedButtonStyle())
+                    }
                     Text(mergeStrategyDescription)
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .padding(.top, 5)
                 }
-
-                Spacer(minLength: 20)
-
-                HStack {
-                    Spacer()
-
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                    .padding()
-                    .controlSize(.large)
-
-                    Button("Import") {
-                        onImport(mergeStrategy)
-                    }
-                    .padding()
-                    .buttonStyle(BorderedButtonStyle())
-                    .controlSize(.large)
-                }
-                .padding(.bottom, 20)
             }
             .padding()
         }
@@ -397,7 +391,6 @@ class SnippetsGalleryViewModel: ObservableObject {
     @Published var snippets: [ConfigSnippet] = []
     @Published var isLoading = false
     @Published var selectedSnippet: ConfigSnippet?
-    @Published var isDetailPresented = false
 
     var filteredSnippets: [ConfigSnippet] {
         return snippetsStore.filteredSnippets
@@ -414,21 +407,22 @@ class SnippetsGalleryViewModel: ObservableObject {
     func fetchSnippets() {
         isLoading = true
 
-        Task {
-            await snippetsStore.fetchSnippets()
+        Task { [weak self] in
+            guard let self = self else { return }
+
+            await self.snippetsStore.fetchSnippets()
 
             // Update UI on main thread
             await MainActor.run {
-                snippets = snippetsStore.snippets
-                isLoading = false
+                self.snippets = self.snippetsStore.snippets
+                self.isLoading = false
 
                 // Check for preselected snippet if needed
-                if let preselectedId = preselectedSnippetId,
-                   !snippets.isEmpty
+                if let preselectedId = self.preselectedSnippetId,
+                   !self.snippets.isEmpty
                 {
-                    if let snippet = snippets.first(where: { $0.id == preselectedId }) {
-                        selectedSnippet = snippet
-                        isDetailPresented = true
+                    if let snippet = self.snippets.first(where: { $0.id == preselectedId }) {
+                        self.selectedSnippet = snippet
                     }
                 }
             }
@@ -447,9 +441,18 @@ class SnippetsGalleryViewModel: ObservableObject {
         completion: @escaping (Result<Void, Error>) -> Void
     ) {
         // Use Task to bridge between async/await and completion handler
-        Task {
+        Task { [weak self] in
+            guard let self = self else {
+                completion(.failure(NSError(
+                    domain: "com.swiftkey.snippets",
+                    code: -1,
+                    userInfo: [NSLocalizedDescriptionKey: "ViewModel was deallocated"]
+                )))
+                return
+            }
+
             do {
-                try await snippetsStore.importSnippet(snippet, mergeStrategy: strategy)
+                try await self.snippetsStore.importSnippet(snippet, mergeStrategy: strategy)
                 completion(.success(()))
             } catch {
                 completion(.failure(error))

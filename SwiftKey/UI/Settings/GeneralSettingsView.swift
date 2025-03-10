@@ -148,7 +148,7 @@ struct GeneralSettingsView: View {
             }
         }
         .padding()
-        .frame(width: 400)
+        .frame(width: 420)
     }
 
     private var currentVersion: String {

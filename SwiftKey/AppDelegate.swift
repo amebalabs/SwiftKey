@@ -52,7 +52,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     var statusItem: NSStatusItem?
     var facelessMenuController: FacelessMenuController?
     var defaultsObserver: AnyCancellable?
+    var galleryWindow: NSWindow?
 
+    var isOverlayVisible: Bool {
+        overlayWindow?.isVisible == true || notchContext?.presented == true || (facelessMenuController?.sessionActive == true)
+    }
+    
     func applicationDidFinishLaunching(_: Notification) {
         logger.notice("SwiftKey application starting")
 
@@ -86,7 +91,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             }
         }
 
-        defaultsObserver = NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)
+        defaultsObserver = settings.settingsChanged
             .sink { [weak self] _ in
                 guard let self = self else { return }
                 Task {
@@ -111,28 +116,22 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         NotificationCenter.default
             .addObserver(forName: .presentGalleryWindow, object: nil, queue: nil) { [weak self] notification in
                 guard let self = self else { return }
-
-                // Extract the snippetId from the notification's userInfo
-                if let snippetId = notification.userInfo?["snippetId"] as? String {
-                    Task { @MainActor in
-                        await self.showGalleryWindow(preselectedSnippetId: snippetId)
-                    }
+                let snippetId = notification.userInfo?["snippetId"] as? String
+                Task { @MainActor in
+                    await self.showGalleryWindow(preselectedSnippetId: snippetId)
                 }
             }
     }
 
-    func applicationOpenUrls(_ application: NSApplication, open urls: [URL]) async {
+    func application(_ application: NSApplication, open urls: [URL]) {
+        logger.notice("Received URL open request with \(urls.count) URLs")
+
         for url in urls {
+            logger.info("Processing URL: \(url.absoluteString)")
+
+            // Start a task to handle the URL
             Task {
                 await deepLinkHandler.handle(url: url)
-            }
-        }
-    }
-
-    func application(_ application: NSApplication, open urls: [URL]) {
-        for url in urls {
-            Task {
-                await applicationOpenUrls(application, open: [url])
             }
         }
     }
@@ -174,12 +173,19 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     @MainActor
     func toggleSession() async {
+        
+        if isOverlayVisible {
+            logger.debug("Overlay is visible, hiding it on repeated trigger")
+            await hideWindow()
+            return
+        }
+        
         await configManager.refreshIfNeeded()
-
+        
         switch settings.overlayStyle {
         case .faceless:
-            facelessMenuController?.endSession()
             facelessMenuController?.startSession()
+            
         case .hud:
             if notchContext == nil {
                 notchContext = NotchContext(
@@ -194,43 +200,29 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                     settingsStore: settings
                 )
             }
-            if notchContext?.presented == true {
-                notchContext?.close()
-                return
-            }
             notchContext?.open()
+            
         case .panel:
-            guard let window = overlayWindow else { return }
-            if window.isVisible {
-                window.orderOut(nil)
-            } else {
-                if settings.menuStateResetDelay == 0 {
-                    menuState.reset()
-                } else if let lastHide = lastHideTime,
-                          Date().timeIntervalSince(lastHide) >= settings.menuStateResetDelay
-                {
-                    menuState.reset()
-                }
-                presentOverlay()
+            if settings.menuStateResetDelay == 0 {
+                menuState.reset()
+            } else if let lastHide = lastHideTime,
+                Date().timeIntervalSince(lastHide) >= settings.menuStateResetDelay
+            {
+                menuState.reset()
             }
+            presentOverlay()
         }
     }
 
-    /// Hides any visible overlay windows
     @MainActor
     func hideWindow() async {
-
-        // Skip if no windows are visible (prevents unnecessary hide operations)
-        let isVisible = overlayWindow?.isVisible == true || notchContext?.presented == true
-        if !isVisible && settings.overlayStyle != .faceless {
+        if !isOverlayVisible {
             return
         }
 
-        logger
-            .debug(
-                "hideWindow: hiding \(self.settings.overlayStyle.rawValue) overlay"
-            )
+        logger.debug("hideWindow: hiding \(self.settings.overlayStyle.rawValue) overlay")
 
+        // Perform style-specific cleanup
         switch settings.overlayStyle {
         case .hud:
             overlayWindow?.orderOut(nil)
@@ -375,8 +367,8 @@ extension AppDelegate {
 
     @MainActor
     func showGalleryWindow(preselectedSnippetId: String? = nil) async {
-        if let existingWindow = NSApp.windows.first(where: { $0.title == "SwiftKey Snippets Gallery" }) {
-            existingWindow.makeKeyAndOrderFront(nil)
+        if let window = galleryWindow, window.isVisible {
+            window.makeKeyAndOrderFront(nil)
             return
         }
 
@@ -388,6 +380,7 @@ extension AppDelegate {
         )
         window.title = "SwiftKey Snippets Gallery"
         window.center()
+        window.delegate = self
 
         let viewModel = SnippetsGalleryViewModel(
             snippetsStore: container.snippetsStore,
@@ -402,5 +395,6 @@ extension AppDelegate {
         window.contentViewController = hostingController
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+        galleryWindow = window // Keep a strong reference
     }
 }
