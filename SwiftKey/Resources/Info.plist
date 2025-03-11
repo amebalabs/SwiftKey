@@ -8,7 +8,7 @@
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>CFBundleURLName</key>
-			<string></string>
+			<string>com.swiftkey.urlscheme</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>swiftkey</string>

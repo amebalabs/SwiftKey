@@ -122,8 +122,8 @@ class FacelessMenuController: DependencyInjectable {
                 case .submenuPushed:
                     await self.blinkIndicator(success: true)
                     self.updateStatusItem()
-                case .actionExecuted(sticky: let sticky):
-                    guard sticky == false else {break}
+                case let .actionExecuted(sticky: sticky):
+                    guard sticky == false else { break }
                     self.endSession()
                 case .dynamicLoading:
                     break

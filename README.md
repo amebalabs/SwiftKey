@@ -139,6 +139,9 @@ SwiftKey uses YAML for configuration. Here's a comprehensive set of examples dem
   sticky: true
 ```
 
+# Alternative: Press and hold Option (⌥) key when selecting any item
+# to invert its sticky behavior (non-sticky items become sticky and vice versa)
+
 ### Notifications
 
 ```yaml
@@ -305,9 +308,9 @@ SwiftKey uses YAML for configuration. Here's a comprehensive set of examples dem
 - `icon` — SF Symbol name or omit for automatic icons
 - `title` — Display title
 - `action` — Action to execute
-- `stick` — Keep overlay open after execution (optional)
+- `sticky` — Keep overlay open after execution (optional). Alternative: hold ⌥ (Option) key to invert the sticky behavior.
 - `notify` — Show notification after execution (optional)
-- `batch` — Execute all submenu items (optional). Alternative: hold ⌥ for batch execution.
+- `batch` — Execute all submenu items (optional). Alternative: hold ⌥ (Option) key for batch execution.
 - `hidden` — Item is not shown in UI but can be triggered by key or hotkey (optional, defaults to false). Note: If a submenu contains only a single hidden item, it will still be shown.
 - `submenu` — Nested menu items (optional)
 - `hotkey` — Global keyboard shortcut (optional)

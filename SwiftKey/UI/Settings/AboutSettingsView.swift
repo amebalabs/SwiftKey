@@ -37,7 +37,7 @@ struct AboutSettingsView: View {
             }.padding(.top, 10)
                 .padding(.bottom, 20)
         }
-        .frame(width: 410, height: 120)
+        .frame(width: 420, height: 140)
     }
 }
 
