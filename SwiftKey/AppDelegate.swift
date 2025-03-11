@@ -52,7 +52,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     var statusItem: NSStatusItem?
     var facelessMenuController: FacelessMenuController?
     var defaultsObserver: AnyCancellable?
-    var galleryWindow: NSWindow?
+    // Gallery window management
+    private static var activeGalleryWindow: NSWindow?
 
     var isOverlayVisible: Bool {
         overlayWindow?.isVisible == true || notchContext?.presented == true || (facelessMenuController?.sessionActive == true)
@@ -242,7 +243,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             await hideWindow()
         }
     }
-
+    
     @objc func applicationDidResignActive(_: Notification) {
         logger.debug("Application resigned active state")
         // Only hide windows if app is already initialized
@@ -367,11 +368,13 @@ extension AppDelegate {
 
     @MainActor
     func showGalleryWindow(preselectedSnippetId: String? = nil) async {
-        if let window = galleryWindow, window.isVisible {
-            window.makeKeyAndOrderFront(nil)
+        if let existingWindow = Self.activeGalleryWindow, existingWindow.isVisible {
+            existingWindow.makeKeyAndOrderFront(nil)
             return
         }
-
+        
+        Self.activeGalleryWindow = nil
+        
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 800, height: 600),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
@@ -393,8 +396,20 @@ extension AppDelegate {
                 .environmentObject(container.settingsStore)
         )
         window.contentViewController = hostingController
+        
+        NotificationCenter.default.addObserver(
+            forName: NSWindow.willCloseNotification,
+            object: window,
+            queue: nil
+        ) { _ in
+            if Self.activeGalleryWindow === window {
+                Self.activeGalleryWindow = nil
+            }
+        }
+        
+        Self.activeGalleryWindow = window
+        
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
-        galleryWindow = window // Keep a strong reference
     }
 }
