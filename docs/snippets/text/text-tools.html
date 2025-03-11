@@ -3,9 +3,9 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <meta name="description" content="SwiftKey Snippets - A collection of essential developer tools and shortcuts for macOS, including IDE launchers, git commands, and Docker controls." />
+        <meta name="description" content="SwiftKey Snippets - A collection of text manipulation tools for quickly transforming, encoding, and formatting text directly from your clipboard." />
         <meta name="theme-color" content="#007AFF" />
-        <title>Developer Tools Toolkit - SwiftKey Snippets</title>
+        <title>Text Manipulation Tools - SwiftKey Snippets</title>
         <link rel="icon" type="image/png" href="../logo.png" />
         <link rel="stylesheet" href="../../styles.css" />
         <link rel="stylesheet" href="../snippets.css" />
@@ -43,75 +43,83 @@
             <div class="container">
                 <div class="snippet-detail">
                     <div class="snippet-detail-header">
-                        <h1>Developer Tools Toolkit</h1>
+                        <h1>Text Manipulation Tools</h1>
                         <div class="snippet-author">By SwiftKey</div>
-                        <div class="snippet-date">Jun 9, 2024</div>
+                        <div class="snippet-date">Jul 9, 2024</div>
                         <p class="snippet-description">
-                            A collection of essential developer tools and shortcuts for macOS, including IDE launchers, git commands, and Docker controls.
+                            A collection of text manipulation tools for quickly transforming, encoding, and formatting text directly from your clipboard.
                         </p>
                         <div class="snippet-tags">
-                            <div class="snippet-tag">development</div>
-<div class="snippet-tag">git</div>
-<div class="snippet-tag">docker</div>
-<div class="snippet-tag">ide</div>
+                            <div class="snippet-tag">text</div>
+<div class="snippet-tag">format</div>
+<div class="snippet-tag">utility</div>
 
                         </div>
                     </div>
                 <div class="snippet-detail-content">
                     <h2>Preview</h2>
                     <div class="snippet-preview">
-                        <img src="../previews/devtools-toolkit.png" alt="Developer Tools Toolkit Preview" class="preview-image" />
+                        <img src="../previews/text-tools.png" alt="Text Manipulation Tools Preview" class="preview-image" />
                     </div>
                     
                     <h2>Content</h2>
                     <div class="snippet-yaml">
-                        <pre><code># Developer tools and IDE shortcuts
-- key: &quot;d&quot;
-  icon: &quot;terminal.fill&quot;
-  title: &quot;Developer Tools&quot;
+                        <pre><code># Text transformation and formatting tools
+- key: &quot;x&quot;
+  icon: &quot;text.format&quot;
+  title: &quot;Text Tools&quot;
   submenu:
-    - key: &quot;x&quot;
-      title: &quot;Xcode&quot;
-      action: &quot;launch:///Applications/Xcode.app&quot;
-    - key: &quot;v&quot;
-      title: &quot;Visual Studio Code&quot;
-      action: &quot;launch:///Applications/Visual Studio Code.app&quot;
-    - key: &quot;i&quot;
-      title: &quot;IntelliJ IDEA&quot;
-      action: &quot;launch:///Applications/IntelliJ IDEA.app&quot;
-    - key: &quot;g&quot;
-      title: &quot;Git Commands&quot;
+    - key: &quot;c&quot;
+      icon: &quot;arrow.left.arrow.right&quot;
+      title: &quot;Case Conversion&quot;
       submenu:
-        - key: &quot;p&quot;
-          title: &quot;Pull&quot;
-          action: &quot;shell://git pull&quot;
+        - key: &quot;u&quot;
+          title: &quot;UPPERCASE&quot;
+          action: &quot;shell://pbpaste | tr &#039;[:lower:]&#039; &#039;[:upper:]&#039; | pbcopy &amp;&amp; osascript -e &#039;display notification \&quot;Text converted to uppercase\&quot; with title \&quot;Text Tools\&quot;&#039;&quot;
           notify: true
-        - key: &quot;s&quot;
-          title: &quot;Status&quot;
-          action: &quot;shell://git status&quot;
+        - key: &quot;l&quot;
+          title: &quot;lowercase&quot;
+          action: &quot;shell://pbpaste | tr &#039;[:upper:]&#039; &#039;[:lower:]&#039; | pbcopy &amp;&amp; osascript -e &#039;display notification \&quot;Text converted to lowercase\&quot; with title \&quot;Text Tools\&quot;&#039;&quot;
           notify: true
-        - key: &quot;c&quot;
-          title: &quot;Commit&quot;
-          action: &quot;shell://git commit -m \&quot;Quick commit from SwiftKey\&quot;&quot;
+        - key: &quot;t&quot;
+          title: &quot;Title Case&quot;
+          action: &quot;shell://pbpaste | python3 -c &#039;import sys; print(\&quot; \&quot;.join(w.capitalize() for w in sys.stdin.read().split()))&#039; | pbcopy &amp;&amp; osascript -e &#039;display notification \&quot;Text converted to title case\&quot; with title \&quot;Text Tools\&quot;&#039;&quot;
+          notify: true
+    - key: &quot;e&quot;
+      icon: &quot;lock&quot;
+      title: &quot;Encode/Decode&quot;
+      submenu:
+        - key: &quot;u&quot;
+          title: &quot;URL Encode&quot;
+          action: &quot;shell://pbpaste | python3 -c &#039;import sys, urllib.parse; print(urllib.parse.quote(sys.stdin.read().strip()))&#039; | pbcopy &amp;&amp; osascript -e &#039;display notification \&quot;Text URL encoded\&quot; with title \&quot;Text Tools\&quot;&#039;&quot;
+          notify: true
+        - key: &quot;d&quot;
+          title: &quot;URL Decode&quot;
+          action: &quot;shell://pbpaste | python3 -c &#039;import sys, urllib.parse; print(urllib.parse.unquote(sys.stdin.read().strip()))&#039; | pbcopy &amp;&amp; osascript -e &#039;display notification \&quot;Text URL decoded\&quot; with title \&quot;Text Tools\&quot;&#039;&quot;
           notify: true
         - key: &quot;b&quot;
-          title: &quot;Checkout Branch&quot;
-          action: &quot;shell://git branch | fzf | xargs git checkout&quot;
+          title: &quot;Base64 Encode&quot;
+          action: &quot;shell://pbpaste | base64 | pbcopy &amp;&amp; osascript -e &#039;display notification \&quot;Text Base64 encoded\&quot; with title \&quot;Text Tools\&quot;&#039;&quot;
           notify: true
-    - key: &quot;d&quot;
-      title: &quot;Docker&quot;
+        - key: &quot;6&quot;
+          title: &quot;Base64 Decode&quot;
+          action: &quot;shell://pbpaste | base64 --decode | pbcopy &amp;&amp; osascript -e &#039;display notification \&quot;Text Base64 decoded\&quot; with title \&quot;Text Tools\&quot;&#039;&quot;
+          notify: true
+    - key: &quot;f&quot;
+      icon: &quot;wand.and.stars&quot;
+      title: &quot;Format&quot;
       submenu:
-        - key: &quot;p&quot;
-          title: &quot;Docker ps&quot;
-          action: &quot;shell://docker ps&quot;
+        - key: &quot;j&quot;
+          title: &quot;Format JSON&quot;
+          action: &quot;shell://pbpaste | python3 -m json.tool | pbcopy &amp;&amp; osascript -e &#039;display notification \&quot;JSON formatted\&quot; with title \&quot;Text Tools\&quot;&#039;&quot;
           notify: true
-        - key: &quot;i&quot;
-          title: &quot;Docker images&quot;
-          action: &quot;shell://docker images&quot;
+        - key: &quot;x&quot;
+          title: &quot;Format XML&quot;
+          action: &quot;shell://pbpaste | python3 -c &#039;import sys, xml.dom.minidom; print(xml.dom.minidom.parseString(sys.stdin.read()).toprettyxml())&#039; | pbcopy &amp;&amp; osascript -e &#039;display notification \&quot;XML formatted\&quot; with title \&quot;Text Tools\&quot;&#039;&quot;
           notify: true
-        - key: &quot;c&quot;
-          title: &quot;Docker compose up&quot;
-          action: &quot;shell://docker-compose up -d&quot;
+        - key: &quot;s&quot;
+          title: &quot;Strip Whitespace&quot;
+          action: &quot;shell://pbpaste | sed &#039;s/^[ \t]*//;s/[ \t]*$//&#039; | pbcopy &amp;&amp; osascript -e &#039;display notification \&quot;Whitespace stripped\&quot; with title \&quot;Text Tools\&quot;&#039;&quot;
           notify: true</code></pre>
                     </div>
                     
@@ -119,7 +127,7 @@
                         <button class="copy-btn" onclick="copySnippetContent()">
                             <i class="fas fa-copy"></i> Copy to Clipboard
                         </button>
-                        <a href="swiftkey://snippets/developer/devtools-toolkit" class="btn primary import-btn">
+                        <a href="swiftkey://snippets/text/text-tools" class="btn primary import-btn">
                             <i class="fas fa-download"></i> Import to SwiftKey
                         </a>
                     </div>

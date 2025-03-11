@@ -3,9 +3,9 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <meta name="description" content="SwiftKey Snippets - A collection of essential developer tools and shortcuts for macOS, including IDE launchers, git commands, and Docker controls." />
+        <meta name="description" content="SwiftKey Snippets - A collection of file operations and management tools for macOS, including file finding, zip/unzip, batch renaming, and cleanup utilities." />
         <meta name="theme-color" content="#007AFF" />
-        <title>Developer Tools Toolkit - SwiftKey Snippets</title>
+        <title>File Operations Toolkit - SwiftKey Snippets</title>
         <link rel="icon" type="image/png" href="../logo.png" />
         <link rel="stylesheet" href="../../styles.css" />
         <link rel="stylesheet" href="../snippets.css" />
@@ -43,75 +43,75 @@
             <div class="container">
                 <div class="snippet-detail">
                     <div class="snippet-detail-header">
-                        <h1>Developer Tools Toolkit</h1>
+                        <h1>File Operations Toolkit</h1>
                         <div class="snippet-author">By SwiftKey</div>
-                        <div class="snippet-date">Jun 9, 2024</div>
+                        <div class="snippet-date">Jun 24, 2024</div>
                         <p class="snippet-description">
-                            A collection of essential developer tools and shortcuts for macOS, including IDE launchers, git commands, and Docker controls.
+                            A collection of file operations and management tools for macOS, including file finding, zip/unzip, batch renaming, and cleanup utilities.
                         </p>
                         <div class="snippet-tags">
-                            <div class="snippet-tag">development</div>
-<div class="snippet-tag">git</div>
-<div class="snippet-tag">docker</div>
-<div class="snippet-tag">ide</div>
+                            <div class="snippet-tag">utility</div>
+<div class="snippet-tag">files</div>
+<div class="snippet-tag">file management</div>
 
                         </div>
                     </div>
                 <div class="snippet-detail-content">
                     <h2>Preview</h2>
                     <div class="snippet-preview">
-                        <img src="../previews/devtools-toolkit.png" alt="Developer Tools Toolkit Preview" class="preview-image" />
+                        <img src="../previews/file-operations.png" alt="File Operations Toolkit Preview" class="preview-image" />
                     </div>
                     
                     <h2>Content</h2>
                     <div class="snippet-yaml">
-                        <pre><code># Developer tools and IDE shortcuts
-- key: &quot;d&quot;
-  icon: &quot;terminal.fill&quot;
-  title: &quot;Developer Tools&quot;
+                        <pre><code># File operations and management tools
+- key: &quot;f&quot;
+  icon: &quot;folder.fill&quot;
+  title: &quot;File Operations&quot;
   submenu:
-    - key: &quot;x&quot;
-      title: &quot;Xcode&quot;
-      action: &quot;launch:///Applications/Xcode.app&quot;
-    - key: &quot;v&quot;
-      title: &quot;Visual Studio Code&quot;
-      action: &quot;launch:///Applications/Visual Studio Code.app&quot;
-    - key: &quot;i&quot;
-      title: &quot;IntelliJ IDEA&quot;
-      action: &quot;launch:///Applications/IntelliJ IDEA.app&quot;
-    - key: &quot;g&quot;
-      title: &quot;Git Commands&quot;
+    - key: &quot;s&quot;
+      icon: &quot;magnifyingglass&quot;
+      title: &quot;Search&quot;
       submenu:
-        - key: &quot;p&quot;
-          title: &quot;Pull&quot;
-          action: &quot;shell://git pull&quot;
+        - key: &quot;n&quot;
+          title: &quot;Find by Name&quot;
+          action: &quot;shell://read -p &#039;Enter filename pattern: &#039; PATTERN &amp;&amp; find . -name &quot;*$PATTERN*&quot; -type f | head -20&quot;
           notify: true
-        - key: &quot;s&quot;
-          title: &quot;Status&quot;
-          action: &quot;shell://git status&quot;
+        - key: &quot;t&quot;
+          title: &quot;Find by Type&quot;
+          action: &quot;shell://read -p &#039;Enter file extension: &#039; EXT &amp;&amp; find . -name &quot;*.$EXT&quot; -type f | head -20&quot;
           notify: true
         - key: &quot;c&quot;
-          title: &quot;Commit&quot;
-          action: &quot;shell://git commit -m \&quot;Quick commit from SwiftKey\&quot;&quot;
+          title: &quot;Find Content in Files&quot;
+          action: &quot;shell://read -p &#039;Enter text to search for: &#039; SEARCH &amp;&amp; grep -r &quot;$SEARCH&quot; --include=&quot;*.txt&quot; .&quot;
           notify: true
-        - key: &quot;b&quot;
-          title: &quot;Checkout Branch&quot;
-          action: &quot;shell://git branch | fzf | xargs git checkout&quot;
-          notify: true
-    - key: &quot;d&quot;
-      title: &quot;Docker&quot;
+    - key: &quot;z&quot;
+      icon: &quot;archivebox.fill&quot;
+      title: &quot;Zip/Unzip&quot;
       submenu:
-        - key: &quot;p&quot;
-          title: &quot;Docker ps&quot;
-          action: &quot;shell://docker ps&quot;
+        - key: &quot;z&quot;
+          title: &quot;Zip Current Directory&quot;
+          action: &quot;shell://zip -r $(basename $(pwd)).zip .&quot;
           notify: true
-        - key: &quot;i&quot;
-          title: &quot;Docker images&quot;
-          action: &quot;shell://docker images&quot;
+        - key: &quot;u&quot;
+          title: &quot;Unzip File&quot;
+          action: &quot;shell://read -p &#039;Enter zip filename: &#039; ZIPFILE &amp;&amp; unzip &quot;$ZIPFILE&quot;&quot;
           notify: true
-        - key: &quot;c&quot;
-          title: &quot;Docker compose up&quot;
-          action: &quot;shell://docker-compose up -d&quot;
+    - key: &quot;c&quot;
+      icon: &quot;trash&quot;
+      title: &quot;Cleanup&quot;
+      submenu:
+        - key: &quot;t&quot;
+          title: &quot;Delete Temp Files&quot;
+          action: &quot;shell://find . -name &quot;*.tmp&quot; -type f -delete&quot;
+          notify: true
+        - key: &quot;d&quot;
+          title: &quot;Find Duplicate Files&quot;
+          action: &quot;shell://find . -type f -exec md5 {} \; | sort | uniq -d -w32&quot;
+          notify: true
+        - key: &quot;e&quot;
+          title: &quot;Empty Trash&quot;
+          action: &quot;shell://osascript -e &#039;tell application \&quot;Finder\&quot; to empty trash&#039;&quot;
           notify: true</code></pre>
                     </div>
                     
@@ -119,7 +119,7 @@
                         <button class="copy-btn" onclick="copySnippetContent()">
                             <i class="fas fa-copy"></i> Copy to Clipboard
                         </button>
-                        <a href="swiftkey://snippets/developer/devtools-toolkit" class="btn primary import-btn">
+                        <a href="swiftkey://snippets/utility/file-operations" class="btn primary import-btn">
                             <i class="fas fa-download"></i> Import to SwiftKey
                         </a>
                     </div>

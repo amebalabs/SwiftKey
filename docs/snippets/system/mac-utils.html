@@ -44,7 +44,7 @@
                 <div class="snippet-detail">
                     <div class="snippet-detail-header">
                         <h1>macOS System Utilities</h1>
-                        <div class="snippet-author">By Michael Chen</div>
+                        <div class="snippet-author">By SwiftKey</div>
                         <div class="snippet-date">Apr 21, 2024</div>
                         <p class="snippet-description">
                             Essential macOS system controls and utilities, including display settings, sound controls, and power management options.
@@ -75,27 +75,32 @@
       submenu:
         - key: &quot;n&quot;
           title: &quot;Night Shift Toggle&quot;
-          action: &quot;shell://osascript -e &#039;tell application &quot;System Events&quot; to tell appearance preferences to set dark mode to not dark mode&#039;&quot;
+          action: &quot;shell://osascript -e &#039;tell application \&quot;System Events\&quot; to tell appearance preferences to set dark mode to not dark mode&#039;&quot;
           notify: true
         - key: &quot;b&quot;
           title: &quot;Brightness Up&quot;
-          action: &quot;shell://brightness up&quot;
+          action: &quot;shell://osascript -e &#039;tell application \&quot;System Events\&quot; to key code 144&#039;&quot;
+          notify: true
         - key: &quot;d&quot;
           title: &quot;Brightness Down&quot;
-          action: &quot;shell://brightness down&quot;
+          action: &quot;shell://osascript -e &#039;tell application \&quot;System Events\&quot; to key code 145&#039;&quot;
+          notify: true
     - key: &quot;a&quot;
       icon: &quot;speaker.wave.3.fill&quot;
       title: &quot;Audio&quot;
       submenu:
         - key: &quot;u&quot;
           title: &quot;Volume Up&quot;
-          action: &quot;shell://volume up&quot;
+          action: &quot;shell://osascript -e &#039;set volume output volume (output volume of (get volume settings) + 10)&#039;&quot;
+          notify: true
         - key: &quot;d&quot;
           title: &quot;Volume Down&quot;
-          action: &quot;shell://volume down&quot;
+          action: &quot;shell://osascript -e &#039;set volume output volume (output volume of (get volume settings) - 10)&#039;&quot;
+          notify: true
         - key: &quot;m&quot;
           title: &quot;Mute Toggle&quot;
-          action: &quot;shell://volume mute&quot;
+          action: &quot;shell://osascript -e &#039;set volume with output muted not (output muted of (get volume settings))&#039;&quot;
+          notify: true
     - key: &quot;p&quot;
       icon: &quot;bolt.fill&quot;
       title: &quot;Power&quot;
@@ -103,12 +108,15 @@
         - key: &quot;s&quot;
           title: &quot;Sleep&quot;
           action: &quot;shell://pmset sleepnow&quot;
+          notify: true
         - key: &quot;r&quot;
           title: &quot;Restart&quot;
-          action: &quot;shell://osascript -e &#039;tell app &quot;System Events&quot; to restart&#039;&quot;
+          action: &quot;shell://osascript -e &#039;tell app \&quot;System Events\&quot; to restart&#039;&quot;
+          notify: true
         - key: &quot;o&quot;
           title: &quot;Shut Down&quot;
-          action: &quot;shell://osascript -e &#039;tell app &quot;System Events&quot; to shut down&#039;&quot;</code></pre>
+          action: &quot;shell://osascript -e &#039;tell app \&quot;System Events\&quot; to shut down&#039;&quot;
+          notify: true</code></pre>
                     </div>
                     
                     <div class="snippet-actions">

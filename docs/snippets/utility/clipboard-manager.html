@@ -3,9 +3,9 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <meta name="description" content="SwiftKey Snippets - A collection of essential developer tools and shortcuts for macOS, including IDE launchers, git commands, and Docker controls." />
+        <meta name="description" content="SwiftKey Snippets - A simple clipboard manager to store and retrieve clipboard history with quick access to frequently used text snippets." />
         <meta name="theme-color" content="#007AFF" />
-        <title>Developer Tools Toolkit - SwiftKey Snippets</title>
+        <title>Clipboard Manager - SwiftKey Snippets</title>
         <link rel="icon" type="image/png" href="../logo.png" />
         <link rel="stylesheet" href="../../styles.css" />
         <link rel="stylesheet" href="../snippets.css" />
@@ -43,83 +43,84 @@
             <div class="container">
                 <div class="snippet-detail">
                     <div class="snippet-detail-header">
-                        <h1>Developer Tools Toolkit</h1>
+                        <h1>Clipboard Manager</h1>
                         <div class="snippet-author">By SwiftKey</div>
-                        <div class="snippet-date">Jun 9, 2024</div>
+                        <div class="snippet-date">Jun 17, 2024</div>
                         <p class="snippet-description">
-                            A collection of essential developer tools and shortcuts for macOS, including IDE launchers, git commands, and Docker controls.
+                            A simple clipboard manager to store and retrieve clipboard history with quick access to frequently used text snippets.
                         </p>
                         <div class="snippet-tags">
-                            <div class="snippet-tag">development</div>
-<div class="snippet-tag">git</div>
-<div class="snippet-tag">docker</div>
-<div class="snippet-tag">ide</div>
+                            <div class="snippet-tag">utility</div>
+<div class="snippet-tag">clipboard</div>
+<div class="snippet-tag">productivity</div>
 
                         </div>
                     </div>
                 <div class="snippet-detail-content">
                     <h2>Preview</h2>
                     <div class="snippet-preview">
-                        <img src="../previews/devtools-toolkit.png" alt="Developer Tools Toolkit Preview" class="preview-image" />
+                        <img src="../previews/clipboard-manager.png" alt="Clipboard Manager Preview" class="preview-image" />
                     </div>
                     
                     <h2>Content</h2>
                     <div class="snippet-yaml">
-                        <pre><code># Developer tools and IDE shortcuts
-- key: &quot;d&quot;
-  icon: &quot;terminal.fill&quot;
-  title: &quot;Developer Tools&quot;
+                        <pre><code># Clipboard history and quick text snippets
+- key: &quot;c&quot;
+  icon: &quot;doc.on.clipboard&quot;
+  title: &quot;Clipboard Manager&quot;
   submenu:
-    - key: &quot;x&quot;
-      title: &quot;Xcode&quot;
-      action: &quot;launch:///Applications/Xcode.app&quot;
-    - key: &quot;v&quot;
-      title: &quot;Visual Studio Code&quot;
-      action: &quot;launch:///Applications/Visual Studio Code.app&quot;
-    - key: &quot;i&quot;
-      title: &quot;IntelliJ IDEA&quot;
-      action: &quot;launch:///Applications/IntelliJ IDEA.app&quot;
-    - key: &quot;g&quot;
-      title: &quot;Git Commands&quot;
+    - key: &quot;h&quot;
+      icon: &quot;clock&quot;
+      title: &quot;Clipboard History&quot;
       submenu:
-        - key: &quot;p&quot;
-          title: &quot;Pull&quot;
-          action: &quot;shell://git pull&quot;
+        - key: &quot;1&quot;
+          title: &quot;Copy to History Slot 1&quot;
+          action: &quot;shell://osascript -e &#039;tell application \&quot;System Events\&quot; to set the clipboard to (the clipboard)&#039; &amp;&amp; defaults write com.swiftkey.app clipboard.slot1 -string &quot;$(pbpaste)&quot;&quot;
           notify: true
-        - key: &quot;s&quot;
-          title: &quot;Status&quot;
-          action: &quot;shell://git status&quot;
+        - key: &quot;2&quot;
+          title: &quot;Copy to History Slot 2&quot;
+          action: &quot;shell://osascript -e &#039;tell application \&quot;System Events\&quot; to set the clipboard to (the clipboard)&#039; &amp;&amp; defaults write com.swiftkey.app clipboard.slot2 -string &quot;$(pbpaste)&quot;&quot;
           notify: true
-        - key: &quot;c&quot;
-          title: &quot;Commit&quot;
-          action: &quot;shell://git commit -m \&quot;Quick commit from SwiftKey\&quot;&quot;
+        - key: &quot;3&quot;
+          title: &quot;Copy to History Slot 3&quot;
+          action: &quot;shell://osascript -e &#039;tell application \&quot;System Events\&quot; to set the clipboard to (the clipboard)&#039; &amp;&amp; defaults write com.swiftkey.app clipboard.slot3 -string &quot;$(pbpaste)&quot;&quot;
           notify: true
-        - key: &quot;b&quot;
-          title: &quot;Checkout Branch&quot;
-          action: &quot;shell://git branch | fzf | xargs git checkout&quot;
-          notify: true
-    - key: &quot;d&quot;
-      title: &quot;Docker&quot;
+    - key: &quot;p&quot;
+      icon: &quot;arrow.down.doc&quot;
+      title: &quot;Paste From History&quot;
       submenu:
-        - key: &quot;p&quot;
-          title: &quot;Docker ps&quot;
-          action: &quot;shell://docker ps&quot;
+        - key: &quot;1&quot;
+          title: &quot;Paste From Slot 1&quot;
+          action: &quot;shell://defaults read com.swiftkey.app clipboard.slot1 2&gt;/dev/null | pbcopy&quot;
           notify: true
-        - key: &quot;i&quot;
-          title: &quot;Docker images&quot;
-          action: &quot;shell://docker images&quot;
+        - key: &quot;2&quot;
+          title: &quot;Paste From Slot 2&quot;
+          action: &quot;shell://defaults read com.swiftkey.app clipboard.slot2 2&gt;/dev/null | pbcopy&quot;
           notify: true
-        - key: &quot;c&quot;
-          title: &quot;Docker compose up&quot;
-          action: &quot;shell://docker-compose up -d&quot;
-          notify: true</code></pre>
+        - key: &quot;3&quot;
+          title: &quot;Paste From Slot 3&quot;
+          action: &quot;shell://defaults read com.swiftkey.app clipboard.slot3 2&gt;/dev/null | pbcopy&quot;
+          notify: true
+    - key: &quot;t&quot;
+      icon: &quot;text.badge.plus&quot;
+      title: &quot;Text Snippets&quot;
+      submenu:
+        - key: &quot;e&quot;
+          title: &quot;Email Signature&quot;
+          action: &quot;text://Best regards,\n[Your Name]\n[Your Position]\n[Your Contact Info]&quot;
+        - key: &quot;m&quot;
+          title: &quot;Meeting Template&quot;
+          action: &quot;text://Meeting: [Title]\nDate: [Date]\nAttendees: [Attendees]\nAgenda:\n1. \n2. \n3. &quot;
+        - key: &quot;t&quot;
+          title: &quot;Thank You&quot;
+          action: &quot;text://Thank you for your assistance. I really appreciate your help with this matter.&quot;</code></pre>
                     </div>
                     
                     <div class="snippet-actions">
                         <button class="copy-btn" onclick="copySnippetContent()">
                             <i class="fas fa-copy"></i> Copy to Clipboard
                         </button>
-                        <a href="swiftkey://snippets/developer/devtools-toolkit" class="btn primary import-btn">
+                        <a href="swiftkey://snippets/utility/clipboard-manager" class="btn primary import-btn">
                             <i class="fas fa-download"></i> Import to SwiftKey
                         </a>
                     </div>

@@ -3,9 +3,9 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <meta name="description" content="SwiftKey Snippets - A collection of essential developer tools and shortcuts for macOS, including IDE launchers, git commands, and Docker controls." />
+        <meta name="description" content="SwiftKey Snippets - A collection of network diagnostic and monitoring tools, including ping, traceroute, DNS lookup, and network speed tests." />
         <meta name="theme-color" content="#007AFF" />
-        <title>Developer Tools Toolkit - SwiftKey Snippets</title>
+        <title>Network Diagnostic Tools - SwiftKey Snippets</title>
         <link rel="icon" type="image/png" href="../logo.png" />
         <link rel="stylesheet" href="../../styles.css" />
         <link rel="stylesheet" href="../snippets.css" />
@@ -43,75 +43,81 @@
             <div class="container">
                 <div class="snippet-detail">
                     <div class="snippet-detail-header">
-                        <h1>Developer Tools Toolkit</h1>
+                        <h1>Network Diagnostic Tools</h1>
                         <div class="snippet-author">By SwiftKey</div>
-                        <div class="snippet-date">Jun 9, 2024</div>
+                        <div class="snippet-date">Jul 4, 2024</div>
                         <p class="snippet-description">
-                            A collection of essential developer tools and shortcuts for macOS, including IDE launchers, git commands, and Docker controls.
+                            A collection of network diagnostic and monitoring tools, including ping, traceroute, DNS lookup, and network speed tests.
                         </p>
                         <div class="snippet-tags">
-                            <div class="snippet-tag">development</div>
-<div class="snippet-tag">git</div>
-<div class="snippet-tag">docker</div>
-<div class="snippet-tag">ide</div>
+                            <div class="snippet-tag">network</div>
+<div class="snippet-tag">diagnostics</div>
+<div class="snippet-tag">utilities</div>
 
                         </div>
                     </div>
                 <div class="snippet-detail-content">
                     <h2>Preview</h2>
                     <div class="snippet-preview">
-                        <img src="../previews/devtools-toolkit.png" alt="Developer Tools Toolkit Preview" class="preview-image" />
+                        <img src="../previews/network-tools.png" alt="Network Diagnostic Tools Preview" class="preview-image" />
                     </div>
                     
                     <h2>Content</h2>
                     <div class="snippet-yaml">
-                        <pre><code># Developer tools and IDE shortcuts
-- key: &quot;d&quot;
-  icon: &quot;terminal.fill&quot;
-  title: &quot;Developer Tools&quot;
+                        <pre><code># Network diagnostics and monitoring tools
+- key: &quot;n&quot;
+  icon: &quot;network&quot;
+  title: &quot;Network Tools&quot;
   submenu:
-    - key: &quot;x&quot;
-      title: &quot;Xcode&quot;
-      action: &quot;launch:///Applications/Xcode.app&quot;
-    - key: &quot;v&quot;
-      title: &quot;Visual Studio Code&quot;
-      action: &quot;launch:///Applications/Visual Studio Code.app&quot;
-    - key: &quot;i&quot;
-      title: &quot;IntelliJ IDEA&quot;
-      action: &quot;launch:///Applications/IntelliJ IDEA.app&quot;
-    - key: &quot;g&quot;
-      title: &quot;Git Commands&quot;
-      submenu:
-        - key: &quot;p&quot;
-          title: &quot;Pull&quot;
-          action: &quot;shell://git pull&quot;
-          notify: true
-        - key: &quot;s&quot;
-          title: &quot;Status&quot;
-          action: &quot;shell://git status&quot;
-          notify: true
-        - key: &quot;c&quot;
-          title: &quot;Commit&quot;
-          action: &quot;shell://git commit -m \&quot;Quick commit from SwiftKey\&quot;&quot;
-          notify: true
-        - key: &quot;b&quot;
-          title: &quot;Checkout Branch&quot;
-          action: &quot;shell://git branch | fzf | xargs git checkout&quot;
-          notify: true
     - key: &quot;d&quot;
-      title: &quot;Docker&quot;
+      icon: &quot;dial.min&quot;
+      title: &quot;Diagnostics&quot;
       submenu:
         - key: &quot;p&quot;
-          title: &quot;Docker ps&quot;
-          action: &quot;shell://docker ps&quot;
+          title: &quot;Ping Google DNS&quot;
+          action: &quot;shell://ping -c 5 8.8.8.8&quot;
           notify: true
+        - key: &quot;t&quot;
+          title: &quot;Traceroute&quot;
+          action: &quot;shell://traceroute google.com&quot;
+          notify: true
+        - key: &quot;f&quot;
+          title: &quot;Flush DNS Cache&quot;
+          action: &quot;shell://sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder&quot;
+          notify: true
+    - key: &quot;i&quot;
+      icon: &quot;info.circle&quot;
+      title: &quot;Network Info&quot;
+      submenu:
         - key: &quot;i&quot;
-          title: &quot;Docker images&quot;
-          action: &quot;shell://docker images&quot;
+          title: &quot;IP Address (Local)&quot;
+          action: &quot;shell://ipconfig getifaddr en0&quot;
           notify: true
+        - key: &quot;e&quot;
+          title: &quot;External IP&quot;
+          action: &quot;shell://curl -s https://api.ipify.org&quot;
+          notify: true
+        - key: &quot;d&quot;
+          title: &quot;DNS Servers&quot;
+          action: &quot;shell://scutil --dns | grep &#039;nameserver\[[0-9]*\]&#039;&quot;
+          notify: true
+        - key: &quot;r&quot;
+          title: &quot;Routing Table&quot;
+          action: &quot;shell://netstat -nr&quot;
+          notify: true
+    - key: &quot;s&quot;
+      icon: &quot;speedometer&quot;
+      title: &quot;Speed Test&quot;
+      submenu:
+        - key: &quot;f&quot;
+          title: &quot;Fast.com&quot;
+          action: &quot;open://https://fast.com&quot;
+        - key: &quot;o&quot;
+          title: &quot;Ookla Speedtest&quot;
+          action: &quot;open://https://www.speedtest.net&quot;
         - key: &quot;c&quot;
-          title: &quot;Docker compose up&quot;
-          action: &quot;shell://docker-compose up -d&quot;
+          title: &quot;Terminal Speed Test&quot;
+          action: &quot;shell://curl -s https://raw.githubusercontent.com/sivel/speedtest-cli/master/speedtest.py | python -&quot;
           notify: true</code></pre>
                     </div>
                     
@@ -119,7 +125,7 @@
                         <button class="copy-btn" onclick="copySnippetContent()">
                             <i class="fas fa-copy"></i> Copy to Clipboard
                         </button>
-                        <a href="swiftkey://snippets/developer/devtools-toolkit" class="btn primary import-btn">
+                        <a href="swiftkey://snippets/network/network-tools" class="btn primary import-btn">
                             <i class="fas fa-download"></i> Import to SwiftKey
                         </a>
                     </div>

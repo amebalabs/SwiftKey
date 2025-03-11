@@ -44,7 +44,7 @@
                 <div class="snippet-detail">
                     <div class="snippet-detail-header">
                         <h1>Media Quick Controls</h1>
-                        <div class="snippet-author">By Emma Wilson</div>
+                        <div class="snippet-author">By SwiftKey</div>
                         <div class="snippet-date">May 31, 2024</div>
                         <p class="snippet-description">
                             Media playback controls for various media players, including Spotify, Apple Music, and YouTube.
@@ -73,23 +73,47 @@
     - key: &quot;p&quot;
       icon: &quot;play.fill&quot;
       title: &quot;Play/Pause&quot;
-      action: &quot;shell://osascript -e &#039;tell application &quot;Spotify&quot; to playpause&#039;&quot;
+      action: &quot;shell://osascript -e &#039;tell application \&quot;Spotify\&quot; to playpause&#039;&quot;
+      notify: true
     - key: &quot;n&quot;
       icon: &quot;forward.fill&quot;
       title: &quot;Next Track&quot;
-      action: &quot;shell://osascript -e &#039;tell application &quot;Spotify&quot; to next track&#039;&quot;
+      action: &quot;shell://osascript -e &#039;tell application \&quot;Spotify\&quot; to next track&#039;&quot;
+      notify: true
     - key: &quot;b&quot;
       icon: &quot;backward.fill&quot;
       title: &quot;Previous Track&quot;
-      action: &quot;shell://osascript -e &#039;tell application &quot;Spotify&quot; to previous track&#039;&quot;
-    - key: &quot;s&quot;
+      action: &quot;shell://osascript -e &#039;tell application \&quot;Spotify\&quot; to previous track&#039;&quot;
+      notify: true
+    - key: &quot;v&quot;
       icon: &quot;speaker.wave.2.fill&quot;
-      title: &quot;Spotify&quot;
-      action: &quot;launch:///Applications/Spotify.app&quot;
+      title: &quot;Volume Controls&quot;
+      submenu:
+        - key: &quot;u&quot;
+          title: &quot;Volume Up&quot;
+          action: &quot;shell://osascript -e &#039;set volume output volume (output volume of (get volume settings) + 10)&#039;&quot;
+          notify: true
+        - key: &quot;d&quot;
+          title: &quot;Volume Down&quot;
+          action: &quot;shell://osascript -e &#039;set volume output volume (output volume of (get volume settings) - 10)&#039;&quot;
+          notify: true
+        - key: &quot;m&quot;
+          title: &quot;Mute Toggle&quot;
+          action: &quot;shell://osascript -e &#039;set volume with output muted not (output muted of (get volume settings))&#039;&quot;
+          notify: true
     - key: &quot;a&quot;
       icon: &quot;music.note&quot;
-      title: &quot;Apple Music&quot;
-      action: &quot;launch:///System/Applications/Music.app&quot;</code></pre>
+      title: &quot;Applications&quot;
+      submenu:
+        - key: &quot;s&quot;
+          title: &quot;Spotify&quot;
+          action: &quot;launch:///Applications/Spotify.app&quot;
+        - key: &quot;m&quot;
+          title: &quot;Apple Music&quot;
+          action: &quot;launch:///System/Applications/Music.app&quot;
+        - key: &quot;y&quot;
+          title: &quot;YouTube Music&quot;
+          action: &quot;open://https://music.youtube.com&quot;</code></pre>
                     </div>
                     
                     <div class="snippet-actions">

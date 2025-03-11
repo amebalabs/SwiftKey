@@ -27,5 +27,17 @@ create_placeholder "mac-utils.png" "macOS System Utilities"
 create_placeholder "quick-controls.png" "Media Quick Controls"
 create_placeholder "web-bookmarks.png" "Web Bookmarks Collection"
 
+# New snippets
+create_placeholder "terminal-shortcuts.png" "Terminal Command Shortcuts"
+create_placeholder "clipboard-manager.png" "Clipboard Manager"
+create_placeholder "screen-capture.png" "Screen Capture Tools"
+create_placeholder "file-operations.png" "File Operations Toolkit"
+create_placeholder "meeting-tools.png" "Meeting Tools"
+create_placeholder "network-tools.png" "Network Diagnostic Tools"
+create_placeholder "text-tools.png" "Text Manipulation Tools"
+create_placeholder "code-snippets.png" "Code Snippets Library"
+create_placeholder "window-management.png" "Window Management"
+create_placeholder "search-tools.png" "Search Tools"
+
 echo "Created placeholder preview images"
 echo "For production use, replace these with actual screenshots of the menus"

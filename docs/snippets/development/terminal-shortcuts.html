@@ -3,9 +3,9 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <meta name="description" content="SwiftKey Snippets - A collection of essential developer tools and shortcuts for macOS, including IDE launchers, git commands, and Docker controls." />
+        <meta name="description" content="SwiftKey Snippets - A collection of useful terminal commands and shortcuts for developers, including file operations, process management, and network diagnostics." />
         <meta name="theme-color" content="#007AFF" />
-        <title>Developer Tools Toolkit - SwiftKey Snippets</title>
+        <title>Terminal Command Shortcuts - SwiftKey Snippets</title>
         <link rel="icon" type="image/png" href="../logo.png" />
         <link rel="stylesheet" href="../../styles.css" />
         <link rel="stylesheet" href="../snippets.css" />
@@ -43,75 +43,80 @@
             <div class="container">
                 <div class="snippet-detail">
                     <div class="snippet-detail-header">
-                        <h1>Developer Tools Toolkit</h1>
+                        <h1>Terminal Command Shortcuts</h1>
                         <div class="snippet-author">By SwiftKey</div>
-                        <div class="snippet-date">Jun 9, 2024</div>
+                        <div class="snippet-date">Jun 14, 2024</div>
                         <p class="snippet-description">
-                            A collection of essential developer tools and shortcuts for macOS, including IDE launchers, git commands, and Docker controls.
+                            A collection of useful terminal commands and shortcuts for developers, including file operations, process management, and network diagnostics.
                         </p>
                         <div class="snippet-tags">
-                            <div class="snippet-tag">development</div>
-<div class="snippet-tag">git</div>
-<div class="snippet-tag">docker</div>
-<div class="snippet-tag">ide</div>
+                            <div class="snippet-tag">terminal</div>
+<div class="snippet-tag">development</div>
+<div class="snippet-tag">commands</div>
+<div class="snippet-tag">productivity</div>
 
                         </div>
                     </div>
                 <div class="snippet-detail-content">
                     <h2>Preview</h2>
                     <div class="snippet-preview">
-                        <img src="../previews/devtools-toolkit.png" alt="Developer Tools Toolkit Preview" class="preview-image" />
+                        <img src="../previews/terminal-shortcuts.png" alt="Terminal Command Shortcuts Preview" class="preview-image" />
                     </div>
                     
                     <h2>Content</h2>
                     <div class="snippet-yaml">
-                        <pre><code># Developer tools and IDE shortcuts
-- key: &quot;d&quot;
-  icon: &quot;terminal.fill&quot;
-  title: &quot;Developer Tools&quot;
+                        <pre><code># Terminal commands and shortcuts
+- key: &quot;t&quot;
+  icon: &quot;terminal&quot;
+  title: &quot;Terminal Shortcuts&quot;
   submenu:
-    - key: &quot;x&quot;
-      title: &quot;Xcode&quot;
-      action: &quot;launch:///Applications/Xcode.app&quot;
-    - key: &quot;v&quot;
-      title: &quot;Visual Studio Code&quot;
-      action: &quot;launch:///Applications/Visual Studio Code.app&quot;
-    - key: &quot;i&quot;
-      title: &quot;IntelliJ IDEA&quot;
-      action: &quot;launch:///Applications/IntelliJ IDEA.app&quot;
-    - key: &quot;g&quot;
-      title: &quot;Git Commands&quot;
+    - key: &quot;f&quot;
+      icon: &quot;folder&quot;
+      title: &quot;File Operations&quot;
       submenu:
-        - key: &quot;p&quot;
-          title: &quot;Pull&quot;
-          action: &quot;shell://git pull&quot;
+        - key: &quot;l&quot;
+          title: &quot;List Files (ls -la)&quot;
+          action: &quot;shell://ls -la&quot;
           notify: true
-        - key: &quot;s&quot;
-          title: &quot;Status&quot;
-          action: &quot;shell://git status&quot;
+        - key: &quot;d&quot;
+          title: &quot;Disk Usage (du -h)&quot;
+          action: &quot;shell://du -h -d 1 | sort -hr&quot;
           notify: true
-        - key: &quot;c&quot;
-          title: &quot;Commit&quot;
-          action: &quot;shell://git commit -m \&quot;Quick commit from SwiftKey\&quot;&quot;
+        - key: &quot;f&quot;
+          title: &quot;Find Large Files&quot;
+          action: &quot;shell://find . -type f -size +100M -exec ls -lh {} \;&quot;
           notify: true
-        - key: &quot;b&quot;
-          title: &quot;Checkout Branch&quot;
-          action: &quot;shell://git branch | fzf | xargs git checkout&quot;
-          notify: true
-    - key: &quot;d&quot;
-      title: &quot;Docker&quot;
+    - key: &quot;p&quot;
+      icon: &quot;cpu&quot;
+      title: &quot;Process Management&quot;
       submenu:
-        - key: &quot;p&quot;
-          title: &quot;Docker ps&quot;
-          action: &quot;shell://docker ps&quot;
+        - key: &quot;t&quot;
+          title: &quot;Top Processes&quot;
+          action: &quot;shell://ps aux | head -10&quot;
           notify: true
+        - key: &quot;m&quot;
+          title: &quot;Memory Usage&quot;
+          action: &quot;shell://vm_stat&quot;
+          notify: true
+        - key: &quot;k&quot;
+          title: &quot;Kill Process by Name&quot;
+          action: &quot;shell://read -p &#039;Process name to kill: &#039; PROC &amp;&amp; pkill &quot;$PROC&quot;&quot;
+          notify: true
+    - key: &quot;n&quot;
+      icon: &quot;network&quot;
+      title: &quot;Network&quot;
+      submenu:
         - key: &quot;i&quot;
-          title: &quot;Docker images&quot;
-          action: &quot;shell://docker images&quot;
+          title: &quot;IP Information&quot;
+          action: &quot;shell://ifconfig | grep inet&quot;
           notify: true
-        - key: &quot;c&quot;
-          title: &quot;Docker compose up&quot;
-          action: &quot;shell://docker-compose up -d&quot;
+        - key: &quot;p&quot;
+          title: &quot;Ping Google&quot;
+          action: &quot;shell://ping -c 5 google.com&quot;
+          notify: true
+        - key: &quot;o&quot;
+          title: &quot;Open Ports&quot;
+          action: &quot;shell://lsof -i -P | grep LISTEN&quot;
           notify: true</code></pre>
                     </div>
                     
@@ -119,7 +124,7 @@
                         <button class="copy-btn" onclick="copySnippetContent()">
                             <i class="fas fa-copy"></i> Copy to Clipboard
                         </button>
-                        <a href="swiftkey://snippets/developer/devtools-toolkit" class="btn primary import-btn">
+                        <a href="swiftkey://snippets/development/terminal-shortcuts" class="btn primary import-btn">
                             <i class="fas fa-download"></i> Import to SwiftKey
                         </a>
                     </div>

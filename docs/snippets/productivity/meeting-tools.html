@@ -3,9 +3,9 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <meta name="description" content="SwiftKey Snippets - A collection of essential developer tools and shortcuts for macOS, including IDE launchers, git commands, and Docker controls." />
+        <meta name="description" content="SwiftKey Snippets - A collection of tools for managing meetings, including timers, note templates, zoom controls, and agenda helpers." />
         <meta name="theme-color" content="#007AFF" />
-        <title>Developer Tools Toolkit - SwiftKey Snippets</title>
+        <title>Meeting Tools - SwiftKey Snippets</title>
         <link rel="icon" type="image/png" href="../logo.png" />
         <link rel="stylesheet" href="../../styles.css" />
         <link rel="stylesheet" href="../snippets.css" />
@@ -43,75 +43,74 @@
             <div class="container">
                 <div class="snippet-detail">
                     <div class="snippet-detail-header">
-                        <h1>Developer Tools Toolkit</h1>
+                        <h1>Meeting Tools</h1>
                         <div class="snippet-author">By SwiftKey</div>
-                        <div class="snippet-date">Jun 9, 2024</div>
+                        <div class="snippet-date">Jun 30, 2024</div>
                         <p class="snippet-description">
-                            A collection of essential developer tools and shortcuts for macOS, including IDE launchers, git commands, and Docker controls.
+                            A collection of tools for managing meetings, including timers, note templates, zoom controls, and agenda helpers.
                         </p>
                         <div class="snippet-tags">
-                            <div class="snippet-tag">development</div>
-<div class="snippet-tag">git</div>
-<div class="snippet-tag">docker</div>
-<div class="snippet-tag">ide</div>
+                            <div class="snippet-tag">productivity</div>
+<div class="snippet-tag">meetings</div>
+<div class="snippet-tag">collaboration</div>
 
                         </div>
                     </div>
                 <div class="snippet-detail-content">
                     <h2>Preview</h2>
                     <div class="snippet-preview">
-                        <img src="../previews/devtools-toolkit.png" alt="Developer Tools Toolkit Preview" class="preview-image" />
+                        <img src="../previews/meeting-tools.png" alt="Meeting Tools Preview" class="preview-image" />
                     </div>
                     
                     <h2>Content</h2>
                     <div class="snippet-yaml">
-                        <pre><code># Developer tools and IDE shortcuts
-- key: &quot;d&quot;
-  icon: &quot;terminal.fill&quot;
-  title: &quot;Developer Tools&quot;
+                        <pre><code># Meeting management and productivity tools
+- key: &quot;m&quot;
+  icon: &quot;person.3.fill&quot;
+  title: &quot;Meeting Tools&quot;
   submenu:
-    - key: &quot;x&quot;
-      title: &quot;Xcode&quot;
-      action: &quot;launch:///Applications/Xcode.app&quot;
-    - key: &quot;v&quot;
-      title: &quot;Visual Studio Code&quot;
-      action: &quot;launch:///Applications/Visual Studio Code.app&quot;
-    - key: &quot;i&quot;
-      title: &quot;IntelliJ IDEA&quot;
-      action: &quot;launch:///Applications/IntelliJ IDEA.app&quot;
-    - key: &quot;g&quot;
-      title: &quot;Git Commands&quot;
+    - key: &quot;t&quot;
+      icon: &quot;timer&quot;
+      title: &quot;Timers&quot;
       submenu:
-        - key: &quot;p&quot;
-          title: &quot;Pull&quot;
-          action: &quot;shell://git pull&quot;
+        - key: &quot;5&quot;
+          title: &quot;5 Minute Timer&quot;
+          action: &quot;shell://osascript -e &#039;display notification \&quot;5 minute timer started\&quot; with title \&quot;Meeting Timer\&quot;&#039; &amp;&amp; sleep 300 &amp;&amp; osascript -e &#039;display notification \&quot;Time is up!\&quot; with title \&quot;Meeting Timer\&quot; sound name \&quot;Glass\&quot;&#039;&quot;
+          notify: true
+        - key: &quot;1&quot;
+          title: &quot;15 Minute Timer&quot;
+          action: &quot;shell://osascript -e &#039;display notification \&quot;15 minute timer started\&quot; with title \&quot;Meeting Timer\&quot;&#039; &amp;&amp; sleep 900 &amp;&amp; osascript -e &#039;display notification \&quot;Time is up!\&quot; with title \&quot;Meeting Timer\&quot; sound name \&quot;Glass\&quot;&#039;&quot;
+          notify: true
+        - key: &quot;3&quot;
+          title: &quot;30 Minute Timer&quot;
+          action: &quot;shell://osascript -e &#039;display notification \&quot;30 minute timer started\&quot; with title \&quot;Meeting Timer\&quot;&#039; &amp;&amp; sleep 1800 &amp;&amp; osascript -e &#039;display notification \&quot;Time is up!\&quot; with title \&quot;Meeting Timer\&quot; sound name \&quot;Glass\&quot;&#039;&quot;
+          notify: true
+    - key: &quot;n&quot;
+      icon: &quot;note.text&quot;
+      title: &quot;Notes&quot;
+      submenu:
+        - key: &quot;c&quot;
+          title: &quot;Create Meeting Notes&quot;
+          action: &quot;shell://cat &gt; ~/Desktop/meeting_notes_$(date +%Y%m%d).md &lt;&lt; &#039;EOF&#039;\n# Meeting Notes: $(date +%Y-%m-%d)\n\n## Attendees\n- \n\n## Agenda\n1. \n2. \n3. \n\n## Discussion\n\n\n## Action Items\n- [ ] \n- [ ] \n\n## Next Steps\n\nEOF\n&amp;&amp; open ~/Desktop/meeting_notes_$(date +%Y%m%d).md&quot;
+          notify: true
+        - key: &quot;a&quot;
+          title: &quot;Add Action Item&quot;
+          action: &quot;text://- [ ] Action: \n  Assigned to: \n  Due date: &quot;
+    - key: &quot;z&quot;
+      icon: &quot;video&quot;
+      title: &quot;Zoom Controls&quot;
+      submenu:
+        - key: &quot;m&quot;
+          title: &quot;Toggle Mute&quot;
+          action: &quot;shell://osascript -e &#039;tell application \&quot;System Events\&quot; to keystroke \&quot;a\&quot; using {command down, shift down}&#039;&quot;
+          notify: true
+        - key: &quot;v&quot;
+          title: &quot;Toggle Video&quot;
+          action: &quot;shell://osascript -e &#039;tell application \&quot;System Events\&quot; to keystroke \&quot;v\&quot; using {command down, shift down}&#039;&quot;
           notify: true
         - key: &quot;s&quot;
-          title: &quot;Status&quot;
-          action: &quot;shell://git status&quot;
-          notify: true
-        - key: &quot;c&quot;
-          title: &quot;Commit&quot;
-          action: &quot;shell://git commit -m \&quot;Quick commit from SwiftKey\&quot;&quot;
-          notify: true
-        - key: &quot;b&quot;
-          title: &quot;Checkout Branch&quot;
-          action: &quot;shell://git branch | fzf | xargs git checkout&quot;
-          notify: true
-    - key: &quot;d&quot;
-      title: &quot;Docker&quot;
-      submenu:
-        - key: &quot;p&quot;
-          title: &quot;Docker ps&quot;
-          action: &quot;shell://docker ps&quot;
-          notify: true
-        - key: &quot;i&quot;
-          title: &quot;Docker images&quot;
-          action: &quot;shell://docker images&quot;
-          notify: true
-        - key: &quot;c&quot;
-          title: &quot;Docker compose up&quot;
-          action: &quot;shell://docker-compose up -d&quot;
+          title: &quot;Start/Stop Screen Share&quot;
+          action: &quot;shell://osascript -e &#039;tell application \&quot;System Events\&quot; to keystroke \&quot;s\&quot; using {command down, shift down}&#039;&quot;
           notify: true</code></pre>
                     </div>
                     
@@ -119,7 +118,7 @@
                         <button class="copy-btn" onclick="copySnippetContent()">
                             <i class="fas fa-copy"></i> Copy to Clipboard
                         </button>
-                        <a href="swiftkey://snippets/developer/devtools-toolkit" class="btn primary import-btn">
+                        <a href="swiftkey://snippets/productivity/meeting-tools" class="btn primary import-btn">
                             <i class="fas fa-download"></i> Import to SwiftKey
                         </a>
                     </div>

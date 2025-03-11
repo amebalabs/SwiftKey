@@ -3,9 +3,9 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <meta name="description" content="SwiftKey Snippets - A collection of essential developer tools and shortcuts for macOS, including IDE launchers, git commands, and Docker controls." />
+        <meta name="description" content="SwiftKey Snippets - A collection of screen capture tools and shortcuts for macOS, including screenshot commands, screen recording, and annotation tools." />
         <meta name="theme-color" content="#007AFF" />
-        <title>Developer Tools Toolkit - SwiftKey Snippets</title>
+        <title>Screen Capture Tools - SwiftKey Snippets</title>
         <link rel="icon" type="image/png" href="../logo.png" />
         <link rel="stylesheet" href="../../styles.css" />
         <link rel="stylesheet" href="../snippets.css" />
@@ -43,75 +43,76 @@
             <div class="container">
                 <div class="snippet-detail">
                     <div class="snippet-detail-header">
-                        <h1>Developer Tools Toolkit</h1>
+                        <h1>Screen Capture Tools</h1>
                         <div class="snippet-author">By SwiftKey</div>
-                        <div class="snippet-date">Jun 9, 2024</div>
+                        <div class="snippet-date">Jun 19, 2024</div>
                         <p class="snippet-description">
-                            A collection of essential developer tools and shortcuts for macOS, including IDE launchers, git commands, and Docker controls.
+                            A collection of screen capture tools and shortcuts for macOS, including screenshot commands, screen recording, and annotation tools.
                         </p>
                         <div class="snippet-tags">
-                            <div class="snippet-tag">development</div>
-<div class="snippet-tag">git</div>
-<div class="snippet-tag">docker</div>
-<div class="snippet-tag">ide</div>
+                            <div class="snippet-tag">utility</div>
+<div class="snippet-tag">screen capture</div>
+<div class="snippet-tag">screenshots</div>
+<div class="snippet-tag">recording</div>
 
                         </div>
                     </div>
                 <div class="snippet-detail-content">
                     <h2>Preview</h2>
                     <div class="snippet-preview">
-                        <img src="../previews/devtools-toolkit.png" alt="Developer Tools Toolkit Preview" class="preview-image" />
+                        <img src="../previews/screen-capture.png" alt="Screen Capture Tools Preview" class="preview-image" />
                     </div>
                     
                     <h2>Content</h2>
                     <div class="snippet-yaml">
-                        <pre><code># Developer tools and IDE shortcuts
-- key: &quot;d&quot;
-  icon: &quot;terminal.fill&quot;
-  title: &quot;Developer Tools&quot;
+                        <pre><code># Screen capture and recording tools
+- key: &quot;s&quot;
+  icon: &quot;camera.fill&quot;
+  title: &quot;Screen Capture&quot;
   submenu:
-    - key: &quot;x&quot;
-      title: &quot;Xcode&quot;
-      action: &quot;launch:///Applications/Xcode.app&quot;
-    - key: &quot;v&quot;
-      title: &quot;Visual Studio Code&quot;
-      action: &quot;launch:///Applications/Visual Studio Code.app&quot;
-    - key: &quot;i&quot;
-      title: &quot;IntelliJ IDEA&quot;
-      action: &quot;launch:///Applications/IntelliJ IDEA.app&quot;
-    - key: &quot;g&quot;
-      title: &quot;Git Commands&quot;
+    - key: &quot;s&quot;
+      icon: &quot;camera.viewfinder&quot;
+      title: &quot;Screenshots&quot;
       submenu:
-        - key: &quot;p&quot;
-          title: &quot;Pull&quot;
-          action: &quot;shell://git pull&quot;
+        - key: &quot;f&quot;
+          title: &quot;Full Screen&quot;
+          action: &quot;shell://screencapture -x ~/Desktop/screenshot-$(date +%Y%m%d-%H%M%S).png&quot;
+          notify: true
+        - key: &quot;w&quot;
+          title: &quot;Window (Interactive)&quot;
+          action: &quot;shell://screencapture -iw ~/Desktop/window-$(date +%Y%m%d-%H%M%S).png&quot;
+          notify: true
+        - key: &quot;a&quot;
+          title: &quot;Area Selection&quot;
+          action: &quot;shell://screencapture -is ~/Desktop/selection-$(date +%Y%m%d-%H%M%S).png&quot;
+          notify: true
+        - key: &quot;c&quot;
+          title: &quot;Copy to Clipboard&quot;
+          action: &quot;shell://screencapture -ic&quot;
+          notify: true
+    - key: &quot;r&quot;
+      icon: &quot;record.circle&quot;
+      title: &quot;Screen Recording&quot;
+      submenu:
+        - key: &quot;f&quot;
+          title: &quot;Record Full Screen&quot;
+          action: &quot;shell://osascript -e &#039;tell application \&quot;QuickTime Player\&quot; to new screen recording&#039; -e &#039;delay 0.5&#039; -e &#039;tell application \&quot;System Events\&quot; to keystroke space&#039;&quot;
           notify: true
         - key: &quot;s&quot;
-          title: &quot;Status&quot;
-          action: &quot;shell://git status&quot;
+          title: &quot;Stop Recording&quot;
+          action: &quot;shell://osascript -e &#039;tell application \&quot;System Events\&quot; to keystroke q using {command down}&#039;&quot;
           notify: true
-        - key: &quot;c&quot;
-          title: &quot;Commit&quot;
-          action: &quot;shell://git commit -m \&quot;Quick commit from SwiftKey\&quot;&quot;
-          notify: true
-        - key: &quot;b&quot;
-          title: &quot;Checkout Branch&quot;
-          action: &quot;shell://git branch | fzf | xargs git checkout&quot;
-          notify: true
-    - key: &quot;d&quot;
-      title: &quot;Docker&quot;
+    - key: &quot;a&quot;
+      icon: &quot;pencil.and.outline&quot;
+      title: &quot;Annotation&quot;
       submenu:
         - key: &quot;p&quot;
-          title: &quot;Docker ps&quot;
-          action: &quot;shell://docker ps&quot;
+          title: &quot;Open in Preview&quot;
+          action: &quot;shell://screencapture -ic &amp;&amp; osascript -e &#039;tell application \&quot;Preview\&quot; to activate&#039;&quot;
           notify: true
-        - key: &quot;i&quot;
-          title: &quot;Docker images&quot;
-          action: &quot;shell://docker images&quot;
-          notify: true
-        - key: &quot;c&quot;
-          title: &quot;Docker compose up&quot;
-          action: &quot;shell://docker-compose up -d&quot;
+        - key: &quot;k&quot;
+          title: &quot;Markup in Preview&quot;
+          action: &quot;shell://screencapture -icp &amp;&amp; osascript -e &#039;tell application \&quot;Preview\&quot; to activate&#039; -e &#039;delay 0.5&#039; -e &#039;tell application \&quot;System Events\&quot; to keystroke \&quot;a\&quot; using {command down, shift down}&#039;&quot;
           notify: true</code></pre>
                     </div>
                     
@@ -119,7 +120,7 @@
                         <button class="copy-btn" onclick="copySnippetContent()">
                             <i class="fas fa-copy"></i> Copy to Clipboard
                         </button>
-                        <a href="swiftkey://snippets/developer/devtools-toolkit" class="btn primary import-btn">
+                        <a href="swiftkey://snippets/utility/screen-capture" class="btn primary import-btn">
                             <i class="fas fa-download"></i> Import to SwiftKey
                         </a>
                     </div>
