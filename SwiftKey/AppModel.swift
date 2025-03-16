@@ -90,10 +90,8 @@ struct MenuItem: Identifiable, Codable, Equatable {
         if action.hasPrefix("launch://") {
             let appPath = String(action.dropFirst("launch://".count))
             return {
-                // Add debug logging
                 AppLogger.app.debug("Launching application at path: \(appPath)")
 
-                // Use Task to handle async work and Main actor for UI
                 Task { @MainActor in
                     let expandedPath = (appPath as NSString).expandingTildeInPath
                     let appURL = URL(fileURLWithPath: expandedPath)
@@ -180,6 +178,18 @@ struct MenuItem: Identifiable, Codable, Equatable {
         }
         return nil
     }
+    
+    var isExternalURL: Bool {
+        guard let action = action else { return false }
+        return action.hasPrefix("open://")
+    }
+    
+    var isDefaultIcon: Bool {
+        guard let action = action, action.hasPrefix("open://") else { return false }
+        guard let icon = icon else { return true }
+        return icon == "link"
+    }
+
 }
 
 extension MenuItem {
@@ -188,19 +198,16 @@ extension MenuItem {
     private static var nsImageCache = [String: NSImage]()
 
     var iconImage: Image {
-        // Generate a unique cache key based on the action or icon
         let cacheKey = generateIconCacheKey()
 
-        // Return cached image if available
         if let cachedImage = Self.imageCache[cacheKey] {
             return cachedImage
         }
 
-        // Otherwise generate the image
         let resultImage: Image
 
         if let icon, !icon.isEmpty {
-            resultImage = Image(systemName: icon)
+            return Image(systemName: icon)
         } else if let action = action {
             if action.hasPrefix("launch://") {
                 let appPath = String(action.dropFirst("launch://".count))
@@ -213,23 +220,27 @@ extension MenuItem {
                 let urlString = String(action.dropFirst("open://".count))
                 let urlCacheKey = "url:\(urlString)"
 
-                if let cachedNSImage = Self.nsImageCache[urlCacheKey] {
-                    resultImage = Image(nsImage: cachedNSImage)
-                } else if let url = URL(string: urlString),
-                          let appURL = NSWorkspace.shared.urlForApplication(toOpen: url),
-                          case let nsImage = NSWorkspace.shared.icon(forFile: appURL.path)
-                {
-                    Self.nsImageCache[urlCacheKey] = nsImage
-                    resultImage = Image(nsImage: nsImage)
+                if urlString.prefix(4) != "http",
+                   let url = URL(string: urlString),
+                   let appURL = NSWorkspace.shared.urlForApplication(toOpen: url),
+                   case let nsImage = NSWorkspace.shared.icon(forFile: appURL.path) {
+                        Self.nsImageCache[urlCacheKey] = nsImage
+                        resultImage = Image(nsImage: nsImage)
                 } else {
                     resultImage = Image(systemName: "link")
+                    
+                    Task { @MainActor in
+                        if let favicon = await FaviconManager.shared.getFavicon(for: urlString) {
+                            Self.nsImageCache[urlCacheKey] = favicon
+                            Self.imageCache[cacheKey] = Image(nsImage: favicon)
+                            
+                            NotificationCenter.default.post(name: .menuIconUpdated, object: nil, userInfo: ["id": id])
+                        }
+                    }
                 }
             } else if action.hasPrefix("shortcut://") {
                 let shortcutsCacheKey = "shortcuts"
-
-                if let cachedNSImage = Self.nsImageCache[shortcutsCacheKey] {
-                    resultImage = Image(nsImage: cachedNSImage)
-                } else if let appURL = NSWorkspace.shared.urlForApplication(
+                if let appURL = NSWorkspace.shared.urlForApplication(
                     withBundleIdentifier: "com.apple.shortcuts"
                 ),
                     case let nsImage = NSWorkspace.shared.icon(forFile: appURL.path)
@@ -246,7 +257,6 @@ extension MenuItem {
             resultImage = Image(systemName: "questionmark")
         }
 
-        // Cache the result before returning
         Self.imageCache[cacheKey] = resultImage
         return resultImage
     }

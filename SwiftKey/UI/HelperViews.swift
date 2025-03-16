@@ -1,5 +1,28 @@
 import SwiftUI
 
+/// A view that displays a favicon within a styled background
+struct StyledFaviconView: View {
+    let image: Image
+    let size: CGFloat
+    
+    var body: some View {
+        ZStack {
+            // Background oval shape
+            RoundedRectangle(cornerRadius: size / 4)
+                .fill(Color(.windowBackgroundColor).opacity(0.7))
+                .frame(width: size, height: size)
+                .shadow(color: Color.black.opacity(0.2), radius: 2, x: 0, y: 1)
+            
+            // Favicon image
+            image
+                .resizable()
+                .interpolation(.high)
+                .aspectRatio(contentMode: .fit)
+                .frame(width: size * 0.75, height: size * 0.75)
+        }
+    }
+}
+
 struct ToggleView: View {
     let label: String
     let secondLabel: String
