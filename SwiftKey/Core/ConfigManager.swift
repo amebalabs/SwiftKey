@@ -290,6 +290,7 @@ class ConfigManager: DependencyInjectable, ObservableObject {
     }
 
     func importSnippet(menuItems: [MenuItem], strategy: MergeStrategy) async throws {
+        // Validate the menu items
         let validationResult = await Task {
             validateMenuItems(menuItems)
         }.value
@@ -305,33 +306,90 @@ class ConfigManager: DependencyInjectable, ObservableObject {
             break
         }
 
-        var currentConfig = menuItems
+        // Load the current configuration
+        guard let url = resolveConfigFileURL() else {
+            throw ConfigError.fileNotFound
+        }
 
-        // Apply merge strategy (can be done off main thread)
+        logger.info("Creating backup of menu.yaml before importing snippet...")
+        let backupResult = createBackup(of: url)
+        if case let .failure(error) = backupResult {
+            logger.error("Failed to create backup before snippet import: \(error.localizedDescription)")
+        } else if case let .success(backupURL) = backupResult, let backupURL = backupURL {
+            logger.info("Successfully created backup at \(backupURL.path, privacy: .public) before importing snippet")
+        }
+
+        var currentConfig = self.menuItems
+
         switch strategy {
         case .append:
             currentConfig.append(contentsOf: menuItems)
+            logger.info("Appending \(menuItems.count) items to configuration")
         case .prepend:
             currentConfig = menuItems + currentConfig
+            logger.info("Prepending \(menuItems.count) items to configuration")
         case .replace:
             currentConfig = menuItems
+            logger.info("Replacing configuration with \(menuItems.count) items")
         case .smart:
             currentConfig = smartMergeMenuItems(currentConfig, with: menuItems)
+            logger.info("Smart-merging \(menuItems.count) items into configuration")
         }
 
-        // Save back to file
         let result = await saveMenuItems(currentConfig)
         switch result {
         case .success:
+            logger.info("Successfully imported snippet and saved configuration")
             return
         case let .failure(error):
+            logger.error("Failed to save configuration after snippet import: \(error.localizedDescription)")
             throw error
+        }
+    }
+
+    private func createBackup(of configURL: URL) -> Result<URL?, ConfigError> {
+        do {
+            guard FileManager.default.fileExists(atPath: configURL.path) else {
+                logger.debug("No file to backup at \(configURL.path, privacy: .public)")
+                return .success(nil) // No file to backup
+            }
+
+            let backupDir = configURL.deletingLastPathComponent()
+                .appendingPathComponent("backups", isDirectory: true)
+
+            if !FileManager.default.fileExists(atPath: backupDir.path) {
+                try FileManager.default.createDirectory(
+                    at: backupDir,
+                    withIntermediateDirectories: true
+                )
+                logger.debug("Created backup directory at \(backupDir.path, privacy: .public)")
+            }
+
+            let dateFormatter = DateFormatter()
+            dateFormatter.dateFormat = "yyyy-MM-dd_HH-mm-ss"
+            let timestamp = dateFormatter.string(from: Date())
+            let fileName = configURL.lastPathComponent
+            let backupName = "\(fileName.replacingOccurrences(of: ".yaml", with: ""))_\(timestamp).yaml"
+            let backupURL = backupDir.appendingPathComponent(backupName)
+
+            try FileManager.default.copyItem(at: configURL, to: backupURL)
+            logger.info("Created backup at \(backupURL.path, privacy: .public)")
+
+            return .success(backupURL)
+        } catch {
+            logger.error("Failed to create backup: \(error.localizedDescription)")
+            return .failure(.readFailed(underlying: error))
         }
     }
 
     func saveMenuItems(_ items: [MenuItem]) async -> Result<Void, ConfigError> {
         guard let url = resolveConfigFileURL() else {
             return .failure(ConfigError.fileNotFound)
+        }
+
+        let backupResult = createBackup(of: url)
+        if case let .failure(error) = backupResult {
+            logger.warning("Failed to create backup: \(error.localizedDescription). Continuing with save.")
         }
 
         let yamlResult = await Task {

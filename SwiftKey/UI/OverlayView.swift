@@ -182,8 +182,8 @@ struct OverlayView: View {
             break
         case .submenuPushed:
             errorMessage = ""
-        case .actionExecuted(sticky: let sticky):
-            guard sticky == false else {break}
+        case let .actionExecuted(sticky: sticky):
+            guard sticky == false else { break }
             await MainActor.run {
                 NotificationCenter.default.post(name: .hideOverlay, object: nil)
             }
@@ -205,13 +205,26 @@ struct OverlayView: View {
 struct MenuItemIconView: View {
     let item: MenuItem
     let size: CGFloat
+    @State private var refreshToggle = false
 
     var body: some View {
-        item.iconImage
-            .resizable()
-            .scaledToFit()
-            .frame(width: size, height: size)
-            .opacity(0.9)
+        Group {
+            if item.isExternalURL && !item.isDefaultIcon {
+                StyledFaviconView(image: item.iconImage, size: size)
+            } else {
+                item.iconImage
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: size, height: size)
+                    .opacity(0.9)
+            }
+        }
+        .id("\(item.id)_\(refreshToggle)")
+        .onReceive(NotificationCenter.default.publisher(for: .menuIconUpdated)) { notification in
+            if let id = notification.userInfo?["id"] as? UUID, id == item.id {
+                refreshToggle.toggle()
+            }
+        }
     }
 
     static func == (lhs: Self, rhs: Self) -> Bool {

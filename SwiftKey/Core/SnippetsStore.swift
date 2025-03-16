@@ -66,7 +66,7 @@ class SnippetsStore: ObservableObject, DependencyInjectable {
         logger.debug("Dependencies injected successfully")
     }
 
-    private let baseURL = URL(string: "http://localhost:3000")!
+    private let baseURL = URL(string: "https://swiftkey.app/snippets")!
     private let cacheFileName = "snippets-cache.json"
     private var cancellables = Set<AnyCancellable>()
 

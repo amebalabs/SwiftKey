@@ -81,8 +81,12 @@ class DeepLinkHandler: DependencyInjectable {
     private func handleSnippetImport(url: URL) {
         let snippetId = url.path.trimmingCharacters(in: .init(charactersIn: "/"))
 
-        guard !snippetId.isEmpty else {
-            logger.error("Invalid snippet ID in URL \(url)")
+        // If path is empty, show the gallery without a preselected snippet
+        if snippetId.isEmpty {
+            logger.info("Opening snippet gallery without preselection")
+            Task { @MainActor in
+                NotificationCenter.default.post(name: .presentGalleryWindow, object: nil)
+            }
             return
         }
 
