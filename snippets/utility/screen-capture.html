@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="description" content="SwiftKey Snippets - A collection of screen capture tools and shortcuts for macOS, including screenshot commands, screen recording, and annotation tools." />
+        <meta name="theme-color" content="#007AFF" />
+        <title>Screen Capture Tools - SwiftKey Snippets</title>
+        <link rel="icon" type="image/png" href="../logo.png" />
+        <link rel="stylesheet" href="../../styles.css" />
+        <link rel="stylesheet" href="../snippets.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    </head>
+    <body>
+        <nav class="nav-blur">
+            <div class="container">
+                <div class="logo">
+                    <img src="../../logo.png" alt="SwiftKey" class="logo-img" />
+                    <span>SwiftKey Snippets</span>
+                </div>
+                <div class="nav-links">
+                    <a href="../../index.html">Home</a>
+                    <a href="../index.html">Snippets</a>
+                    <a href="../index.html#contribute">Contribute</a>
+                    <a href="https://github.com/amebalabs/swiftkey-snippets" class="github-link">
+                        <i class="fab fa-github"></i>
+                    </a>
+                </div>
+                <button class="mobile-menu-btn">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+        </nav>
+
+        <div class="mobile-menu">
+            <a href="../../index.html">Home</a>
+            <a href="../index.html">Snippets</a>
+            <a href="../index.html#contribute">Contribute</a>
+            <a href="https://github.com/amebalabs/swiftkey-snippets">GitHub</a>
+        </div>
+
+        <header class="snippet-header">
+            <div class="container">
+                <div class="snippet-detail">
+                    <div class="snippet-detail-header">
+                        <h1>Screen Capture Tools</h1>
+                        <div class="snippet-author">By SwiftKey</div>
+                        <div class="snippet-date">Jun 19, 2024</div>
+                        <p class="snippet-description">
+                            A collection of screen capture tools and shortcuts for macOS, including screenshot commands, screen recording, and annotation tools.
+                        </p>
+                        <div class="snippet-tags">
+                            <div class="snippet-tag">utility</div>
+<div class="snippet-tag">screen capture</div>
+<div class="snippet-tag">screenshots</div>
+<div class="snippet-tag">recording</div>
+
+                        </div>
+                    </div>
+                <div class="snippet-detail-content">
+                    <h2>Preview</h2>
+                    <div class="snippet-preview">
+                        <img src="../previews/screen-capture.png" alt="Screen Capture Tools Preview" class="preview-image" />
+                    </div>
+                    
+                    <h2>Content</h2>
+                    <div class="snippet-yaml">
+                        <pre><code># Screen capture and recording tools
+- key: &quot;s&quot;
+  icon: &quot;camera.fill&quot;
+  title: &quot;Screen Capture&quot;
+  submenu:
+    - key: &quot;s&quot;
+      icon: &quot;camera.viewfinder&quot;
+      title: &quot;Screenshots&quot;
+      submenu:
+        - key: &quot;f&quot;
+          title: &quot;Full Screen&quot;
+          action: &quot;shell://screencapture -x ~/Desktop/screenshot-$(date +%Y%m%d-%H%M%S).png&quot;
+          notify: true
+        - key: &quot;w&quot;
+          title: &quot;Window (Interactive)&quot;
+          action: &quot;shell://screencapture -iw ~/Desktop/window-$(date +%Y%m%d-%H%M%S).png&quot;
+          notify: true
+        - key: &quot;a&quot;
+          title: &quot;Area Selection&quot;
+          action: &quot;shell://screencapture -is ~/Desktop/selection-$(date +%Y%m%d-%H%M%S).png&quot;
+          notify: true
+        - key: &quot;c&quot;
+          title: &quot;Copy to Clipboard&quot;
+          action: &quot;shell://screencapture -ic&quot;
+          notify: true
+    - key: &quot;r&quot;
+      icon: &quot;record.circle&quot;
+      title: &quot;Screen Recording&quot;
+      submenu:
+        - key: &quot;f&quot;
+          title: &quot;Record Full Screen&quot;
+          action: &quot;shell://osascript -e &#039;tell application \&quot;QuickTime Player\&quot; to new screen recording&#039; -e &#039;delay 0.5&#039; -e &#039;tell application \&quot;System Events\&quot; to keystroke space&#039;&quot;
+          notify: true
+        - key: &quot;s&quot;
+          title: &quot;Stop Recording&quot;
+          action: &quot;shell://osascript -e &#039;tell application \&quot;System Events\&quot; to keystroke q using {command down}&#039;&quot;
+          notify: true
+    - key: &quot;a&quot;
+      icon: &quot;pencil.and.outline&quot;
+      title: &quot;Annotation&quot;
+      submenu:
+        - key: &quot;p&quot;
+          title: &quot;Open in Preview&quot;
+          action: &quot;shell://screencapture -ic &amp;&amp; osascript -e &#039;tell application \&quot;Preview\&quot; to activate&#039;&quot;
+          notify: true
+        - key: &quot;k&quot;
+          title: &quot;Markup in Preview&quot;
+          action: &quot;shell://screencapture -icp &amp;&amp; osascript -e &#039;tell application \&quot;Preview\&quot; to activate&#039; -e &#039;delay 0.5&#039; -e &#039;tell application \&quot;System Events\&quot; to keystroke \&quot;a\&quot; using {command down, shift down}&#039;&quot;
+          notify: true</code></pre>
+                    </div>
+                    
+                    <div class="snippet-actions">
+                        <button class="copy-btn" onclick="copySnippetContent()">
+                            <i class="fas fa-copy"></i> Copy to Clipboard
+                        </button>
+                        <a href="swiftkey://snippets/utility/screen-capture" class="btn primary import-btn">
+                            <i class="fas fa-download"></i> Import to SwiftKey
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </header>
+        
+        <footer>
+            <div class="container">
+                <div class="footer-content">
+                    <div class="footer-left">
+                        <div class="logo">
+                            <img src="../../logo.png" alt="SwiftKey" class="logo-img" />
+                            <span>SwiftKey</span>
+                        </div>
+                        <p>Made with ❤️ for macOS power users</p>
+                    </div>
+                    <div class="footer-links">
+                        <a href="https://github.com/amebalabs/swiftkey">Main Project</a>
+                        <a href="https://github.com/amebalabs/swiftkey-snippets">Snippets Repo</a>
+                        <a href="../../index.html">SwiftKey Home</a>
+                    </div>
+                </div>
+            </div>
+        </footer>
+
+        <script>
+            function copySnippetContent() {
+                const content = document.querySelector('.snippet-yaml pre code').textContent;
+                navigator.clipboard.writeText(content)
+                    .then(() => {
+                        const btn = document.querySelector('.copy-btn');
+                        const originalText = btn.innerHTML;
+                        btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                        setTimeout(() => {
+                            btn.innerHTML = originalText;
+                        }, 2000);
+                    });
+            }
+            
+            // Mobile menu toggle
+            document.querySelector('.mobile-menu-btn').addEventListener('click', function() {
+                document.querySelector('.mobile-menu').classList.toggle('active');
+                this.classList.toggle('active');
+            });
+        </script>
+    </body>
+</html>

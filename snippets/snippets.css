@@ -1,0 +1,653 @@
+/* Snippet-specific styles */
+
+/* Override body background to match main site */
+body {
+    background-color: var(--dark-bg);
+}
+
+/* Match the main site navigation */
+nav.nav-blur {
+    padding: 1rem 0;
+    height: auto;
+}
+
+nav .container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--primary-color);
+}
+
+.logo-img {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+}
+
+.nav-links {
+    display: flex;
+    gap: 2rem;
+    align-items: center;
+}
+
+/* Text colors */
+h2 {
+    color: var(--text-color);
+}
+
+p {
+    color: var(--text-secondary);
+}
+
+/* Section spacing */
+section {
+    padding: 5rem 0;
+    margin-bottom: 2rem;
+}
+
+/* Adjust spacing for specific sections */
+section.snippets {
+    padding-top: 8rem; /* Extra padding for the first section after header */
+}
+
+section.about {
+    padding: 5rem 0;
+    margin-bottom: 0;
+    background-color: var(--card-bg);
+}
+
+section.about h2,
+section.contribute h2 {
+    position: relative;
+    display: inline-block;
+    margin-bottom: 3rem;
+}
+
+section.about h2::after,
+section.contribute h2::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: -10px;
+    transform: translateX(-50%);
+    width: 50px;
+    height: 3px;
+    background-color: var(--primary-color);
+}
+
+section.contribute {
+    padding: 5rem 0;
+    background-color: var(--dark-bg);
+}
+
+.snippet-filters {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 3rem;
+}
+
+.search-bar {
+    position: relative;
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.search-bar input {
+    width: 100%;
+    padding: 0.8rem 1rem 0.8rem 2.5rem;
+    border-radius: 8px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    font-size: 1rem;
+    outline: none;
+    transition: all 0.3s ease;
+}
+
+.search-bar input:focus {
+    border-color: #007AFF;
+    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.2);
+}
+
+.search-bar i {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #999;
+}
+
+.tag-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: center;
+    margin-top: 0.5rem;
+}
+
+.tag {
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    background-color: rgba(0, 122, 255, 0.1);
+    color: #007AFF;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.tag:hover {
+    background-color: rgba(0, 122, 255, 0.2);
+}
+
+.tag.active {
+    background-color: #007AFF;
+    color: white;
+}
+
+.snippet-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+.snippet-card {
+    border-radius: 12px;
+    overflow: hidden;
+    background-color: var(--card-bg);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    border: 1px solid var(--border-color);
+    position: relative; /* Required for absolute positioning of buttons */
+}
+
+.snippet-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+    background-color: var(--card-hover);
+}
+
+.snippet-actions-top {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    gap: 0.5rem;
+    z-index: 5;
+}
+
+.snippet-header {
+    padding: 1.5rem;
+    padding-top: 3rem; /* Extra space for the action buttons */
+    border-bottom: 1px solid var(--border-color);
+    background-color: rgba(255, 255, 255, 0.03);
+}
+
+.snippet-header-content {
+    width: 100%;
+}
+
+.snippet-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin: 0;
+    color: var(--text-color);
+}
+
+.snippet-author {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+}
+
+.snippet-date {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    margin-top: 0.5rem;
+    opacity: 0.8;
+}
+
+.snippet-description {
+    padding: 1.5rem;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    line-height: 1.5;
+    flex-grow: 1; /* Allow description to fill available space */
+    display: flex;
+    align-items: center;
+}
+
+.snippet-footer {
+    padding: 1rem 1.5rem;
+    background-color: rgba(255, 255, 255, 0.03);
+    border-top: 1px solid var(--border-color);
+}
+
+.snippet-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.snippet-tag {
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    background-color: rgba(0, 122, 255, 0.2);
+    color: var(--primary-color);
+    font-size: 0.7rem;
+    border: 1px solid rgba(0, 122, 255, 0.3);
+}
+
+.snippet-actions-top a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 36px;
+    height: 32px;
+    padding: 0 12px;
+    border-radius: 6px;
+    background-color: var(--primary-color);
+    color: white;
+    font-size: 0.8rem;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.snippet-actions-top a i {
+    margin-right: 5px;
+    font-size: 0.9rem;
+}
+
+.snippet-actions-top a:hover {
+    background-color: #0055c4;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.snippet-date {
+    font-size: 0.8rem;
+    color: #999;
+    margin-top: 0.5rem;
+}
+
+/* Steps section */
+.steps {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2.5rem;
+    margin: 3rem 0;
+}
+
+.step {
+    background-color: var(--card-bg);
+    border-radius: 12px;
+    padding: 2.5rem 2rem 2rem;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    position: relative;
+    min-height: 220px; /* Ensure minimum height for each step */
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--border-color);
+}
+
+.step:hover {
+    background-color: var(--card-hover);
+    transform: translateY(-3px);
+    transition: all 0.3s ease;
+}
+
+.step-number {
+    position: absolute;
+    top: -20px;
+    left: 20px;
+    width: 40px;
+    height: 40px;
+    background-color: var(--primary-color);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1.2rem;
+    box-shadow: 0 4px 8px rgba(0, 122, 255, 0.3);
+}
+
+.step h3 {
+    margin-top: 0.5rem;
+    margin-bottom: 1.5rem;
+    color: var(--text-color);
+    font-size: 1.3rem;
+}
+
+.step p {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    flex-grow: 1; /* Allow the paragraph to fill available space */
+}
+
+/* Snippet header with proper spacing */
+.snippet-header {
+    padding-top: 8rem; /* Create space for fixed navbar */
+    padding-bottom: 3rem;
+    background: var(--dark-bg);
+}
+
+/* Snippet detail page */
+.snippet-detail {
+    background-color: var(--card-bg);
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    margin: 0; /* No margin needed since it's inside a header with padding */
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+}
+
+.snippet-detail-header {
+    padding: 2.5rem;
+    border-bottom: 1px solid var(--border-color);
+    background-color: rgba(255, 255, 255, 0.03);
+}
+
+.snippet-detail-header h1 {
+    color: var(--text-color);
+    font-size: 2.2rem;
+    margin-bottom: 0.5rem;
+}
+
+.snippet-detail-header .snippet-author,
+.snippet-detail-header .snippet-date {
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+}
+
+.snippet-detail-header .snippet-description {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    color: var(--text-secondary);
+    margin: 1.5rem 0;
+    padding: 0;
+}
+
+.snippet-detail-header .snippet-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 1.5rem;
+}
+
+.snippet-detail-content {
+    padding: 2.5rem;
+}
+
+.snippet-detail-content h2 {
+    color: var(--text-color);
+    font-size: 1.6rem;
+    margin: 2rem 0 1rem;
+    position: relative;
+    display: inline-block;
+}
+
+.snippet-detail-content h2::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -8px;
+    width: 40px;
+    height: 3px;
+    background-color: var(--primary-color);
+}
+
+/* Snippet preview image */
+.snippet-preview {
+    margin: 1.5rem 0 2.5rem;
+    text-align: center;
+}
+
+.preview-image {
+    max-width: 100%;
+    height: auto;
+    border-radius: 12px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border-color);
+}
+
+.snippet-yaml {
+    background-color: rgba(0, 0, 0, 0.2);
+    padding: 1.5rem;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin: 1.5rem 0;
+    border: 1px solid var(--border-color);
+    position: relative;
+}
+
+.snippet-yaml pre {
+    margin: 0;
+    font-family: "SF Mono", "Menlo", "Monaco", "Consolas", monospace;
+    font-size: 0.9rem;
+    white-space: pre-wrap;
+    color: var(--text-color);
+    line-height: 1.6;
+}
+
+.snippet-yaml code {
+    display: block;
+}
+
+.snippet-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2rem;
+    flex-wrap: wrap;
+}
+
+.copy-btn {
+    background-color: #007AFF;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 0.7rem 1.2rem;
+    font-size: 1rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 6px rgba(0, 122, 255, 0.3);
+}
+
+.copy-btn:hover {
+    background-color: #0055c4;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 122, 255, 0.4);
+}
+
+.snippet-actions .btn.primary {
+    padding: 0.7rem 1.2rem;
+    font-size: 1rem;
+    border-radius: 8px;
+    text-decoration: none;
+    box-shadow: 0 2px 6px rgba(0, 122, 255, 0.3);
+    white-space: nowrap; /* Prevent text wrapping */
+    min-width: 200px; /* Ensure minimum width */
+    text-align: center;
+    justify-content: center;
+}
+
+.import-btn {
+    padding: 0.7rem 1.2rem;
+    white-space: nowrap;
+    min-width: 200px;
+}
+
+.snippet-actions .btn.primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 122, 255, 0.4);
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+    .snippet-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.5rem;
+    }
+    
+    .steps {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 2rem;
+    }
+}
+
+@media (max-width: 768px) {
+    section {
+        padding: 3rem 0;
+    }
+    
+    .snippet-header {
+        padding-top: 6.5rem;
+        padding-bottom: 2rem;
+    }
+    
+    section.snippets {
+        padding-top: 6rem;
+    }
+    
+    .snippet-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .steps {
+        grid-template-columns: 1fr;
+    }
+    
+    .snippet-detail {
+        margin-top: 0;
+    }
+    
+    .snippet-detail-header,
+    .snippet-detail-content {
+        padding: 1.5rem;
+    }
+    
+    .snippet-detail-header h1 {
+        font-size: 1.8rem;
+    }
+    
+    .snippet-description {
+        font-size: 0.9rem;
+    }
+    
+    .snippet-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .snippet-actions .btn,
+    .copy-btn {
+        width: 100%;
+        box-sizing: border-box;
+        justify-content: center;
+        text-align: center;
+        padding: 0.8rem 1rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .import-btn {
+        min-width: 0;
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .container {
+        padding: 0 1rem;
+    }
+    
+    .feature-card {
+        padding: 1.5rem;
+    }
+    
+    .snippet-header {
+        padding-top: 2.5rem; /* Adjusted for smaller screens */
+    }
+    
+    .snippet-actions-top {
+        top: 8px;
+        right: 8px;
+    }
+    
+    .snippet-actions-top a {
+        min-width: 32px;
+        height: 28px;
+        padding: 0 8px;
+        font-size: 0.75rem;
+    }
+    
+    .snippet-actions-top a span {
+        display: none; /* Hide text on mobile, icon only */
+    }
+    
+    .snippet-actions-top a i {
+        margin-right: 0;
+    }
+    
+    .snippet-tags {
+        width: 100%;
+    }
+}
+
+/* Feature card styles matching main site theme */
+.feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-top: 3rem;
+}
+
+.feature-card {
+    padding: 2rem;
+    background-color: var(--card-bg);
+    border-radius: 16px;
+    text-align: center;
+    border: 1px solid var(--border-color);
+    transition: all 0.3s ease;
+}
+
+.feature-card:hover {
+    transform: translateY(-4px);
+    background-color: var(--card-hover);
+    box-shadow: 0 8px 24px var(--shadow-color);
+}
+
+.feature-card i {
+    font-size: 2rem;
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+}
+
+.feature-card h3 {
+    color: var(--text-color);
+    margin-bottom: 1rem;
+}
+
+.feature-card p {
+    color: var(--text-secondary);
+}

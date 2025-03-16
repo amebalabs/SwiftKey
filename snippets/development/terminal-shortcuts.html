@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="description" content="SwiftKey Snippets - A collection of useful terminal commands and shortcuts for developers, including file operations, process management, and network diagnostics." />
+        <meta name="theme-color" content="#007AFF" />
+        <title>Terminal Command Shortcuts - SwiftKey Snippets</title>
+        <link rel="icon" type="image/png" href="../logo.png" />
+        <link rel="stylesheet" href="../../styles.css" />
+        <link rel="stylesheet" href="../snippets.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    </head>
+    <body>
+        <nav class="nav-blur">
+            <div class="container">
+                <div class="logo">
+                    <img src="../../logo.png" alt="SwiftKey" class="logo-img" />
+                    <span>SwiftKey Snippets</span>
+                </div>
+                <div class="nav-links">
+                    <a href="../../index.html">Home</a>
+                    <a href="../index.html">Snippets</a>
+                    <a href="../index.html#contribute">Contribute</a>
+                    <a href="https://github.com/amebalabs/swiftkey-snippets" class="github-link">
+                        <i class="fab fa-github"></i>
+                    </a>
+                </div>
+                <button class="mobile-menu-btn">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+        </nav>
+
+        <div class="mobile-menu">
+            <a href="../../index.html">Home</a>
+            <a href="../index.html">Snippets</a>
+            <a href="../index.html#contribute">Contribute</a>
+            <a href="https://github.com/amebalabs/swiftkey-snippets">GitHub</a>
+        </div>
+
+        <header class="snippet-header">
+            <div class="container">
+                <div class="snippet-detail">
+                    <div class="snippet-detail-header">
+                        <h1>Terminal Command Shortcuts</h1>
+                        <div class="snippet-author">By SwiftKey</div>
+                        <div class="snippet-date">Jun 14, 2024</div>
+                        <p class="snippet-description">
+                            A collection of useful terminal commands and shortcuts for developers, including file operations, process management, and network diagnostics.
+                        </p>
+                        <div class="snippet-tags">
+                            <div class="snippet-tag">terminal</div>
+<div class="snippet-tag">development</div>
+<div class="snippet-tag">commands</div>
+<div class="snippet-tag">productivity</div>
+
+                        </div>
+                    </div>
+                <div class="snippet-detail-content">
+                    <h2>Preview</h2>
+                    <div class="snippet-preview">
+                        <img src="../previews/terminal-shortcuts.png" alt="Terminal Command Shortcuts Preview" class="preview-image" />
+                    </div>
+                    
+                    <h2>Content</h2>
+                    <div class="snippet-yaml">
+                        <pre><code># Terminal commands and shortcuts
+- key: &quot;t&quot;
+  icon: &quot;terminal&quot;
+  title: &quot;Terminal Shortcuts&quot;
+  submenu:
+    - key: &quot;f&quot;
+      icon: &quot;folder&quot;
+      title: &quot;File Operations&quot;
+      submenu:
+        - key: &quot;l&quot;
+          title: &quot;List Files (ls -la)&quot;
+          action: &quot;shell://ls -la&quot;
+          notify: true
+        - key: &quot;d&quot;
+          title: &quot;Disk Usage (du -h)&quot;
+          action: &quot;shell://du -h -d 1 | sort -hr&quot;
+          notify: true
+        - key: &quot;f&quot;
+          title: &quot;Find Large Files&quot;
+          action: &quot;shell://find . -type f -size +100M -exec ls -lh {} \;&quot;
+          notify: true
+    - key: &quot;p&quot;
+      icon: &quot;cpu&quot;
+      title: &quot;Process Management&quot;
+      submenu:
+        - key: &quot;t&quot;
+          title: &quot;Top Processes&quot;
+          action: &quot;shell://ps aux | head -10&quot;
+          notify: true
+        - key: &quot;m&quot;
+          title: &quot;Memory Usage&quot;
+          action: &quot;shell://vm_stat&quot;
+          notify: true
+        - key: &quot;k&quot;
+          title: &quot;Kill Process by Name&quot;
+          action: &quot;shell://read -p &#039;Process name to kill: &#039; PROC &amp;&amp; pkill &quot;$PROC&quot;&quot;
+          notify: true
+    - key: &quot;n&quot;
+      icon: &quot;network&quot;
+      title: &quot;Network&quot;
+      submenu:
+        - key: &quot;i&quot;
+          title: &quot;IP Information&quot;
+          action: &quot;shell://ifconfig | grep inet&quot;
+          notify: true
+        - key: &quot;p&quot;
+          title: &quot;Ping Google&quot;
+          action: &quot;shell://ping -c 5 google.com&quot;
+          notify: true
+        - key: &quot;o&quot;
+          title: &quot;Open Ports&quot;
+          action: &quot;shell://lsof -i -P | grep LISTEN&quot;
+          notify: true</code></pre>
+                    </div>
+                    
+                    <div class="snippet-actions">
+                        <button class="copy-btn" onclick="copySnippetContent()">
+                            <i class="fas fa-copy"></i> Copy to Clipboard
+                        </button>
+                        <a href="swiftkey://snippets/development/terminal-shortcuts" class="btn primary import-btn">
+                            <i class="fas fa-download"></i> Import to SwiftKey
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </header>
+        
+        <footer>
+            <div class="container">
+                <div class="footer-content">
+                    <div class="footer-left">
+                        <div class="logo">
+                            <img src="../../logo.png" alt="SwiftKey" class="logo-img" />
+                            <span>SwiftKey</span>
+                        </div>
+                        <p>Made with ❤️ for macOS power users</p>
+                    </div>
+                    <div class="footer-links">
+                        <a href="https://github.com/amebalabs/swiftkey">Main Project</a>
+                        <a href="https://github.com/amebalabs/swiftkey-snippets">Snippets Repo</a>
+                        <a href="../../index.html">SwiftKey Home</a>
+                    </div>
+                </div>
+            </div>
+        </footer>
+
+        <script>
+            function copySnippetContent() {
+                const content = document.querySelector('.snippet-yaml pre code').textContent;
+                navigator.clipboard.writeText(content)
+                    .then(() => {
+                        const btn = document.querySelector('.copy-btn');
+                        const originalText = btn.innerHTML;
+                        btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                        setTimeout(() => {
+                            btn.innerHTML = originalText;
+                        }, 2000);
+                    });
+            }
+            
+            // Mobile menu toggle
+            document.querySelector('.mobile-menu-btn').addEventListener('click', function() {
+                document.querySelector('.mobile-menu').classList.toggle('active');
+                this.classList.toggle('active');
+            });
+        </script>
+    </body>
+</html>
