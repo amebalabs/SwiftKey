@@ -1,3 +1,21 @@
+# v1.2.0 (2025-03-16)
+
+# Curious Croissant
+
+## v1.2.0
+
+## New Features
+
+- Snippets Gallery: browse and import community-created configurations
+- Sticky menu enhancement: option key now inverts "sticky" behavior of menu actions
+
+## Bug Fixes
+
+- Fixed positioning issues on multiple displays
+- Improved startup performance and reduced initialization time
+- Enhanced error handling for shell commands with better validation
+- Fixed several threading-related edge cases
+
 # v1.1.0 (2025-03-01)
 
 # Boisterous Burrito
