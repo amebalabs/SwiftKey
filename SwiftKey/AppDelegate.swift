@@ -236,7 +236,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             overlayWindow?.orderOut(nil)
             facelessMenuController?.endSession()
         }
-        NSApp.hide(nil)
+        if NSApp.windows.isEmpty {
+            NSApp.hide(nil)
+        }
     }
 
     func windowDidResignKey(_: Notification) {
