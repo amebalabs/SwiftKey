@@ -18,6 +18,12 @@ struct MenuItem: Identifiable, Codable, Equatable {
     var submenu: [MenuItem]? // Optional nested submenu
     var hotkey: String? // Hotkey for the menu item
 
+    var urlOpenConfiguration: NSWorkspace.OpenConfiguration {
+        let config = NSWorkspace.OpenConfiguration()
+        config.activates = false
+        return config
+    }
+    
     // Define coding keys explicitly.
     enum CodingKeys: String, CodingKey {
         case id, key, icon, title, action, sticky, notify, batch, hidden, submenu, hotkey
@@ -112,7 +118,7 @@ struct MenuItem: Identifiable, Codable, Equatable {
                 // Use Task to handle async work and Main actor for UI
                 Task { @MainActor in
                     if let url = URL(string: urlString) {
-                        NSWorkspace.shared.open(url)
+                        NSWorkspace.shared.open(url, configuration: urlOpenConfiguration)
                         AppLogger.app.debug("Successfully opened URL: \(url)")
                     } else {
                         AppLogger.app.error("Invalid URL: \(urlString)")

@@ -236,6 +236,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             overlayWindow?.orderOut(nil)
             facelessMenuController?.endSession()
         }
+        NSApp.hide(nil)
     }
 
     func windowDidResignKey(_: Notification) {
@@ -288,7 +289,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
         // Regular case - show the window directly
         showOverlayWindow()
-        overlayWindow?.becomeKey()
     }
 
     /// Shows the overlay window positioned appropriately on screen

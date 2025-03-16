@@ -29,6 +29,7 @@ class CustomHostingView<Content: View>: NSHostingView<Content> {
 class NonActivatingPanel: NSPanel {
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { true }
+    override var acceptsFirstResponder: Bool { true }
 
     // Ensure the panel does not activate the app when shown.
     override init(
