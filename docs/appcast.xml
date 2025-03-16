@@ -6,36 +6,18 @@
     <description>SwiftKey Updates</description>
     <language>en</language>
     <item>
-      <title>SwiftKey 1.1.0</title>
-      <sparkle:version>1.1.0</sparkle:version>
-      <sparkle:shortVersionString>1.1.0</sparkle:shortVersionString>
-      <description><![CDATA[<h1>Boisterous Burrito</h1>
-        <h2>New Features</h2>
-    <ul>
-        <li>Root menu now can be dynamic, which allows for more flexibility in menu structure</li>
-        <li>Optionally hide menu items based on user preferences</li>
-    </ul>
-    
-    <h2>Bug Fixes</h2>
-    <ul>
-        <li>Improved first launch experience</li>
-        <li>Fixed when batch menu execution highlight was preserved between sessions</li>
-        <li>Improved shell script execution</li>
-        <li>Fixed clipping for vertical overlay menu</li>
-    </ul>
-    
-    <h2>Documentation</h2>
-    <ul>
-        <li>Added more detailed config examples to the README.md</li>
-    </ul>]]></description>
-      <pubDate>Sat, 01 Mar 2025 00:17:26 +0000</pubDate>
+      <title>SwiftKey 1.2.0</title>
+      <sparkle:version>1.2.0</sparkle:version>
+      <sparkle:shortVersionString>1.2.0</sparkle:shortVersionString>
+      <description><![CDATA[]]></description>
+      <pubDate>Sun, 16 Mar 2025 17:40:20 +0000</pubDate>
       <enclosure
-        url="https://github.com/amebalabs/SwiftKey/releases/download/v1.1.0/SwiftKey-1.1.0.zip"
-        sparkle:version="184"
-        sparkle:shortVersionString="1.1.0"
+        url="https://github.com/amebalabs/SwiftKey/releases/download/v1.2.0/SwiftKey-1.2.0.zip"
+        sparkle:version="1.2.0"
+        sparkle:shortVersionString="1.2.0"
         type="application/octet-stream"
-        sparkle:edSignature="xqMd4pfO++cHK3OBkBPk8fElmits/asluWqqITd/tCOF54mlUNYRJoxtPozEQZqd5EtcQXeYWy/A4Wg80fziCA==" length="5585745"
-        sparkle:sha256="f319717b77e0482965388d88f6e72d587bb90dafa27701914617937a2acaddb7"
+        sparkle:edSignature="8hTMKmGfZMAR4LavpcioJspOQnVlKERkfNTA4CUNAcf2R5DUHIWb7H923R9wep53teZrqOrGZBZCqImhWwbyBw==" length="5971184"
+        sparkle:sha256="5afb94f48f41b380d277eee48d49fed85b86c6e1f39f6a84e7c74cd0511e3639"
       />
     </item>
   </channel>
