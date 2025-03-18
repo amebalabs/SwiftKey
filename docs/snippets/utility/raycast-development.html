@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="description" content="SwiftKey Snippets - A collection of Raycast URL scheme shortcuts for developer tools, including GitHub, terminal commands, code snippets, and more." />
+        <meta name="theme-color" content="#007AFF" />
+        <title>Raycast Developer Tools - SwiftKey Snippets</title>
+        <link rel="icon" type="image/png" href="../logo.png" />
+        <link rel="stylesheet" href="../../styles.css" />
+        <link rel="stylesheet" href="../snippets.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    </head>
+    <body>
+        <nav class="nav-blur">
+            <div class="container">
+                <div class="logo">
+                    <img src="../../logo.png" alt="SwiftKey" class="logo-img" />
+                    <span>SwiftKey Snippets</span>
+                </div>
+                <div class="nav-links">
+                    <a href="../../index.html">Home</a>
+                    <a href="../index.html">Snippets</a>
+                    <a href="../index.html#contribute">Contribute</a>
+                    <a href="https://github.com/amebalabs/swiftkey-snippets" class="github-link">
+                        <i class="fab fa-github"></i>
+                    </a>
+                </div>
+                <button class="mobile-menu-btn">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+        </nav>
+
+        <div class="mobile-menu">
+            <a href="../../index.html">Home</a>
+            <a href="../index.html">Snippets</a>
+            <a href="../index.html#contribute">Contribute</a>
+            <a href="https://github.com/amebalabs/swiftkey-snippets">GitHub</a>
+        </div>
+
+        <header class="snippet-header">
+            <div class="container">
+                <div class="snippet-detail">
+                    <div class="snippet-detail-header">
+                        <h1>Raycast Developer Tools</h1>
+                        <div class="snippet-author">By SwiftKey</div>
+                        <div class="snippet-date">Mar 17, 2025</div>
+                        <p class="snippet-description">
+                            A collection of Raycast URL scheme shortcuts for developer tools, including GitHub, terminal commands, code snippets, and more.
+                        </p>
+                        <div class="snippet-tags">
+                            <div class="snippet-tag">utility</div>
+<div class="snippet-tag">raycast</div>
+<div class="snippet-tag">development</div>
+<div class="snippet-tag">developer</div>
+
+                        </div>
+                    </div>
+                <div class="snippet-detail-content">
+                    <h2>Preview</h2>
+                    <div class="snippet-preview">
+                        <img src="../previews/raycast-development.png" alt="Raycast Developer Tools Preview" class="preview-image" />
+                    </div>
+                    
+                    <h2>Content</h2>
+                    <div class="snippet-yaml">
+                        <pre><code># Raycast developer tool shortcuts
+- key: &quot;d&quot;
+  icon: &quot;chevron.left.forwardslash.chevron.right&quot;
+  title: &quot;Developer Tools&quot;
+  submenu:
+    - key: &quot;g&quot;
+      icon: &quot;arrow.triangle.branch&quot;
+      title: &quot;Git &amp; GitHub&quot;
+      submenu:
+        - key: &quot;p&quot;
+          title: &quot;GitHub Pull Requests&quot;
+          action: &quot;open://raycast://extensions/raycast/github/pull-requests&quot;
+          notify: true
+        - key: &quot;i&quot;
+          title: &quot;GitHub Issues&quot;
+          action: &quot;open://raycast/extensions/raycast/github/issues&quot;
+          notify: true
+        - key: &quot;r&quot;
+          title: &quot;GitHub Repositories&quot;
+          action: &quot;open://raycast://extensions/raycast/github/repositories&quot;
+          notify: true
+        - key: &quot;g&quot;
+          title: &quot;GitHub Gists&quot;
+          action: &quot;open://raycast://extensions/raycast/github/gists&quot;
+          notify: true
+    - key: &quot;t&quot;
+      icon: &quot;terminal&quot;
+      title: &quot;Terminal&quot;
+      submenu:
+        - key: &quot;n&quot;
+          title: &quot;New Terminal Window&quot;
+          action: &quot;open://raycast://extensions/raycast/terminal/new-window&quot;
+          notify: true
+        - key: &quot;t&quot;
+          title: &quot;New Terminal Tab&quot;
+          action: &quot;open://raycast://extensions/raycast/terminal/new-tab&quot;
+          notify: true
+        - key: &quot;r&quot;
+          title: &quot;Run Command&quot;
+          action: &quot;open://raycast://extensions/raycast/script-commands/run-script-command&quot;
+          notify: true
+    - key: &quot;c&quot;
+      icon: &quot;doc.plaintext&quot;
+      title: &quot;Code&quot;
+      submenu:
+        - key: &quot;v&quot;
+          title: &quot;Open in VS Code&quot;
+          action: &quot;open://raycast://extensions/raycast/visual-studio-code/open-current-directory&quot;
+          notify: true
+        - key: &quot;l&quot;
+          title: &quot;Code Linting&quot;
+          action: &quot;open://raycast://extensions/raycast/script-commands/run-lint&quot;
+          notify: true
+        - key: &quot;t&quot;
+          title: &quot;Run Tests&quot;
+          action: &quot;open://raycast://extensions/raycast/script-commands/run-tests&quot;
+          notify: true
+    - key: &quot;p&quot;
+      icon: &quot;bolt.fill&quot;
+      title: &quot;Quick Actions&quot;
+      submenu:
+        - key: &quot;i&quot;
+          title: &quot;IP Address&quot;
+          action: &quot;open://raycast://extensions/raycast/ip/get-external-ip&quot;
+          notify: true
+        - key: &quot;l&quot;
+          title: &quot;Local IP&quot;
+          action: &quot;open://raycast://extensions/raycast/ip/get-local-ip&quot;
+          notify: true
+        - key: &quot;b&quot;
+          title: &quot;Base64 Encode&quot;
+          action: &quot;open://raycast://extensions/raycast/conversions/encode-base64&quot;
+          notify: true
+        - key: &quot;d&quot;
+          title: &quot;Base64 Decode&quot;
+          action: &quot;open://raycast://extensions/raycast/conversions/decode-base64&quot;
+          notify: true
+        - key: &quot;u&quot;
+          title: &quot;URL Encode&quot;
+          action: &quot;open://raycast://extensions/raycast/conversions/encode-url&quot;
+          notify: true</code></pre>
+                    </div>
+                    
+                    <div class="snippet-actions">
+                        <button class="copy-btn" onclick="copySnippetContent()">
+                            <i class="fas fa-copy"></i> Copy to Clipboard
+                        </button>
+                        <a href="swiftkey://snippets/utility/raycast-development" class="btn primary import-btn">
+                            <i class="fas fa-download"></i> Import to SwiftKey
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </header>
+        
+        <footer>
+            <div class="container">
+                <div class="footer-content">
+                    <div class="footer-left">
+                        <div class="logo">
+                            <img src="../../logo.png" alt="SwiftKey" class="logo-img" />
+                            <span>SwiftKey</span>
+                        </div>
+                        <p>Made with ❤️ for macOS power users</p>
+                    </div>
+                    <div class="footer-links">
+                        <a href="https://github.com/amebalabs/swiftkey">Main Project</a>
+                        <a href="https://github.com/amebalabs/swiftkey-snippets">Snippets Repo</a>
+                        <a href="../../index.html">SwiftKey Home</a>
+                    </div>
+                </div>
+            </div>
+        </footer>
+
+        <script>
+            function copySnippetContent() {
+                const content = document.querySelector('.snippet-yaml pre code').textContent;
+                navigator.clipboard.writeText(content)
+                    .then(() => {
+                        const btn = document.querySelector('.copy-btn');
+                        const originalText = btn.innerHTML;
+                        btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                        setTimeout(() => {
+                            btn.innerHTML = originalText;
+                        }, 2000);
+                    });
+            }
+            
+            // Mobile menu toggle
+            document.querySelector('.mobile-menu-btn').addEventListener('click', function() {
+                document.querySelector('.mobile-menu').classList.toggle('active');
+                this.classList.toggle('active');
+            });
+        </script>
+    </body>
+</html>

@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="description" content="SwiftKey Snippets - A collection of Raycast URL scheme shortcuts for productivity tools, including calendar, reminders, notes, and file operations." />
+        <meta name="theme-color" content="#007AFF" />
+        <title>Raycast Productivity Tools - SwiftKey Snippets</title>
+        <link rel="icon" type="image/png" href="../logo.png" />
+        <link rel="stylesheet" href="../../styles.css" />
+        <link rel="stylesheet" href="../snippets.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    </head>
+    <body>
+        <nav class="nav-blur">
+            <div class="container">
+                <div class="logo">
+                    <img src="../../logo.png" alt="SwiftKey" class="logo-img" />
+                    <span>SwiftKey Snippets</span>
+                </div>
+                <div class="nav-links">
+                    <a href="../../index.html">Home</a>
+                    <a href="../index.html">Snippets</a>
+                    <a href="../index.html#contribute">Contribute</a>
+                    <a href="https://github.com/amebalabs/swiftkey-snippets" class="github-link">
+                        <i class="fab fa-github"></i>
+                    </a>
+                </div>
+                <button class="mobile-menu-btn">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+        </nav>
+
+        <div class="mobile-menu">
+            <a href="../../index.html">Home</a>
+            <a href="../index.html">Snippets</a>
+            <a href="../index.html#contribute">Contribute</a>
+            <a href="https://github.com/amebalabs/swiftkey-snippets">GitHub</a>
+        </div>
+
+        <header class="snippet-header">
+            <div class="container">
+                <div class="snippet-detail">
+                    <div class="snippet-detail-header">
+                        <h1>Raycast Productivity Tools</h1>
+                        <div class="snippet-author">By SwiftKey</div>
+                        <div class="snippet-date">Mar 17, 2025</div>
+                        <p class="snippet-description">
+                            A collection of Raycast URL scheme shortcuts for productivity tools, including calendar, reminders, notes, and file operations.
+                        </p>
+                        <div class="snippet-tags">
+                            <div class="snippet-tag">utility</div>
+<div class="snippet-tag">raycast</div>
+<div class="snippet-tag">productivity</div>
+<div class="snippet-tag">tools</div>
+
+                        </div>
+                    </div>
+                <div class="snippet-detail-content">
+                    <h2>Preview</h2>
+                    <div class="snippet-preview">
+                        <img src="../previews/raycast-productivity.png" alt="Raycast Productivity Tools Preview" class="preview-image" />
+                    </div>
+                    
+                    <h2>Content</h2>
+                    <div class="snippet-yaml">
+                        <pre><code># Raycast productivity tool shortcuts
+- key: &quot;p&quot;
+  icon: &quot;bolt.horizontal&quot;
+  title: &quot;Productivity&quot;
+  submenu:
+    - key: &quot;c&quot;
+      icon: &quot;calendar&quot;
+      title: &quot;Calendar&quot;
+      submenu:
+        - key: &quot;n&quot;
+          title: &quot;New Event&quot;
+          action: &quot;open://raycast://extensions/raycast/calendar/create-event&quot;
+          notify: true
+        - key: &quot;t&quot;
+          title: &quot;Today&#039;s Events&quot;
+          action: &quot;open://raycast://extensions/raycast/calendar/today&quot;
+          notify: true
+        - key: &quot;u&quot;
+          title: &quot;Upcoming Events&quot;
+          action: &quot;open://raycast://extensions/raycast/calendar/upcoming&quot;
+          notify: true
+        - key: &quot;j&quot;
+          title: &quot;Join Next Meeting&quot;
+          action: &quot;open://raycast://extensions/raycast/calendar/join-next-meeting&quot;
+          notify: true
+    - key: &quot;r&quot;
+      icon: &quot;list.bullet&quot;
+      title: &quot;Reminders&quot;
+      submenu:
+        - key: &quot;n&quot;
+          title: &quot;New Reminder&quot;
+          action: &quot;open://raycast://extensions/raycast/reminders/create-reminder&quot;
+          notify: true
+        - key: &quot;t&quot;
+          title: &quot;Today&#039;s Reminders&quot;
+          action: &quot;open://raycast://extensions/raycast/reminders/today&quot;
+          notify: true
+        - key: &quot;a&quot;
+          title: &quot;All Reminders&quot;
+          action: &quot;open://raycast://extensions/raycast/reminders/all&quot;
+          notify: true
+    - key: &quot;n&quot;
+      icon: &quot;note.text&quot;
+      title: &quot;Notes&quot;
+      submenu:
+        - key: &quot;n&quot;
+          title: &quot;New Note&quot;
+          action: &quot;open://raycast://extensions/raycast/apple-notes/create-note&quot;
+          notify: true
+        - key: &quot;s&quot;
+          title: &quot;Search Notes&quot;
+          action: &quot;open://raycast://extensions/raycast/apple-notes/search&quot;
+          notify: true
+        - key: &quot;r&quot;
+          title: &quot;Recent Notes&quot;
+          action: &quot;open://raycast://extensions/raycast/apple-notes/recent&quot;
+          notify: true
+    - key: &quot;f&quot;
+      icon: &quot;folder&quot;
+      title: &quot;Files&quot;
+      submenu:
+        - key: &quot;o&quot;
+          title: &quot;Open Recent Files&quot;
+          action: &quot;open://raycast://extensions/raycast/recent-files/open-recent-files&quot;
+          notify: true
+        - key: &quot;c&quot;
+          title: &quot;Create Folder&quot;
+          action: &quot;open://raycast://extensions/raycast/finder/new-folder&quot;
+          notify: true
+        - key: &quot;d&quot;
+          title: &quot;Copy Downloads Path&quot;
+          action: &quot;open://raycast://extensions/raycast/finder/copy-downloads-path&quot;
+          notify: true
+        - key: &quot;n&quot;
+          title: &quot;New File&quot;
+          action: &quot;open://raycast://extensions/raycast/finder/new-file&quot;
+          notify: true
+    - key: &quot;s&quot;
+      icon: &quot;magnifyingglass&quot;
+      title: &quot;Search&quot;
+      submenu:
+        - key: &quot;g&quot;
+          title: &quot;Google Search&quot;
+          action: &quot;open://raycast://extensions/raycast/web-searches/google&quot;
+          notify: true
+        - key: &quot;i&quot;
+          title: &quot;Search Images&quot;
+          action: &quot;open://raycast://extensions/raycast/web-searches/google-images&quot;
+          notify: true
+        - key: &quot;m&quot;
+          title: &quot;Search Maps&quot;
+          action: &quot;open://raycast://extensions/raycast/web-searches/google-maps&quot;
+          notify: true
+        - key: &quot;y&quot;
+          title: &quot;Search YouTube&quot;
+          action: &quot;open://raycast://extensions/raycast/web-searches/youtube&quot;
+          notify: true</code></pre>
+                    </div>
+                    
+                    <div class="snippet-actions">
+                        <button class="copy-btn" onclick="copySnippetContent()">
+                            <i class="fas fa-copy"></i> Copy to Clipboard
+                        </button>
+                        <a href="swiftkey://snippets/utility/raycast-productivity" class="btn primary import-btn">
+                            <i class="fas fa-download"></i> Import to SwiftKey
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </header>
+        
+        <footer>
+            <div class="container">
+                <div class="footer-content">
+                    <div class="footer-left">
+                        <div class="logo">
+                            <img src="../../logo.png" alt="SwiftKey" class="logo-img" />
+                            <span>SwiftKey</span>
+                        </div>
+                        <p>Made with ❤️ for macOS power users</p>
+                    </div>
+                    <div class="footer-links">
+                        <a href="https://github.com/amebalabs/swiftkey">Main Project</a>
+                        <a href="https://github.com/amebalabs/swiftkey-snippets">Snippets Repo</a>
+                        <a href="../../index.html">SwiftKey Home</a>
+                    </div>
+                </div>
+            </div>
+        </footer>
+
+        <script>
+            function copySnippetContent() {
+                const content = document.querySelector('.snippet-yaml pre code').textContent;
+                navigator.clipboard.writeText(content)
+                    .then(() => {
+                        const btn = document.querySelector('.copy-btn');
+                        const originalText = btn.innerHTML;
+                        btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                        setTimeout(() => {
+                            btn.innerHTML = originalText;
+                        }, 2000);
+                    });
+            }
+            
+            // Mobile menu toggle
+            document.querySelector('.mobile-menu-btn').addEventListener('click', function() {
+                document.querySelector('.mobile-menu').classList.toggle('active');
+                this.classList.toggle('active');
+            });
+        </script>
+    </body>
+</html>

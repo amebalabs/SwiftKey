@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="description" content="SwiftKey Snippets - A comprehensive hierarchical app launcher for all your applications, organized by category with intuitive keyboard shortcuts." />
+        <meta name="theme-color" content="#007AFF" />
+        <title>Complete App Launcher Suite - SwiftKey Snippets</title>
+        <link rel="icon" type="image/png" href="../logo.png" />
+        <link rel="stylesheet" href="../../styles.css" />
+        <link rel="stylesheet" href="../snippets.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    </head>
+    <body>
+        <nav class="nav-blur">
+            <div class="container">
+                <div class="logo">
+                    <img src="../../logo.png" alt="SwiftKey" class="logo-img" />
+                    <span>SwiftKey Snippets</span>
+                </div>
+                <div class="nav-links">
+                    <a href="../../index.html">Home</a>
+                    <a href="../index.html">Snippets</a>
+                    <a href="../index.html#contribute">Contribute</a>
+                    <a href="https://github.com/amebalabs/swiftkey-snippets" class="github-link">
+                        <i class="fab fa-github"></i>
+                    </a>
+                </div>
+                <button class="mobile-menu-btn">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+        </nav>
+
+        <div class="mobile-menu">
+            <a href="../../index.html">Home</a>
+            <a href="../index.html">Snippets</a>
+            <a href="../index.html#contribute">Contribute</a>
+            <a href="https://github.com/amebalabs/swiftkey-snippets">GitHub</a>
+        </div>
+
+        <header class="snippet-header">
+            <div class="container">
+                <div class="snippet-detail">
+                    <div class="snippet-detail-header">
+                        <h1>Complete App Launcher Suite</h1>
+                        <div class="snippet-author">By SwiftKey</div>
+                        <div class="snippet-date">Mar 17, 2025</div>
+                        <p class="snippet-description">
+                            A comprehensive hierarchical app launcher for all your applications, organized by category with intuitive keyboard shortcuts.
+                        </p>
+                        <div class="snippet-tags">
+                            <div class="snippet-tag">productivity</div>
+<div class="snippet-tag">launcher</div>
+<div class="snippet-tag">applications</div>
+<div class="snippet-tag">workflow</div>
+
+                        </div>
+                    </div>
+                <div class="snippet-detail-content">
+                    <h2>Preview</h2>
+                    <div class="snippet-preview">
+                        <img src="../previews/app-launcher-suite.png" alt="Complete App Launcher Suite Preview" class="preview-image" />
+                    </div>
+                    
+                    <h2>Content</h2>
+                    <div class="snippet-yaml">
+                        <pre><code># Comprehensive app launcher organized by category
+- key: &quot;a&quot;
+  icon: &quot;app.badge&quot;
+  title: &quot;Applications&quot;
+  submenu:
+    - key: &quot;p&quot;
+      icon: &quot;briefcase&quot;
+      title: &quot;Productivity&quot;
+      submenu:
+        - key: &quot;n&quot;
+          title: &quot;Notion&quot;
+          action: &quot;launch:///Applications/Notion.app&quot;
+        - key: &quot;o&quot;
+          title: &quot;Obsidian&quot;
+          action: &quot;launch:///Applications/Obsidian.app&quot;
+        - key: &quot;t&quot;
+          title: &quot;Things&quot;
+          action: &quot;launch:///Applications/Things3.app&quot;
+        - key: &quot;2&quot;
+          title: &quot;Todoist&quot;
+          action: &quot;launch:///Applications/Todoist.app&quot;
+        - key: &quot;r&quot;
+          title: &quot;RoamResearch&quot;
+          action: &quot;open://https://roamresearch.com&quot;
+        - key: &quot;e&quot;
+          title: &quot;Evernote&quot;
+          action: &quot;launch:///Applications/Evernote.app&quot;
+    - key: &quot;d&quot;
+      icon: &quot;hammer.fill&quot;
+      title: &quot;Development&quot;
+      submenu:
+        - key: &quot;v&quot;
+          title: &quot;Visual Studio Code&quot;
+          action: &quot;launch:///Applications/Visual Studio Code.app&quot;
+        - key: &quot;x&quot;
+          title: &quot;Xcode&quot;
+          action: &quot;launch:///Applications/Xcode.app&quot;
+        - key: &quot;i&quot;
+          title: &quot;IntelliJ IDEA&quot;
+          action: &quot;launch:///Applications/IntelliJ IDEA.app&quot;
+        - key: &quot;p&quot;
+          title: &quot;PyCharm&quot;
+          action: &quot;launch:///Applications/PyCharm.app&quot;
+        - key: &quot;a&quot;
+          title: &quot;Android Studio&quot;
+          action: &quot;launch:///Applications/Android Studio.app&quot;
+        - key: &quot;t&quot;
+          title: &quot;Terminal&quot;
+          action: &quot;launch:///Applications/Utilities/Terminal.app&quot;
+        - key: &quot;w&quot;
+          title: &quot;Warp&quot;
+          action: &quot;launch:///Applications/Warp.app&quot;
+        - key: &quot;k&quot;
+          title: &quot;iTerm&quot;
+          action: &quot;launch:///Applications/iTerm.app&quot;
+        - key: &quot;d&quot;
+          title: &quot;Docker Desktop&quot;
+          action: &quot;launch:///Applications/Docker.app&quot;
+        - key: &quot;p&quot;
+          title: &quot;Postman&quot;
+          action: &quot;launch:///Applications/Postman.app&quot;
+    - key: &quot;c&quot;
+      icon: &quot;message.fill&quot;
+      title: &quot;Communication&quot;
+      submenu:
+        - key: &quot;s&quot;
+          title: &quot;Slack&quot;
+          action: &quot;launch:///Applications/Slack.app&quot;
+        - key: &quot;d&quot;
+          title: &quot;Discord&quot;
+          action: &quot;launch:///Applications/Discord.app&quot;
+        - key: &quot;z&quot;
+          title: &quot;Zoom&quot;
+          action: &quot;launch:///Applications/zoom.us.app&quot;
+        - key: &quot;t&quot;
+          title: &quot;Teams&quot;
+          action: &quot;launch:///Applications/Microsoft Teams (work or school).app&quot;
+        - key: &quot;m&quot;
+          title: &quot;Mail&quot;
+          action: &quot;launch:///System/Applications/Mail.app&quot;
+        - key: &quot;g&quot;
+          title: &quot;Gmail&quot;
+          action: &quot;open://https://mail.google.com&quot;
+    - key: &quot;b&quot;
+      icon: &quot;safari&quot;
+      title: &quot;Browsers&quot;
+      submenu:
+        - key: &quot;s&quot;
+          title: &quot;Safari&quot;
+          action: &quot;launch:///Applications/Safari.app&quot;
+        - key: &quot;c&quot;
+          title: &quot;Chrome&quot;
+          action: &quot;launch:///Applications/Google Chrome.app&quot;
+        - key: &quot;f&quot;
+          title: &quot;Firefox&quot;
+          action: &quot;launch:///Applications/Firefox.app&quot;
+        - key: &quot;a&quot;
+          title: &quot;Arc&quot;
+          action: &quot;launch:///Applications/Arc.app&quot;
+        - key: &quot;e&quot;
+          title: &quot;Edge&quot;
+          action: &quot;launch:///Applications/Microsoft Edge.app&quot;
+        - key: &quot;b&quot;
+          title: &quot;Brave&quot;
+          action: &quot;launch:///Applications/Brave Browser.app&quot;
+    - key: &quot;m&quot;
+      icon: &quot;music.note&quot;
+      title: &quot;Media&quot;
+      submenu:
+        - key: &quot;s&quot;
+          title: &quot;Spotify&quot;
+          action: &quot;launch:///Applications/Spotify.app&quot;
+        - key: &quot;a&quot;
+          title: &quot;Apple Music&quot;
+          action: &quot;launch:///System/Applications/Music.app&quot;
+        - key: &quot;n&quot;
+          title: &quot;Netflix&quot;
+          action: &quot;open://https://netflix.com&quot;
+        - key: &quot;y&quot;
+          title: &quot;YouTube&quot;
+          action: &quot;open://https://youtube.com&quot;
+        - key: &quot;p&quot;
+          title: &quot;Photos&quot;
+          action: &quot;launch:///System/Applications/Photos.app&quot;
+        - key: &quot;q&quot;
+          title: &quot;QuickTime&quot;
+          action: &quot;launch:///System/Applications/QuickTime Player.app&quot;
+    - key: &quot;u&quot;
+      icon: &quot;wrench.and.screwdriver&quot;
+      title: &quot;Utilities&quot;
+      submenu:
+        - key: &quot;f&quot;
+          title: &quot;Finder&quot;
+          action: &quot;launch:///System/Library/CoreServices/Finder.app&quot;
+        - key: &quot;a&quot;
+          title: &quot;Activity Monitor&quot;
+          action: &quot;launch:///Applications/Utilities/Activity Monitor.app&quot;
+        - key: &quot;k&quot;
+          title: &quot;Disk Utility&quot;
+          action: &quot;launch:///Applications/Utilities/Disk Utility.app&quot;
+        - key: &quot;s&quot;
+          title: &quot;System Settings&quot;
+          action: &quot;launch:///System/Applications/System Settings.app&quot;
+        - key: &quot;c&quot;
+          title: &quot;Calculator&quot;
+          action: &quot;launch:///System/Applications/Calculator.app&quot;
+        - key: &quot;n&quot;
+          title: &quot;Notes&quot;
+          action: &quot;launch:///System/Applications/Notes.app&quot;</code></pre>
+                    </div>
+                    
+                    <div class="snippet-actions">
+                        <button class="copy-btn" onclick="copySnippetContent()">
+                            <i class="fas fa-copy"></i> Copy to Clipboard
+                        </button>
+                        <a href="swiftkey://snippets/productivity/app-launcher-suite" class="btn primary import-btn">
+                            <i class="fas fa-download"></i> Import to SwiftKey
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </header>
+        
+        <footer>
+            <div class="container">
+                <div class="footer-content">
+                    <div class="footer-left">
+                        <div class="logo">
+                            <img src="../../logo.png" alt="SwiftKey" class="logo-img" />
+                            <span>SwiftKey</span>
+                        </div>
+                        <p>Made with ❤️ for macOS power users</p>
+                    </div>
+                    <div class="footer-links">
+                        <a href="https://github.com/amebalabs/swiftkey">Main Project</a>
+                        <a href="https://github.com/amebalabs/swiftkey-snippets">Snippets Repo</a>
+                        <a href="../../index.html">SwiftKey Home</a>
+                    </div>
+                </div>
+            </div>
+        </footer>
+
+        <script>
+            function copySnippetContent() {
+                const content = document.querySelector('.snippet-yaml pre code').textContent;
+                navigator.clipboard.writeText(content)
+                    .then(() => {
+                        const btn = document.querySelector('.copy-btn');
+                        const originalText = btn.innerHTML;
+                        btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                        setTimeout(() => {
+                            btn.innerHTML = originalText;
+                        }, 2000);
+                    });
+            }
+            
+            // Mobile menu toggle
+            document.querySelector('.mobile-menu-btn').addEventListener('click', function() {
+                document.querySelector('.mobile-menu').classList.toggle('active');
+                this.classList.toggle('active');
+            });
+        </script>
+    </body>
+</html>
