@@ -5,6 +5,8 @@ final class MenuState: ObservableObject {
     @Published var menuStack: [[MenuItem]] = []
     @Published var breadcrumbs: [String] = []
     @Published var currentKey: String?
+    @Published var lastExecutedAction: (() -> Void)? = nil
+    @Published var lastActionTime: Date? = nil
 
     func reset() {
         menuStack = []

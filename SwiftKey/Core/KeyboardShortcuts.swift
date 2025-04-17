@@ -45,6 +45,8 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
     // Global key handlers map for menu hotkeys
     private var hotkeyHandlers: [String: KeyboardShortcuts.Name] = [:]
 
+    private let lastActionRepeatWindow: TimeInterval = 30
+    
     // Default initialization for container creation
     init() {
         // Default initialization - will be properly set in injectDependencies
@@ -76,6 +78,13 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
         // Update UI state on main actor
         await MainActor.run {
             menuState.currentKey = normalizedKey
+        }
+
+        if normalizedKey == "." {
+            let result = await handleLastActionRepeat()
+            if result != .none {
+                return result
+            }
         }
 
         // Common navigation keys
@@ -126,6 +135,11 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
         if let action = item.actionClosure {
             Task(priority: .userInitiated) {
                 action()
+            }
+
+            await MainActor.run {
+                menuState.lastExecutedAction = action
+                menuState.lastActionTime = Date()
             }
 
             // Handle sticky flag for panel mode
@@ -258,6 +272,26 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
             }
         }
         return nil
+    }
+
+    // MARK: - Last Action Repeat
+    private func handleLastActionRepeat() async -> KeyPressResult {
+        guard let lastAction = menuState.lastExecutedAction,
+              let lastActionTime = menuState.lastActionTime,
+              Date().timeIntervalSince(lastActionTime) <= lastActionRepeatWindow
+        else {
+            return .none
+        }
+
+        logger.debug("Repeating last action")
+
+        Task(priority: .userInitiated) {
+            lastAction()
+            await MainActor.run {
+                menuState.lastActionTime = Date()
+            }
+        }
+        return .actionExecuted(sticky: false)
     }
 }
 
