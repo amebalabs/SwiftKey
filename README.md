@@ -138,10 +138,11 @@ SwiftKey uses YAML for configuration. Here's a comprehensive set of examples dem
   title: "Mute Toggle"
   action: "shell://osascript -e 'set volume output muted (not output muted of (get volume settings))'"
   sticky: true
-```
 
 # Alternative: Press and hold Option (⌥) key when selecting any item
 # to invert its sticky behavior (non-sticky items become sticky and vice versa)
+```
+
 
 ### Notifications
 
