@@ -1,6 +1,10 @@
 import SwiftUI
 import AppKit
 
+extension NSPasteboard.PasteboardType {
+    static let menuItem = NSPasteboard.PasteboardType("com.swiftkey.menuitem")
+}
+
 struct MenuTreeView: NSViewRepresentable {
     @Binding var menuItems: [MenuItem]
     @Binding var selectedItem: MenuItem?
@@ -31,8 +35,9 @@ struct MenuTreeView: NSViewRepresentable {
         outlineView.addTableColumn(column)
         outlineView.outlineTableColumn = column
         
-        // Enable drag and drop (future enhancement)
-        // outlineView.registerForDraggedTypes([.menuItem])
+        // Enable drag and drop
+        outlineView.registerForDraggedTypes([.menuItem])
+        outlineView.setDraggingSourceOperationMask(.move, forLocal: true)
         
         scrollView.documentView = outlineView
         scrollView.hasVerticalScroller = true
@@ -49,10 +54,13 @@ struct MenuTreeView: NSViewRepresentable {
         let oldSelectedId = context.coordinator.selectedItem?.id
         let newSelectedId = selectedItem?.id
         
+        // Check if the menu structure has changed
+        let menuStructureChanged = !areMenuItemsEqual(context.coordinator.menuItems, menuItems)
+        
         // Check if this is just a property update of the same item
         let isPropertyUpdate = oldSelectedId == newSelectedId && 
                              oldSelectedId != nil &&
-                             context.coordinator.menuItems.count == menuItems.count
+                             !menuStructureChanged
         
         context.coordinator.menuItems = menuItems
         context.coordinator.selectedItem = selectedItem
@@ -113,6 +121,28 @@ struct MenuTreeView: NSViewRepresentable {
         for i in 0..<outlineView.numberOfRows {
             outlineView.expandItem(outlineView.item(atRow: i))
         }
+    }
+    
+    private func areMenuItemsEqual(_ items1: [MenuItem], _ items2: [MenuItem]) -> Bool {
+        guard items1.count == items2.count else { return false }
+        
+        for (index, item1) in items1.enumerated() {
+            let item2 = items2[index]
+            // Check if items are in the same order
+            if item1.id != item2.id {
+                return false
+            }
+            // Recursively check submenus
+            if let submenu1 = item1.submenu, let submenu2 = item2.submenu {
+                if !areMenuItemsEqual(submenu1, submenu2) {
+                    return false
+                }
+            } else if (item1.submenu != nil) != (item2.submenu != nil) {
+                return false
+            }
+        }
+        
+        return true
     }
     
     class Coordinator: NSObject, NSOutlineViewDelegate, NSOutlineViewDataSource {
@@ -183,6 +213,101 @@ struct MenuTreeView: NSViewRepresentable {
             }
         }
         
+        // MARK: - Drag and Drop
+        
+        func outlineView(_ outlineView: NSOutlineView, pasteboardWriterForItem item: Any) -> NSPasteboardWriting? {
+            guard let menuItem = item as? MenuItem else { return nil }
+            
+            let pasteboardItem = NSPasteboardItem()
+            pasteboardItem.setString(menuItem.id.uuidString, forType: .menuItem)
+            return pasteboardItem
+        }
+        
+        func outlineView(_ outlineView: NSOutlineView, validateDrop info: NSDraggingInfo, proposedItem item: Any?, proposedChildIndex index: Int) -> NSDragOperation {
+            // Can't drop on itself
+            if let draggedItemId = info.draggingPasteboard.string(forType: .menuItem),
+               let draggedItem = findItem(with: UUID(uuidString: draggedItemId) ?? UUID()),
+               let targetItem = item as? MenuItem,
+               draggedItem.id == targetItem.id {
+                return []
+            }
+            
+            // Allow drops between items and on items (to create submenus)
+            return .move
+        }
+        
+        func outlineView(_ outlineView: NSOutlineView, acceptDrop info: NSDraggingInfo, item: Any?, childIndex index: Int) -> Bool {
+            guard let draggedItemId = info.draggingPasteboard.string(forType: .menuItem),
+                  let draggedItemUUID = UUID(uuidString: draggedItemId),
+                  let sourceIndexPath = indexPath(for: draggedItemUUID, in: menuItems) else {
+                return false
+            }
+            
+            // Calculate destination index path
+            let destinationIndexPath: IndexPath
+            
+            if let targetItem = item as? MenuItem {
+                // Dropping on an item - add as child
+                if let targetPath = indexPath(for: targetItem, in: menuItems) {
+                    if index == NSOutlineViewDropOnItemIndex {
+                        // Drop on item - add as last child
+                        let childCount = targetItem.submenu?.count ?? 0
+                        destinationIndexPath = IndexPath(indexes: targetPath.map { $0 } + [childCount])
+                    } else {
+                        // Drop between children
+                        destinationIndexPath = IndexPath(indexes: targetPath.map { $0 } + [index])
+                    }
+                } else {
+                    return false
+                }
+            } else {
+                // Dropping at root level
+                if index == NSOutlineViewDropOnItemIndex {
+                    destinationIndexPath = IndexPath(index: menuItems.count)
+                } else {
+                    destinationIndexPath = IndexPath(index: index)
+                }
+            }
+            
+            // Don't allow dropping an item into its own descendants
+            if isDescendant(sourceIndexPath, of: destinationIndexPath) {
+                return false
+            }
+            
+            // Adjust destination if it comes after source at the same level
+            var adjustedDestination = destinationIndexPath
+            if sourceIndexPath.count == destinationIndexPath.count {
+                let sourceParent = Array(sourceIndexPath.dropLast())
+                let destParent = Array(destinationIndexPath.dropLast())
+                
+                if sourceParent == destParent {
+                    let sourceIndex = sourceIndexPath[sourceIndexPath.count - 1]
+                    let destIndex = destinationIndexPath[destinationIndexPath.count - 1]
+                    
+                    if sourceIndex < destIndex {
+                        adjustedDestination = IndexPath(indexes: destParent + [destIndex - 1])
+                    }
+                }
+            }
+            
+            // Perform the move
+            parent.onMove(sourceIndexPath, adjustedDestination)
+            
+            return true
+        }
+        
+        private func isDescendant(_ path: IndexPath, of possibleAncestor: IndexPath) -> Bool {
+            guard path.count < possibleAncestor.count else { return false }
+            
+            for i in 0..<path.count {
+                if path[i] != possibleAncestor[i] {
+                    return false
+                }
+            }
+            
+            return true
+        }
+        
         // MARK: - Helper Methods
         
         func findItem(with id: UUID) -> MenuItem? {
@@ -198,6 +323,19 @@ struct MenuTreeView: NSViewRepresentable {
                 return nil
             }
             return search(in: menuItems)
+        }
+        
+        func indexPath(for itemId: UUID, in items: [MenuItem], currentPath: [Int] = []) -> IndexPath? {
+            for (index, item) in items.enumerated() {
+                if item.id == itemId {
+                    return IndexPath(indexes: currentPath + [index])
+                }
+                if let submenu = item.submenu,
+                   let found = indexPath(for: itemId, in: submenu, currentPath: currentPath + [index]) {
+                    return found
+                }
+            }
+            return nil
         }
         
         func indexPath(for targetItem: MenuItem, in items: [MenuItem], currentPath: [Int] = []) -> IndexPath? {
