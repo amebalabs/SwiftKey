@@ -1,4 +1,6 @@
 import SwiftUI
+import Yams
+import UniformTypeIdentifiers
 
 struct ConfigEditorSettingsView: View {
     @EnvironmentObject var configManager: ConfigManager
@@ -6,8 +8,8 @@ struct ConfigEditorSettingsView: View {
     @State private var showingImportDialog = false
     @State private var showingValidationPanel = false
     
-    init() {
-        _viewModel = StateObject(wrappedValue: ConfigEditorViewModel())
+    init(configManager: ConfigManager? = nil) {
+        _viewModel = StateObject(wrappedValue: ConfigEditorViewModel(configManager: configManager ?? ConfigManager()))
     }
     
     var body: some View {
@@ -70,7 +72,7 @@ struct ConfigEditorSettingsView: View {
                         .controlSize(.small)
                         
                         Button("Save") {
-                            saveConfiguration()
+                            viewModel.saveConfiguration()
                         }
                         .buttonStyle(.borderedProminent)
                         .controlSize(.small)
@@ -84,174 +86,36 @@ struct ConfigEditorSettingsView: View {
             
             Divider()
             
-            // Main content
-            if viewModel.isLoading {
-                ProgressView("Loading configuration...")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if let error = viewModel.errorMessage {
-                errorView(error: error)
-            } else {
-                HSplitView {
-                    // Menu tree
-                    menuTreePanel
-                        .frame(minWidth: 250, idealWidth: 350, maxWidth: 400)
-                    
-                    // Property inspector
-                    propertyInspectorPanel
-                        .frame(minWidth: 400, idealWidth: 550)
-                }
-            }
+            // Main content using base view
+            ConfigEditorBaseView(
+                viewModel: viewModel,
+                showingImportDialog: $showingImportDialog,
+                showingValidationPanel: $showingValidationPanel
+            )
         }
         .frame(minWidth: 800, minHeight: 600)
         .frame(idealWidth: 900, idealHeight: 650)
         .onAppear {
-            // Set the config manager from environment
-            viewModel.configManager = configManager
             viewModel.loadConfiguration()
         }
-    }
-    
-    // MARK: - Menu Tree Panel
-    
-    private var menuTreePanel: some View {
-        VStack(spacing: 0) {
-            // Toolbar
-            HStack(spacing: 4) {
-                Button(action: { viewModel.addMenuItem() }) {
-                    Image(systemName: "plus")
+        .fileImporter(
+            isPresented: $showingImportDialog,
+            allowedContentTypes: [.yaml],
+            allowsMultipleSelection: false
+        ) { result in
+            switch result {
+            case .success(let urls):
+                if let url = urls.first {
+                    importConfiguration(from: url)
                 }
-                .buttonStyle(BorderlessButtonStyle())
-                .help("Add menu item")
-                
-                Button(action: deleteSelectedItem) {
-                    Image(systemName: "minus")
-                }
-                .buttonStyle(BorderlessButtonStyle())
-                .disabled(viewModel.selectedItem == nil)
-                .help("Delete selected item")
-                
-                Divider()
-                    .frame(height: 16)
-                    .padding(.horizontal, 4)
-                
-                Button(action: moveItemUp) {
-                    Image(systemName: "arrow.up")
-                }
-                .buttonStyle(BorderlessButtonStyle())
-                .disabled(!canMoveUp)
-                .help("Move up")
-                
-                Button(action: moveItemDown) {
-                    Image(systemName: "arrow.down")
-                }
-                .buttonStyle(BorderlessButtonStyle())
-                .disabled(!canMoveDown)
-                .help("Move down")
-                
-                Spacer()
-                
-                if !viewModel.validationErrors.isEmpty {
-                    let errorCount = viewModel.validationErrors.values.flatMap { $0 }.filter { $0.severity == .error }.count
-                    let warningCount = viewModel.validationErrors.values.flatMap { $0 }.filter { $0.severity == .warning }.count
-                    
-                    Button(action: { showingValidationPanel.toggle() }) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .foregroundColor(errorCount > 0 ? .red : .orange)
-                                .font(.caption)
-                            Text("\(errorCount > 0 ? "\(errorCount)" : "")\(errorCount > 0 && warningCount > 0 ? "/" : "")\(warningCount > 0 ? "\(warningCount)" : "")")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    .buttonStyle(BorderlessButtonStyle())
-                    .help("Click to see validation issues")
-                    .popover(isPresented: $showingValidationPanel) {
-                        ValidationIssuesView(validationErrors: viewModel.validationErrors, menuItems: viewModel.menuItems)
-                            .frame(width: 400, height: 300)
-                    }
-                }
-            }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(Color(NSColor.controlBackgroundColor))
-            
-            // Tree view
-            MenuTreeView(
-                menuItems: $viewModel.menuItems,
-                selectedItem: $viewModel.selectedItem,
-                selectedItemPath: $viewModel.selectedItemPath,
-                onDelete: viewModel.deleteMenuItem,
-                onMove: viewModel.moveMenuItem
-            )
-        }
-    }
-    
-    // MARK: - Property Inspector Panel
-    
-    private var propertyInspectorPanel: some View {
-        PropertyInspectorView(
-            selectedItem: $viewModel.selectedItem,
-            onUpdate: viewModel.updateMenuItem,
-            validationErrors: viewModel.selectedItem.flatMap { viewModel.validationErrors[$0.id] } ?? []
-        )
-        .background(Color(NSColor.controlBackgroundColor))
-    }
-    
-    // MARK: - Error View
-    
-    private func errorView(error: String) -> some View {
-        VStack(spacing: 16) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 48))
-                .foregroundColor(.red)
-            
-            Text("Failed to load configuration")
-                .font(.headline)
-            
-            Text(error)
-                .font(.caption)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: 300)
-            
-            HStack {
-                Button("Retry") {
-                    viewModel.loadConfiguration()
-                }
-                
-                Button("Open in Editor") {
-                    openInExternalEditor()
-                }
+            case .failure(let error):
+                AppLogger.config.error("Failed to import configuration: \(error)")
+                viewModel.errorMessage = error.localizedDescription
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
     
     // MARK: - Actions
-    
-    private func deleteSelectedItem() {
-        guard let indexPath = viewModel.selectedItemPath else { return }
-        viewModel.deleteMenuItem(at: indexPath)
-    }
-    
-    private func moveItemUp() {
-        // TODO: Implement move up
-    }
-    
-    private func moveItemDown() {
-        // TODO: Implement move down
-    }
-    
-    private var canMoveUp: Bool {
-        // TODO: Check if selected item can move up
-        false
-    }
-    
-    private var canMoveDown: Bool {
-        // TODO: Check if selected item can move down
-        false
-    }
     
     private var hasValidationErrors: Bool {
         viewModel.validationErrors.values.contains { errors in
@@ -259,14 +123,42 @@ struct ConfigEditorSettingsView: View {
         }
     }
     
-    private func saveConfiguration() {
-        viewModel.saveConfiguration()
-    }
-    
     private func openInExternalEditor() {
         let configPath = viewModel.configManager.settingsStore.configFilePath
         if !configPath.isEmpty {
             NSWorkspace.shared.open(URL(fileURLWithPath: configPath))
+        }
+    }
+    
+    private func importConfiguration(from url: URL) {
+        guard url.startAccessingSecurityScopedResource() else {
+            viewModel.errorMessage = "Cannot access the selected file"
+            return
+        }
+        defer { url.stopAccessingSecurityScopedResource() }
+        
+        do {
+            let yamlString = try String(contentsOf: url, encoding: .utf8)
+            let decoder = YAMLDecoder()
+            let menuItems = try decoder.decode([MenuItem].self, from: yamlString)
+            
+            // Show confirmation dialog
+            let alert = NSAlert()
+            alert.messageText = "Import Configuration?"
+            alert.informativeText = "This will replace your current configuration with the imported one. Your current configuration will be lost."
+            alert.alertStyle = .warning
+            alert.addButton(withTitle: "Import")
+            alert.addButton(withTitle: "Cancel")
+            
+            if alert.runModal() == .alertFirstButtonReturn {
+                viewModel.menuItems = menuItems
+                viewModel.hasUnsavedChanges = true
+                viewModel.validateAll()
+                AppLogger.config.info("Configuration imported from \(url.lastPathComponent)")
+            }
+        } catch {
+            viewModel.errorMessage = "Failed to import configuration: \(error.localizedDescription)"
+            AppLogger.config.error("Failed to import configuration from \(url): \(error)")
         }
     }
 }

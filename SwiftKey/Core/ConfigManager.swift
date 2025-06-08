@@ -8,8 +8,6 @@ import Yams
 class ConfigManager: DependencyInjectable, ObservableObject {
     private let logger = AppLogger.config
     
-    /// Shared instance for ConfigEditorViewModel
-    static let shared = ConfigManager()
 
     /// Factory method to create a new ConfigManager instance
     static func create() -> ConfigManager {

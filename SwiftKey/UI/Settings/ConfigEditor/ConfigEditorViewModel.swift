@@ -11,7 +11,7 @@ class ConfigEditorViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
     
-    var configManager: ConfigManager = ConfigManager()
+    let configManager: ConfigManager
     private let undoManager = UndoManager()
     private var cancellables = Set<AnyCancellable>()
     private var originalItems: [MenuItem] = []
@@ -27,8 +27,8 @@ class ConfigEditorViewModel: ObservableObject {
         }
     }
     
-    init() {
-        // ConfigManager will be set from environment in onAppear
+    init(configManager: ConfigManager) {
+        self.configManager = configManager
     }
     
     func loadConfiguration() {
