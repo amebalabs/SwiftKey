@@ -11,7 +11,7 @@ class ConfigEditorViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
     
-    let configManager: ConfigManager
+    var configManager: ConfigManager = ConfigManager()
     private let undoManager = UndoManager()
     private var cancellables = Set<AnyCancellable>()
     private var originalItems: [MenuItem] = []
@@ -27,9 +27,8 @@ class ConfigEditorViewModel: ObservableObject {
         }
     }
     
-    init(configManager: ConfigManager = .shared) {
-        self.configManager = configManager
-        loadConfiguration()
+    init() {
+        // ConfigManager will be set from environment in onAppear
     }
     
     func loadConfiguration() {
@@ -62,6 +61,10 @@ class ConfigEditorViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
         
+        // Remember current selection
+        let currentSelectedId = selectedItem?.id
+        let currentSelectedPath = selectedItemPath
+        
         configManager.saveConfiguration(menuItems)
             .receive(on: DispatchQueue.main)
             .sink(
@@ -73,9 +76,16 @@ class ConfigEditorViewModel: ObservableObject {
                     }
                 },
                 receiveValue: { [weak self] in
-                    self?.originalItems = self?.menuItems ?? []
-                    self?.hasUnsavedChanges = false
+                    guard let self = self else { return }
+                    self.originalItems = self.menuItems
+                    self.hasUnsavedChanges = false
                     AppLogger.config.info("Configuration saved successfully")
+                    
+                    // Restore selection
+                    if let selectedId = currentSelectedId {
+                        self.selectedItem = self.findMenuItem(with: selectedId, in: self.menuItems)
+                        self.selectedItemPath = currentSelectedPath
+                    }
                 }
             )
             .store(in: &cancellables)
@@ -96,8 +106,13 @@ class ConfigEditorViewModel: ObservableObject {
             key: "",
             icon: "star",
             title: "New Item",
-            action: nil,
-            submenu: []
+            action: "launch:///Applications/Calculator.app",
+            sticky: nil,
+            notify: nil,
+            batch: nil,
+            hidden: nil,
+            submenu: nil,
+            hotkey: nil
         )
         
         registerUndo()
@@ -132,8 +147,28 @@ class ConfigEditorViewModel: ObservableObject {
         if let indexPath = findIndexPath(for: item) {
             updateMenuItem(item, at: indexPath)
             hasUnsavedChanges = true
-            validateItem(item)
+            
+            // Find the updated item from the tree and update selectedItem
+            if selectedItem?.id == item.id {
+                selectedItem = findMenuItem(with: item.id, in: menuItems)
+            }
+            
+            // Validate all items to check for duplicate keys
+            validateAll()
         }
+    }
+    
+    private func findMenuItem(with id: UUID, in items: [MenuItem]) -> MenuItem? {
+        for item in items {
+            if item.id == id {
+                return item
+            }
+            if let submenu = item.submenu,
+               let found = findMenuItem(with: id, in: submenu) {
+                return found
+            }
+        }
+        return nil
     }
     
     func moveMenuItem(from source: IndexPath, to destination: IndexPath) {
@@ -182,7 +217,7 @@ class ConfigEditorViewModel: ObservableObject {
             // Action validation
             if let action = item.action {
                 errors.append(contentsOf: validateAction(action))
-            } else if item.submenu?.isEmpty ?? true {
+            } else if item.submenu == nil || item.submenu!.isEmpty {
                 errors.append(ValidationError(field: "action", message: "Item must have either an action or submenu", severity: .warning))
             }
             
@@ -196,7 +231,11 @@ class ConfigEditorViewModel: ObservableObject {
                 errors.append(ValidationError(field: "batch", message: "Batch items must have submenu items", severity: .error))
             }
             
-            validationErrors[item.id] = errors.isEmpty ? nil : errors
+            if errors.isEmpty {
+                validationErrors.removeValue(forKey: item.id)
+            } else {
+                validationErrors[item.id] = errors
+            }
             
             // Validate submenu
             if let submenu = item.submenu {
@@ -360,10 +399,7 @@ class ConfigEditorViewModel: ObservableObject {
             guard index < current.count else { return }
             parents.append((items: current, index: index))
             
-            var menuItem = current[index]
-            if menuItem.submenu == nil {
-                menuItem.submenu = []
-            }
+            let menuItem = current[index]
             current = menuItem.submenu ?? []
         }
     }
@@ -397,9 +433,22 @@ class ConfigEditorViewModel: ObservableObject {
         
         for (parentItems, parentIndex) in parents.reversed() {
             var updatedParent = parentItems
-            var parentItem = updatedParent[parentIndex]
-            parentItem.submenu = current
-            updatedParent[parentIndex] = parentItem
+            // Create a new item preserving all properties
+            let originalItem = updatedParent[parentIndex]
+            let updatedItem = MenuItem(
+                id: originalItem.id,
+                key: originalItem.key,
+                icon: originalItem.icon,
+                title: originalItem.title,
+                action: originalItem.action,
+                sticky: originalItem.sticky,
+                notify: originalItem.notify,
+                batch: originalItem.batch,
+                hidden: originalItem.hidden,
+                submenu: current,  // Only update the submenu
+                hotkey: originalItem.hotkey
+            )
+            updatedParent[parentIndex] = updatedItem
             current = updatedParent
         }
         

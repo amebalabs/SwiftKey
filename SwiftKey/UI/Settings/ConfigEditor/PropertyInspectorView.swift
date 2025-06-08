@@ -7,7 +7,6 @@ struct PropertyInspectorView: View {
     let validationErrors: [ConfigEditorViewModel.ValidationError]
     
     @State private var showingSFSymbolPicker = false
-    @State private var actionType: ActionType = .none
     
     enum ActionType: String, CaseIterable {
         case none = "None"
@@ -281,31 +280,19 @@ struct PropertyInspectorView: View {
             }
             
         case .shell:
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    Text("Command:")
-                        .frame(width: 80, alignment: .trailing)
-                    TextField("echo 'Hello World'", text: Binding(
-                        get: { String(actionValue) },
-                        set: { newValue in
-                            var updatedItem = item
-                            updatedItem.action = "shell://\(newValue)"
-                            onUpdate(updatedItem)
-                        }
-                    ))
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .font(.system(.body, design: .monospaced))
-                }
-                
-                HStack {
-                    Spacer()
-                        .frame(width: 84)
-                    Button("Test in Terminal") {
-                        let command = String(actionValue)
-                        NSWorkspace.shared.open(URL(string: "x-terminal-emulator://\(command)")!)
+            HStack {
+                Text("Command:")
+                    .frame(width: 80, alignment: .trailing)
+                TextField("echo 'Hello World'", text: Binding(
+                    get: { String(actionValue) },
+                    set: { newValue in
+                        var updatedItem = item
+                        updatedItem.action = "shell://\(newValue)"
+                        onUpdate(updatedItem)
                     }
-                    .font(.caption)
-                }
+                ))
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .font(.system(.body, design: .monospaced))
             }
             
         case .shortcut:
@@ -418,22 +405,26 @@ struct PropertyInspectorView: View {
                 Text("Hotkey:")
                     .frame(width: 80, alignment: .trailing)
                 
-                if let hotkey = item.hotkey {
-                    Text(hotkey)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color(NSColor.controlBackgroundColor))
-                        .cornerRadius(4)
+                HStack {
+                    TextField("e.g. cmd+shift+a", text: Binding(
+                        get: { item.hotkey ?? "" },
+                        set: { newValue in
+                            var updatedItem = item
+                            updatedItem.hotkey = newValue.isEmpty ? nil : newValue
+                            onUpdate(updatedItem)
+                        }
+                    ))
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .frame(maxWidth: 200)
+                    .help("Format: cmd+shift+a, ctrl+alt+x, etc.")
                     
-                    Button("Clear") {
-                        var updatedItem = item
-                        updatedItem.hotkey = nil
-                        onUpdate(updatedItem)
-                    }
-                    .font(.caption)
-                } else {
-                    Button("Set Hotkey...") {
-                        // TODO: Implement hotkey recorder
+                    if item.hotkey != nil {
+                        Button("Clear") {
+                            var updatedItem = item
+                            updatedItem.hotkey = nil
+                            onUpdate(updatedItem)
+                        }
+                        .controlSize(.small)
                     }
                 }
             }

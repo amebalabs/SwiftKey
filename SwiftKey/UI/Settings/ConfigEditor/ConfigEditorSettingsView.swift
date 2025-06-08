@@ -1,8 +1,14 @@
 import SwiftUI
 
 struct ConfigEditorSettingsView: View {
-    @StateObject private var viewModel = ConfigEditorViewModel()
+    @EnvironmentObject var configManager: ConfigManager
+    @StateObject private var viewModel: ConfigEditorViewModel
     @State private var showingImportDialog = false
+    @State private var showingValidationPanel = false
+    
+    init() {
+        _viewModel = StateObject(wrappedValue: ConfigEditorViewModel())
+    }
     
     var body: some View {
         VStack(spacing: 0) {
@@ -69,6 +75,7 @@ struct ConfigEditorSettingsView: View {
                         .buttonStyle(.borderedProminent)
                         .controlSize(.small)
                         .disabled(hasValidationErrors)
+                        .help(hasValidationErrors ? "Fix validation errors before saving" : "Save changes")
                     }
                 }
             }
@@ -97,6 +104,11 @@ struct ConfigEditorSettingsView: View {
         }
         .frame(minWidth: 800, minHeight: 600)
         .frame(idealWidth: 900, idealHeight: 650)
+        .onAppear {
+            // Set the config manager from environment
+            viewModel.configManager = configManager
+            viewModel.loadConfiguration()
+        }
     }
     
     // MARK: - Menu Tree Panel
@@ -139,15 +151,25 @@ struct ConfigEditorSettingsView: View {
                 Spacer()
                 
                 if !viewModel.validationErrors.isEmpty {
-                    HStack(spacing: 4) {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundColor(.orange)
-                            .font(.caption)
-                        Text("\(viewModel.validationErrors.count)")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                    let errorCount = viewModel.validationErrors.values.flatMap { $0 }.filter { $0.severity == .error }.count
+                    let warningCount = viewModel.validationErrors.values.flatMap { $0 }.filter { $0.severity == .warning }.count
+                    
+                    Button(action: { showingValidationPanel.toggle() }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundColor(errorCount > 0 ? .red : .orange)
+                                .font(.caption)
+                            Text("\(errorCount > 0 ? "\(errorCount)" : "")\(errorCount > 0 && warningCount > 0 ? "/" : "")\(warningCount > 0 ? "\(warningCount)" : "")")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
                     }
-                    .help("\(viewModel.validationErrors.count) validation issues")
+                    .buttonStyle(BorderlessButtonStyle())
+                    .help("Click to see validation issues")
+                    .popover(isPresented: $showingValidationPanel) {
+                        ValidationIssuesView(validationErrors: viewModel.validationErrors, menuItems: viewModel.menuItems)
+                            .frame(width: 400, height: 300)
+                    }
                 }
             }
             .padding(.horizontal, 8)

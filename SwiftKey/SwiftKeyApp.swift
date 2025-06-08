@@ -26,6 +26,15 @@ struct SwiftKeyApp: App {
                 .environmentObject(container.menuState)
                 .environmentObject(container.configManager)
                 .environmentObject(container.sparkleUpdater)
+                .onAppear {
+                    // Show dock icon when settings window opens
+                    NSApp.setActivationPolicy(.regular)
+                    NSApp.activate(ignoringOtherApps: true)
+                }
+                .onDisappear {
+                    // Hide dock icon when settings window closes
+                    NSApp.setActivationPolicy(.accessory)
+                }
         }
     }
 }

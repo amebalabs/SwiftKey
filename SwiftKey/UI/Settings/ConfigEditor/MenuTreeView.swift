@@ -46,22 +46,63 @@ struct MenuTreeView: NSViewRepresentable {
     func updateNSView(_ scrollView: NSScrollView, context: Context) {
         guard let outlineView = scrollView.documentView as? NSOutlineView else { return }
         
+        let oldSelectedId = context.coordinator.selectedItem?.id
+        let newSelectedId = selectedItem?.id
+        
+        // Check if this is just a property update of the same item
+        let isPropertyUpdate = oldSelectedId == newSelectedId && 
+                             oldSelectedId != nil &&
+                             context.coordinator.menuItems.count == menuItems.count
+        
         context.coordinator.menuItems = menuItems
-        outlineView.reloadData()
+        context.coordinator.selectedItem = selectedItem
+        
+        if isPropertyUpdate {
+            // Just update the visible cells without reloading
+            if let item = context.coordinator.findItem(with: newSelectedId!) {
+                let row = outlineView.row(forItem: item)
+                if row >= 0 {
+                    outlineView.reloadData(forRowIndexes: IndexSet(integer: row), 
+                                         columnIndexes: IndexSet(integer: 0))
+                }
+            }
+        } else {
+            // Save expansion state before reload
+            var expandedItems = Set<UUID>()
+            for i in 0..<outlineView.numberOfRows {
+                if let item = outlineView.item(atRow: i) as? MenuItem,
+                   outlineView.isItemExpanded(item) {
+                    expandedItems.insert(item.id)
+                }
+            }
+            
+            outlineView.reloadData()
+            
+            // Restore expansion state
+            for i in 0..<outlineView.numberOfRows {
+                if let item = outlineView.item(atRow: i) as? MenuItem,
+                   expandedItems.contains(item.id) {
+                    outlineView.expandItem(item)
+                }
+            }
+            
+            // Only expand all on first load
+            if !context.coordinator.hasInitialized {
+                context.coordinator.hasInitialized = true
+                expandAll(outlineView: outlineView)
+            }
+        }
         
         // Restore selection if needed
         if let selectedItem = selectedItem,
            let item = context.coordinator.findItem(with: selectedItem.id) {
             let row = outlineView.row(forItem: item)
-            if row >= 0 {
+            if row >= 0 && outlineView.selectedRow != row {
                 outlineView.selectRowIndexes(IndexSet(integer: row), byExtendingSelection: false)
             }
         } else {
             outlineView.deselectAll(nil)
         }
-        
-        // Expand all items by default
-        expandAll(outlineView: outlineView)
     }
     
     func makeCoordinator() -> Coordinator {
@@ -77,10 +118,13 @@ struct MenuTreeView: NSViewRepresentable {
     class Coordinator: NSObject, NSOutlineViewDelegate, NSOutlineViewDataSource {
         var parent: MenuTreeView
         var menuItems: [MenuItem] = []
+        var selectedItem: MenuItem?
+        var hasInitialized = false
         
         init(_ parent: MenuTreeView) {
             self.parent = parent
             self.menuItems = parent.menuItems
+            self.selectedItem = parent.selectedItem
         }
         
         // MARK: - NSOutlineViewDataSource
