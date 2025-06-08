@@ -56,9 +56,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private static var activeGalleryWindow: NSWindow?
 
     var isOverlayVisible: Bool {
-        overlayWindow?.isVisible == true || notchContext?.presented == true || (facelessMenuController?.sessionActive == true)
+        overlayWindow?.isVisible == true || notchContext?
+            .presented == true || (facelessMenuController?.sessionActive == true)
     }
-    
+
     func applicationDidFinishLaunching(_: Notification) {
         logger.notice("SwiftKey application starting")
 
@@ -174,40 +175,27 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     @MainActor
     func toggleSession() async {
-        
         if isOverlayVisible {
             logger.debug("Overlay is visible, hiding it on repeated trigger")
             await hideWindow()
             return
         }
-        
+
         await configManager.refreshIfNeeded()
-        
+
         switch settings.overlayStyle {
         case .faceless:
             facelessMenuController?.startSession()
-            
+
         case .hud:
-            if notchContext == nil {
-                notchContext = NotchContext(
-                    headerLeadingView: EmptyView(),
-                    headerTrailingView: EmptyView(),
-                    bodyView: AnyView(
-                        MinimalHUDView(state: menuState)
-                            .environmentObject(settings)
-                            .environment(keyboardManager)
-                    ),
-                    animated: true,
-                    settingsStore: settings
-                )
-            }
+            setupNotchContextIfNeeded()
             notchContext?.open()
-            
+
         case .panel:
             if settings.menuStateResetDelay == 0 {
                 menuState.reset()
             } else if let lastHide = lastHideTime,
-                Date().timeIntervalSince(lastHide) >= settings.menuStateResetDelay
+                      Date().timeIntervalSince(lastHide) >= settings.menuStateResetDelay
             {
                 menuState.reset()
             }
@@ -216,8 +204,35 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     @MainActor
+    private func setupNotchContextIfNeeded() {
+        if notchContext == nil {
+            notchContext = NotchContext(
+                headerLeadingView: EmptyView(),
+                headerTrailingView: EmptyView(),
+                bodyView: AnyView(
+                    MinimalHUDView(state: menuState)
+                        .environmentObject(settings)
+                        .environment(keyboardManager)
+                ),
+                animated: true,
+                settingsStore: settings
+            )
+        }
+    }
+
+    @MainActor
     func hideWindow() async {
         if !isOverlayVisible {
+            return
+        }
+
+        // Check if gallery window is visible - if so, don't hide the overlay
+        if let galleryWindow = Self.activeGalleryWindow,
+           galleryWindow.isVisible,
+           NSApp.keyWindow === galleryWindow
+        {
+            // Only skip hiding when gallery window is showing and active
+            logger.debug("hideWindow: skipping hide because gallery window is active")
             return
         }
 
@@ -241,12 +256,23 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         }
     }
 
-    func windowDidResignKey(_: Notification) {
+    func windowDidResignKey(_ notification: Notification) {
+        // Check if we should suppress overlay hiding when snippets gallery is active
+        if let window = notification.object as? NSWindow,
+           window === overlayWindow,
+           let galleryWindow = Self.activeGalleryWindow,
+           galleryWindow.isVisible,
+           NSApp.keyWindow === galleryWindow
+        {
+            // Don't hide the overlay if it's losing focus to the gallery window
+            return
+        }
+
         Task {
             await hideWindow()
         }
     }
-    
+
     @objc func applicationDidResignActive(_: Notification) {
         logger.debug("Application resigned active state")
         // Only hide windows if app is already initialized
@@ -374,9 +400,9 @@ extension AppDelegate {
             existingWindow.makeKeyAndOrderFront(nil)
             return
         }
-        
+
         Self.activeGalleryWindow = nil
-        
+
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 800, height: 600),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
@@ -398,7 +424,7 @@ extension AppDelegate {
                 .environmentObject(container.settingsStore)
         )
         window.contentViewController = hostingController
-        
+
         NotificationCenter.default.addObserver(
             forName: NSWindow.willCloseNotification,
             object: window,
@@ -408,9 +434,9 @@ extension AppDelegate {
                 Self.activeGalleryWindow = nil
             }
         }
-        
+
         Self.activeGalleryWindow = window
-        
+
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
     }

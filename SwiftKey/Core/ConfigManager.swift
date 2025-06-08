@@ -7,6 +7,9 @@ import Yams
 /// Manages loading, parsing, and updating configuration files
 class ConfigManager: DependencyInjectable, ObservableObject {
     private let logger = AppLogger.config
+    
+    /// Shared instance for ConfigEditorViewModel
+    static let shared = ConfigManager()
 
     /// Factory method to create a new ConfigManager instance
     static func create() -> ConfigManager {
@@ -289,6 +292,38 @@ class ConfigManager: DependencyInjectable, ObservableObject {
         )
     }
 
+    // MARK: - Configuration Loading/Saving
+    
+    func loadConfiguration() -> AnyPublisher<[MenuItem], ConfigError> {
+        Future { promise in
+            Task {
+                let result = await self.loadConfig()
+                switch result {
+                case .success(let items):
+                    promise(.success(items))
+                case .failure(let error):
+                    promise(.failure(error))
+                }
+            }
+        }
+        .eraseToAnyPublisher()
+    }
+    
+    func saveConfiguration(_ items: [MenuItem]) -> AnyPublisher<Void, ConfigError> {
+        Future { promise in
+            Task {
+                let result = await self.saveMenuItems(items)
+                switch result {
+                case .success:
+                    promise(.success(()))
+                case .failure(let error):
+                    promise(.failure(error))
+                }
+            }
+        }
+        .eraseToAnyPublisher()
+    }
+    
     func importSnippet(menuItems: [MenuItem], strategy: MergeStrategy) async throws {
         // Validate the menu items
         let validationResult = await Task {
