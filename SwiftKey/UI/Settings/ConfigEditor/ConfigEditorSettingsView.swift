@@ -5,12 +5,33 @@ import UniformTypeIdentifiers
 struct ConfigEditorSettingsView: View {
     @EnvironmentObject var configManager: ConfigManager
     @EnvironmentObject var settings: SettingsStore
-    @StateObject private var viewModel: ConfigEditorViewModel
     @State private var showingImportDialog = false
     @State private var showingValidationPanel = false
     
-    init(configManager: ConfigManager? = nil) {
-        _viewModel = StateObject(wrappedValue: ConfigEditorViewModel(configManager: configManager ?? ConfigManager()))
+    var body: some View {
+        ConfigEditorSettingsContent(
+            configManager: configManager,
+            settings: settings,
+            showingImportDialog: $showingImportDialog,
+            showingValidationPanel: $showingValidationPanel
+        )
+    }
+}
+
+// Internal view that can properly initialize the view model with the config manager
+private struct ConfigEditorSettingsContent: View {
+    let configManager: ConfigManager
+    let settings: SettingsStore
+    @Binding var showingImportDialog: Bool
+    @Binding var showingValidationPanel: Bool
+    @StateObject private var viewModel: ConfigEditorViewModel
+    
+    init(configManager: ConfigManager, settings: SettingsStore, showingImportDialog: Binding<Bool>, showingValidationPanel: Binding<Bool>) {
+        self.configManager = configManager
+        self.settings = settings
+        self._showingImportDialog = showingImportDialog
+        self._showingValidationPanel = showingValidationPanel
+        self._viewModel = StateObject(wrappedValue: ConfigEditorViewModel(configManager: configManager))
     }
     
     var body: some View {
@@ -213,34 +234,20 @@ struct ConfigEditorSettingsView: View {
     }
     
     private func importConfiguration(from url: URL) {
-        guard url.startAccessingSecurityScopedResource() else {
-            viewModel.errorMessage = "Cannot access the selected file"
-            return
-        }
-        defer { url.stopAccessingSecurityScopedResource() }
-        
-        do {
-            let yamlString = try String(contentsOf: url, encoding: .utf8)
-            let decoder = YAMLDecoder()
-            let menuItems = try decoder.decode([MenuItem].self, from: yamlString)
-            
-            // Show confirmation dialog
-            let alert = NSAlert()
-            alert.messageText = "Import Configuration?"
-            alert.informativeText = "This will replace your current configuration with the imported one. Your current configuration will be lost."
-            alert.alertStyle = .warning
-            alert.addButton(withTitle: "Import")
-            alert.addButton(withTitle: "Cancel")
-            
-            if alert.runModal() == .alertFirstButtonReturn {
-                viewModel.menuItems = menuItems
-                viewModel.hasUnsavedChanges = true
-                viewModel.validateAll()
-                AppLogger.config.info("Configuration imported from \(url.lastPathComponent)")
+        viewModel.importConfiguration(from: url) { success in
+            if success {
+                // Show confirmation dialog
+                let alert = NSAlert()
+                alert.messageText = "Import Configuration?"
+                alert.informativeText = "This will replace your current configuration with the imported one. Your current configuration will be lost."
+                alert.alertStyle = .warning
+                alert.addButton(withTitle: "Import")
+                alert.addButton(withTitle: "Cancel")
+                
+                if alert.runModal() == .alertFirstButtonReturn {
+                    viewModel.confirmImport()
+                }
             }
-        } catch {
-            viewModel.errorMessage = "Failed to import configuration: \(error.localizedDescription)"
-            AppLogger.config.error("Failed to import configuration from \(url): \(error)")
         }
     }
 }
@@ -252,6 +259,6 @@ struct ConfigEditorSettingsView_Previews: PreviewProvider {
         ConfigEditorSettingsView()
             .frame(width: 700, height: 500)
             .environmentObject(SettingsStore())
-            .environmentObject(ConfigManager())
+            .environmentObject(ConfigManager.create())
     }
 }

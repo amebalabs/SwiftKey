@@ -9,14 +9,35 @@ extension UTType {
 }
 
 struct ConfigEditorView: View {
-    @StateObject private var viewModel: ConfigEditorViewModel
-    @State private var showingImportDialog = false
-    @State private var showingValidationPanel = false
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var configManager: ConfigManager
+    @State private var showingImportDialog = false
+    @State private var showingValidationPanel = false
     
-    init(configManager: ConfigManager? = nil) {
-        _viewModel = StateObject(wrappedValue: ConfigEditorViewModel(configManager: configManager ?? ConfigManager()))
+    var body: some View {
+        ConfigEditorContent(
+            configManager: configManager,
+            showingImportDialog: $showingImportDialog,
+            showingValidationPanel: $showingValidationPanel,
+            dismiss: dismiss
+        )
+    }
+}
+
+// Internal view that can properly initialize the view model with the config manager
+private struct ConfigEditorContent: View {
+    let configManager: ConfigManager
+    @Binding var showingImportDialog: Bool
+    @Binding var showingValidationPanel: Bool
+    let dismiss: DismissAction
+    @StateObject private var viewModel: ConfigEditorViewModel
+    
+    init(configManager: ConfigManager, showingImportDialog: Binding<Bool>, showingValidationPanel: Binding<Bool>, dismiss: DismissAction) {
+        self.configManager = configManager
+        self._showingImportDialog = showingImportDialog
+        self._showingValidationPanel = showingValidationPanel
+        self.dismiss = dismiss
+        self._viewModel = StateObject(wrappedValue: ConfigEditorViewModel(configManager: configManager))
     }
     
     var body: some View {
@@ -162,34 +183,20 @@ struct ConfigEditorView: View {
     }
     
     private func importConfiguration(from url: URL) {
-        guard url.startAccessingSecurityScopedResource() else {
-            viewModel.errorMessage = "Cannot access the selected file"
-            return
-        }
-        defer { url.stopAccessingSecurityScopedResource() }
-        
-        do {
-            let yamlString = try String(contentsOf: url, encoding: .utf8)
-            let decoder = YAMLDecoder()
-            let menuItems = try decoder.decode([MenuItem].self, from: yamlString)
-            
-            // Show confirmation dialog
-            let alert = NSAlert()
-            alert.messageText = "Import Configuration?"
-            alert.informativeText = "This will replace your current configuration with the imported one. Your current configuration will be lost."
-            alert.alertStyle = .warning
-            alert.addButton(withTitle: "Import")
-            alert.addButton(withTitle: "Cancel")
-            
-            if alert.runModal() == .alertFirstButtonReturn {
-                viewModel.menuItems = menuItems
-                viewModel.hasUnsavedChanges = true
-                viewModel.validateAll()
-                AppLogger.config.info("Configuration imported from \(url.lastPathComponent)")
+        viewModel.importConfiguration(from: url) { success in
+            if success {
+                // Show confirmation dialog
+                let alert = NSAlert()
+                alert.messageText = "Import Configuration?"
+                alert.informativeText = "This will replace your current configuration with the imported one. Your current configuration will be lost."
+                alert.alertStyle = .warning
+                alert.addButton(withTitle: "Import")
+                alert.addButton(withTitle: "Cancel")
+                
+                if alert.runModal() == .alertFirstButtonReturn {
+                    viewModel.confirmImport()
+                }
             }
-        } catch {
-            viewModel.errorMessage = "Failed to import configuration: \(error.localizedDescription)"
-            AppLogger.config.error("Failed to import configuration from \(url): \(error)")
         }
     }
     
@@ -213,5 +220,6 @@ struct ConfigEditorView: View {
 struct ConfigEditorView_Previews: PreviewProvider {
     static var previews: some View {
         ConfigEditorView()
+            .environmentObject(ConfigManager.create())
     }
 }

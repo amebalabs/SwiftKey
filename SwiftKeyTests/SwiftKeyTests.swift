@@ -2,6 +2,7 @@ import Testing
 
 struct SwiftKeyTests {
     @Test func example() async throws {
-        // Write your test here and use APIs like `#expect(...)` to check expected conditions.
+        // Basic test without importing SwiftKey
+        #expect(1 + 1 == 2)
     }
 }

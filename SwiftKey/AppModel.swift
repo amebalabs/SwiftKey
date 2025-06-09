@@ -287,3 +287,21 @@ extension MenuItem {
         return nil
     }
 }
+
+// MARK: - MenuItem Array Extensions
+
+extension Array where Element == MenuItem {
+    /// Recursively finds a menu item with the given ID
+    func findItem(with id: UUID) -> MenuItem? {
+        for item in self {
+            if item.id == id {
+                return item
+            }
+            if let submenu = item.submenu,
+               let found = submenu.findItem(with: id) {
+                return found
+            }
+        }
+        return nil
+    }
+}

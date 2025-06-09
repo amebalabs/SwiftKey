@@ -1,6 +1,7 @@
 import SwiftUI
 import Combine
 import os
+import Yams
 
 class ConfigEditorViewModel: ObservableObject {
     @Published var menuItems: [MenuItem] = []
@@ -292,6 +293,45 @@ class ConfigEditorViewModel: ObservableObject {
         }
         
         return errors
+    }
+    
+    // MARK: - Import/Export
+    
+    func importConfiguration(from url: URL, completion: @escaping (Bool) -> Void) {
+        guard url.startAccessingSecurityScopedResource() else {
+            errorMessage = "Cannot access the selected file"
+            completion(false)
+            return
+        }
+        defer { url.stopAccessingSecurityScopedResource() }
+        
+        do {
+            let yamlString = try String(contentsOf: url, encoding: .utf8)
+            let decoder = YAMLDecoder()
+            let importedItems = try decoder.decode([MenuItem].self, from: yamlString)
+            
+            // Store the imported items temporarily for confirmation
+            // The UI will show a confirmation dialog and call confirmImport if user accepts
+            self.pendingImportItems = importedItems
+            completion(true)
+        } catch {
+            errorMessage = "Failed to import configuration: \(error.localizedDescription)"
+            AppLogger.config.error("Failed to import configuration from \(url): \(error)")
+            completion(false)
+        }
+    }
+    
+    private var pendingImportItems: [MenuItem]?
+    
+    func confirmImport() {
+        guard let items = pendingImportItems else { return }
+        
+        registerUndo()
+        menuItems = items
+        hasUnsavedChanges = true
+        validateAll()
+        pendingImportItems = nil
+        AppLogger.config.info("Configuration imported successfully")
     }
     
     // MARK: - Undo/Redo

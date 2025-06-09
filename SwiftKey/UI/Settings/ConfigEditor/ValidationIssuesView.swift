@@ -7,21 +7,8 @@ struct ValidationIssuesView: View {
     private var allIssues: [(item: MenuItem, errors: [ConfigEditorViewModel.ValidationError])] {
         var issues: [(item: MenuItem, errors: [ConfigEditorViewModel.ValidationError])] = []
         
-        func findItem(with id: UUID, in items: [MenuItem]) -> MenuItem? {
-            for item in items {
-                if item.id == id {
-                    return item
-                }
-                if let submenu = item.submenu,
-                   let found = findItem(with: id, in: submenu) {
-                    return found
-                }
-            }
-            return nil
-        }
-        
         for (itemId, errors) in validationErrors {
-            if let item = findItem(with: itemId, in: menuItems), !errors.isEmpty {
+            if let item = menuItems.findItem(with: itemId), !errors.isEmpty {
                 issues.append((item: item, errors: errors))
             }
         }

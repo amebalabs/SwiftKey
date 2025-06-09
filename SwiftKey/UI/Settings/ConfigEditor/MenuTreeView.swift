@@ -311,18 +311,7 @@ struct MenuTreeView: NSViewRepresentable {
         // MARK: - Helper Methods
         
         func findItem(with id: UUID) -> MenuItem? {
-            func search(in items: [MenuItem]) -> MenuItem? {
-                for item in items {
-                    if item.id == id {
-                        return item
-                    }
-                    if let found = search(in: item.submenu ?? []) {
-                        return found
-                    }
-                }
-                return nil
-            }
-            return search(in: menuItems)
+            return menuItems.findItem(with: id)
         }
         
         func indexPath(for itemId: UUID, in items: [MenuItem], currentPath: [Int] = []) -> IndexPath? {
