@@ -1,9 +1,9 @@
 class Swiftkey < Formula
   desc "Hackable launcher for macOS"
   homepage "https://swiftkey.app"
-  url "https://github.com/amebalabs/SwiftKey/releases/download/v1.2.0/SwiftKey-1.2.0.zip"
-  sha256 "5afb94f48f41b380d277eee48d49fed85b86c6e1f39f6a84e7c74cd0511e3639"
-  version "1.2.0"
+  url "https://github.com/amebalabs/SwiftKey/releases/download/v1.3.0/SwiftKey-1.3.0.zip"
+  sha256 "a2abe45f145c8948ca7badf94423f4164ec8446f419f055afbbe71ce7c04d81a"
+  version "1.3.0"
   
   depends_on macos: ">= :monterey"
   

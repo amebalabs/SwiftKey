@@ -1,3 +1,17 @@
+# v1.3.0 (2025-06-09)
+
+# Dizzy Donut
+
+## v1.3.0
+
+## New Features
+
+- Configuration Editor UI: Dedicated tab for visual configuration editing
+- Real-time validation with helpful error messages
+- Undo/Redo support for configuration changes
+- Import/Export functionality for sharing configurations
+- Improved settings organization with configuration moved from General tab
+
 # v1.2.0 (2025-03-16)
 
 # Curious Croissant
