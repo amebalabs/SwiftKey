@@ -5,7 +5,6 @@ struct GeneralSettingsView: View {
     @EnvironmentObject var settings: SettingsStore
     @ObservedObject private var launchAtLogin = LaunchAtLogin.observable
     @EnvironmentObject private var sparkleUpdater: SparkleUpdater
-    @EnvironmentObject private var configManager: ConfigManager
 
     var body: some View {
         Form {
@@ -33,88 +32,6 @@ struct GeneralSettingsView: View {
             }
             KeyboardShortcuts.Recorder("Hot key", name: .toggleApp)
             Toggle("Trigger hold mode", isOn: settings.$triggerKeyHoldMode)
-            Divider()
-            // Configuration file section.
-            HStack {
-                Text("Configuration file:")
-                Button("Change...") {
-                    configManager.changeConfigFile()
-                }
-            }
-            HStack(spacing: 8) {
-                if !settings.configFilePath.isEmpty {
-                    if let url = configManager.resolveConfigFileURL() {
-                        Text(url.path)
-                            .font(.system(size: 11))
-                            .foregroundColor(.secondary)
-                            .textSelection(.enabled)
-                    }
-                } else {
-                    Text("No config file selected")
-                        .font(.system(size: 11))
-                        .foregroundColor(.secondary)
-                }
-
-                Button(action: {
-                    configManager.openConfigFile()
-                }) {
-                    Image(systemName: "doc.text")
-                        .foregroundColor(.accentColor)
-                }
-                .buttonStyle(BorderlessButtonStyle())
-                .help("Reveal configuration file in Finder")
-            }
-
-            // Show configuration error if present
-            if let error = configManager.lastError {
-                VStack(alignment: .leading, spacing: 5) {
-                    Text("Configuration Error")
-                        .font(.headline)
-                        .foregroundColor(.red)
-
-                    Text(error.localizedDescription)
-                        .font(.system(size: 12))
-                        .foregroundColor(.red)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .textSelection(.enabled)
-
-                    if let configError = error as? ConfigError,
-                       case let .invalidYamlFormat(_, line, column) = configError,
-                       line > 0
-                    {
-                        Text("Line \(line), Column \(column)")
-                            .font(.system(size: 11))
-                            .foregroundColor(.red)
-                    }
-
-                    HStack {
-                        Button("Reload Configuration") {
-                            Task {
-                                await configManager.loadConfig()
-                            }
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .controlSize(.small)
-
-                        Button("Edit File") {
-                            configManager.openConfigFile()
-                        }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
-                    }
-                    .padding(.top, 5)
-                }
-                .padding(10)
-                .background(Color.red.opacity(0.1))
-                .cornerRadius(8)
-                .padding(.vertical, 5)
-            } else if configManager.menuItems.isEmpty {
-                Text("No menu items loaded. Please check your configuration file.")
-                    .font(.system(size: 12))
-                    .foregroundColor(.orange)
-                    .padding(.vertical, 5)
-            }
-
             Divider()
 
             Section {

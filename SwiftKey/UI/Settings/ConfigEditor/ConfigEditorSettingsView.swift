@@ -4,6 +4,7 @@ import UniformTypeIdentifiers
 
 struct ConfigEditorSettingsView: View {
     @EnvironmentObject var configManager: ConfigManager
+    @EnvironmentObject var settings: SettingsStore
     @StateObject private var viewModel: ConfigEditorViewModel
     @State private var showingImportDialog = false
     @State private var showingValidationPanel = false
@@ -14,77 +15,55 @@ struct ConfigEditorSettingsView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // Header toolbar
-            HStack {
-                if viewModel.hasUnsavedChanges {
-                    HStack(spacing: 4) {
-                        Circle()
-                            .fill(Color.orange)
-                            .frame(width: 8, height: 8)
-                        Text("Modified")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+            // Show configuration error if present
+            if let error = configManager.lastError {
+                VStack(alignment: .leading, spacing: 5) {
+                    Text("Configuration Error")
+                        .font(.headline)
+                        .foregroundColor(.red)
+
+                    Text(error.localizedDescription)
+                        .font(.system(size: 12))
+                        .foregroundColor(.red)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .textSelection(.enabled)
+
+                    if let configError = error as? ConfigError,
+                       case let .invalidYamlFormat(_, line, column) = configError,
+                       line > 0
+                    {
+                        Text("Line \(line), Column \(column)")
+                            .font(.system(size: 11))
+                            .foregroundColor(.red)
                     }
-                }
-                
-                Spacer()
-                
-                // Action buttons
-                HStack(spacing: 8) {
-                    if viewModel.hasUnsavedChanges {
-                        Button(action: viewModel.undo) {
-                            Image(systemName: "arrow.uturn.backward")
-                        }
-                        .buttonStyle(BorderlessButtonStyle())
-                        .disabled(!viewModel.canUndo)
-                        .help("Undo")
-                        
-                        Button(action: viewModel.redo) {
-                            Image(systemName: "arrow.uturn.forward")
-                        }
-                        .buttonStyle(BorderlessButtonStyle())
-                        .disabled(!viewModel.canRedo)
-                        .help("Redo")
-                        
-                        Divider()
-                            .frame(height: 16)
-                    }
-                    
-                    Button("Open in Editor") {
-                        openInExternalEditor()
-                    }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                    .help("Open the YAML file in your default text editor")
-                    
-                    Button("Import...") {
-                        showingImportDialog = true
-                    }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                    .help("Import configuration from file")
-                    
-                    if viewModel.hasUnsavedChanges {
-                        Button("Discard") {
-                            viewModel.discardChanges()
-                        }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
-                        
-                        Button("Save") {
-                            viewModel.saveConfiguration()
+
+                    HStack {
+                        Button("Reload Configuration") {
+                            Task {
+                                await configManager.loadConfig()
+                            }
                         }
                         .buttonStyle(.borderedProminent)
                         .controlSize(.small)
-                        .disabled(hasValidationErrors)
-                        .help(hasValidationErrors ? "Fix validation errors before saving" : "Save changes")
+
+                        Button("Edit File") {
+                            configManager.openConfigFile()
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
                     }
+                    .padding(.top, 5)
                 }
+                .padding(10)
+                .background(Color.red.opacity(0.1))
+                .cornerRadius(8)
+                .padding()
+            } else if configManager.menuItems.isEmpty {
+                Text("No menu items loaded. Please check your configuration file.")
+                    .font(.system(size: 12))
+                    .foregroundColor(.orange)
+                    .padding()
             }
-            .padding(.horizontal)
-            .padding(.vertical, 8)
-            
-            Divider()
             
             // Main content using base view
             ConfigEditorBaseView(
@@ -92,6 +71,109 @@ struct ConfigEditorSettingsView: View {
                 showingImportDialog: $showingImportDialog,
                 showingValidationPanel: $showingValidationPanel
             )
+            
+            Divider()
+            
+            // Bottom toolbar with config path and buttons
+            VStack(spacing: 8) {
+                // Config file path section
+                HStack(spacing: 8) {
+                    Text("Configuration file:")
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                    
+                    if !settings.configFilePath.isEmpty {
+                        if let url = configManager.resolveConfigFileURL() {
+                            Text(url.path)
+                                .font(.system(size: 11))
+                                .foregroundColor(.secondary)
+                                .textSelection(.enabled)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                        }
+                    } else {
+                        Text("No config file selected")
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    Button(action: {
+                        configManager.openConfigFile()
+                    }) {
+                        Image(systemName: "doc.text")
+                            .foregroundColor(.accentColor)
+                    }
+                    .buttonStyle(BorderlessButtonStyle())
+                    .help("Reveal configuration file in Finder")
+                    
+                    Button("Change...") {
+                        configManager.changeConfigFile()
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    
+                    Spacer()
+                }
+                
+                // Action buttons
+                HStack {
+                    Spacer()
+                    
+                    // Buttons aligned to the right
+                    HStack(spacing: 8) {
+                        if viewModel.hasUnsavedChanges {
+                            Button(action: viewModel.undo) {
+                                Image(systemName: "arrow.uturn.backward")
+                            }
+                            .buttonStyle(BorderlessButtonStyle())
+                            .disabled(!viewModel.canUndo)
+                            .help("Undo")
+                            
+                            Button(action: viewModel.redo) {
+                                Image(systemName: "arrow.uturn.forward")
+                            }
+                            .buttonStyle(BorderlessButtonStyle())
+                            .disabled(!viewModel.canRedo)
+                            .help("Redo")
+                            
+                            Divider()
+                                .frame(height: 16)
+                        }
+                        
+                        Button("Open in Editor") {
+                            openInExternalEditor()
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        .help("Open the YAML file in your default text editor")
+                        
+                        Button("Import...") {
+                            showingImportDialog = true
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        .help("Import configuration from file")
+                        
+                        if viewModel.hasUnsavedChanges {
+                            Button("Discard") {
+                                viewModel.discardChanges()
+                            }
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+                            
+                            Button("Save") {
+                                viewModel.saveConfiguration()
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .controlSize(.small)
+                            .disabled(hasValidationErrors)
+                            .help(hasValidationErrors ? "Fix validation errors before saving" : "Save changes")
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal)
+            .padding(.vertical, 10)
         }
         .frame(minWidth: 800, minHeight: 600)
         .frame(idealWidth: 900, idealHeight: 650)
@@ -169,5 +251,7 @@ struct ConfigEditorSettingsView_Previews: PreviewProvider {
     static var previews: some View {
         ConfigEditorSettingsView()
             .frame(width: 700, height: 500)
+            .environmentObject(SettingsStore())
+            .environmentObject(ConfigManager())
     }
 }

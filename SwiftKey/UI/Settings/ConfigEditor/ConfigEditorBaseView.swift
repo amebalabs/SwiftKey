@@ -66,6 +66,18 @@ struct ConfigEditorBaseView: View {
                 
                 Spacer()
                 
+                // Modified indicator
+                if viewModel.hasUnsavedChanges {
+                    HStack(spacing: 4) {
+                        Circle()
+                            .fill(Color.orange)
+                            .frame(width: 8, height: 8)
+                        Text("Modified")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                
                 if !viewModel.validationErrors.isEmpty {
                     validationIndicator
                 }
