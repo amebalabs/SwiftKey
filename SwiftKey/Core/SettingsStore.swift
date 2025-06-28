@@ -22,6 +22,7 @@ class SettingsStore: ObservableObject, DependencyInjectable {
         case panel = "Default"
         case hud = "Compact: HUD"
         case faceless = "Compact: Menu Bar"
+        case cornerToast = "Minimal: Corner Toast"
     }
 
     enum OverlayScreenOption: String, CaseIterable, Codable {

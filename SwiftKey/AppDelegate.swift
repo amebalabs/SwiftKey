@@ -48,6 +48,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     // Local state
     var overlayWindow: OverlayWindow?
     var notchContext: NotchContext?
+    var cornerToastController: CornerToastWindowController?
+    var cornerToastState: CornerToastState?
     var lastHideTime: Date?
     var statusItem: NSStatusItem?
     var facelessMenuController: FacelessMenuController?
@@ -57,7 +59,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     var isOverlayVisible: Bool {
         overlayWindow?.isVisible == true || notchContext?
-            .presented == true || (facelessMenuController?.sessionActive == true)
+            .presented == true || (facelessMenuController?.sessionActive == true) || cornerToastController?.window?.isVisible == true
     }
 
     func applicationDidFinishLaunching(_: Notification) {
@@ -140,7 +142,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     @MainActor
     func applySettings() async {
-        if overlayWindow?.isVisible == true || notchContext?.presented == true {
+        if overlayWindow?.isVisible == true || notchContext?.presented == true || cornerToastController?.window?.isVisible == true {
             logger.debug("Hiding overlay due to settings change")
             NotificationCenter.default.post(name: .hideOverlay, object: nil)
         }
@@ -200,6 +202,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 menuState.reset()
             }
             presentOverlay()
+            
+        case .cornerToast:
+            setupCornerToastIfNeeded()
+            cornerToastController?.show()
         }
     }
 
@@ -216,6 +222,26 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 ),
                 animated: true,
                 settingsStore: settings
+            )
+        }
+    }
+    
+    @MainActor
+    private func setupCornerToastIfNeeded() {
+        if cornerToastController == nil {
+            // Create a shared toast state
+            let toastState = CornerToastState()
+            self.cornerToastState = toastState
+            
+            let toastView = CornerToastView(state: menuState, toastState: toastState)
+                .environmentObject(settings)
+                .environmentObject(keyboardManager)
+            
+            cornerToastController = CornerToastWindowController(
+                contentView: toastView,
+                resetHandler: { [weak toastState] in
+                    toastState?.reset()
+                }
             )
         }
     }
@@ -250,6 +276,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         case .faceless:
             overlayWindow?.orderOut(nil)
             facelessMenuController?.endSession()
+        case .cornerToast:
+            overlayWindow?.orderOut(nil)
+            cornerToastController?.hide()
+            menuState.reset()
         }
         if NSApp.windows.isEmpty {
             NSApp.hide(nil)
