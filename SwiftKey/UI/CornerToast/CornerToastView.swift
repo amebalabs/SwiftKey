@@ -8,6 +8,8 @@ class CornerToastState: ObservableObject {
         isExpanded = false
         autoExpandTimer?.invalidate()
         autoExpandTimer = nil
+        // Schedule auto-expand after reset
+        scheduleAutoExpand()
     }
     
     func scheduleAutoExpand(after delay: TimeInterval = 0.8) {
