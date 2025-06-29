@@ -289,7 +289,7 @@ struct CornerToastView: View {
             // Footer
             ToastFooterView()
         }
-        .frame(minWidth: 280, maxWidth: 350, maxHeight: getMaxMenuHeight() + 100)
+        .frame(minWidth: 280, maxWidth: 350)
     }
     
     // MARK: - Helper Methods
@@ -303,7 +303,7 @@ struct CornerToastView: View {
     
     func ensureProperPosition() {
         if let window = NSApp.keyWindow as? CornerToastWindow {
-            window.positionInCorner()
+            window.ensureFitsOnScreen()
         }
     }
     
@@ -381,10 +381,19 @@ struct CornerToastView: View {
     }
     
     func getMaxMenuHeight() -> CGFloat {
-        // Get screen height and calculate max height for menu items
-        guard let screen = NSScreen.main else { return 400 }
-        let screenHeight = screen.visibleFrame.height
-        // Use 70% of screen height for menu items, leaving room for header/footer
-        return min(screenHeight * 0.7, 600)
+        // Get the window and its screen to calculate available space
+        guard let window = NSApp.keyWindow as? CornerToastWindow,
+              let screen = window.screen ?? NSScreen.main else { return 400 }
+        
+        let screenFrame = screen.visibleFrame
+        let windowY = window.frame.origin.y
+        let padding: CGFloat = 20
+        
+        // Calculate available height from window position to top of screen
+        // Subtract padding and space for header/footer (approximately 100pt)
+        let availableHeight = screenFrame.maxY - windowY - padding - 100
+        
+        // Return the smaller of available height or a reasonable maximum
+        return min(max(availableHeight, 200), 600)
     }
 }

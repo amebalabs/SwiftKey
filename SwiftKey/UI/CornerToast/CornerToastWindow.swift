@@ -69,8 +69,40 @@ class CornerToastWindow: NSWindow {
     /// This is called when the SwiftUI content size changes.
     /// - Parameter size: The new size for the window content
     func updateSizeAndPosition(for size: CGSize) {
+        // First update the size
         let newFrame = NSRect(origin: frame.origin, size: size)
         setFrame(newFrame, display: true, animate: false)
-        positionInCorner()
+        
+        // Then ensure the window fits on screen
+        ensureFitsOnScreen()
+    }
+    
+    /// Ensures the window is fully visible on screen by adjusting its position if needed
+    func ensureFitsOnScreen() {
+        guard let screen = self.screen ?? NSScreen.main else { return }
+        
+        let screenFrame = screen.visibleFrame
+        let padding: CGFloat = 20
+        var newFrame = frame
+        
+        // Check if window extends beyond screen boundaries
+        if newFrame.maxY > screenFrame.maxY - padding {
+            // Move window down to fit
+            newFrame.origin.y = screenFrame.maxY - newFrame.height - padding
+        }
+        
+        if newFrame.minY < screenFrame.minY + padding {
+            // Window is too tall, position at bottom with padding
+            newFrame.origin.y = screenFrame.minY + padding
+        }
+        
+        if newFrame.maxX > screenFrame.maxX - padding {
+            // Move window left to fit
+            newFrame.origin.x = screenFrame.maxX - newFrame.width - padding
+        }
+        
+        if newFrame.origin != frame.origin {
+            setFrameOrigin(newFrame.origin)
+        }
     }
 }
