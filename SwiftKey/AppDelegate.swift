@@ -58,8 +58,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private static var activeGalleryWindow: NSWindow?
 
     var isOverlayVisible: Bool {
-        overlayWindow?.isVisible == true || notchContext?
-            .presented == true || (facelessMenuController?.sessionActive == true) || cornerToastController?.window?.isVisible == true
+        [
+            overlayWindow?.isVisible == true,
+            notchContext?.presented == true,
+            facelessMenuController?.sessionActive == true,
+            cornerToastController?.window?.isVisible == true
+        ].contains(true)
     }
 
     func applicationDidFinishLaunching(_: Notification) {
@@ -142,7 +146,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     @MainActor
     func applySettings() async {
-        if overlayWindow?.isVisible == true || notchContext?.presented == true || cornerToastController?.window?.isVisible == true {
+        if isOverlayVisible {
             logger.debug("Hiding overlay due to settings change")
             NotificationCenter.default.post(name: .hideOverlay, object: nil)
         }

@@ -1,33 +1,167 @@
 import SwiftUI
 
+// MARK: - Toast Menu Item View
+
+/// A view component that renders a single menu item in the corner toast.
+/// Displays the keyboard shortcut, icon, title, and submenu indicator.
+struct ToastMenuItemView: View {
+    let item: MenuItem
+    let index: Int
+    
+    var body: some View {
+        HStack(spacing: 8) {
+            Text(item.key)
+                .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                .foregroundColor(.white.opacity(0.5))
+                .frame(width: 20, alignment: .center)
+                .padding(.horizontal, 4)
+                .padding(.vertical, 2)
+                .background(
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Color.white.opacity(0.1))
+                )
+            
+            if item.icon != nil {
+                // SF Symbol
+                item.iconImage
+                    .font(.system(size: 12))
+                    .foregroundColor(.white.opacity(0.7))
+                    .frame(width: 16, height: 16)
+            } else {
+                // App icon or favicon
+                item.iconImage
+                    .resizable()
+                    .interpolation(.high)
+                    .scaledToFit()
+                    .frame(width: 14, height: 14)
+                    .clipShape(RoundedRectangle(cornerRadius: 3))
+            }
+            
+            Text(item.title)
+                .font(.system(size: 13))
+                .foregroundColor(.white.opacity(0.9))
+                .lineLimit(1)
+            
+            Spacer()
+            
+            if item.submenu != nil {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 10))
+                    .foregroundColor(.white.opacity(0.4))
+            }
+        }
+        .padding(.vertical, 4)
+        .padding(.horizontal, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 6)
+                .fill(Color.white.opacity(0.05))
+        )
+    }
+}
+
+// MARK: - Toast Header View
+
+/// The header component of the expanded toast view.
+/// Shows the navigation breadcrumbs and a close button.
+struct ToastHeaderView: View {
+    let breadcrumbs: [String]
+    let onClose: () -> Void
+    
+    var body: some View {
+        HStack {
+            if !breadcrumbs.isEmpty {
+                Text(breadcrumbs.joined(separator: " › "))
+                    .font(.caption)
+                    .foregroundColor(.white.opacity(0.6))
+                    .lineLimit(1)
+            }
+            
+            Spacer()
+            
+            Button(action: onClose) {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: 14))
+                    .foregroundColor(.white.opacity(0.5))
+            }
+            .buttonStyle(PlainButtonStyle())
+        }
+        .frame(minWidth: 250)
+    }
+}
+
+// MARK: - Toast Footer View
+
+/// The footer component of the expanded toast view.
+/// Displays helpful hints about keyboard navigation.
+struct ToastFooterView: View {
+    var body: some View {
+        HStack(spacing: 4) {
+            Text("Type to select")
+                .font(.caption2)
+                .foregroundColor(.white.opacity(0.4))
+            
+            Text("•")
+                .font(.caption2)
+                .foregroundColor(.white.opacity(0.3))
+            
+            Text("? for help")
+                .font(.caption2)
+                .foregroundColor(.white.opacity(0.4))
+            
+            Text("•")
+                .font(.caption2)
+                .foregroundColor(.white.opacity(0.3))
+            
+            Text("ESC to close")
+                .font(.caption2)
+                .foregroundColor(.white.opacity(0.4))
+        }
+        .padding(.top, 4)
+    }
+}
+
+// MARK: - Corner Toast State
+
+/// Observable state object for the corner toast UI.
+/// Manages the expanded/collapsed state and auto-expansion timing.
+@MainActor
 class CornerToastState: ObservableObject {
     @Published var isExpanded: Bool = false
-    @Published var autoExpandTimer: Timer?
+    private var autoExpandTask: Task<Void, Never>?
     
     func reset() {
         isExpanded = false
-        autoExpandTimer?.invalidate()
-        autoExpandTimer = nil
+        cancelAutoExpand()
         // Schedule auto-expand after reset
         scheduleAutoExpand()
     }
     
     func scheduleAutoExpand(after delay: TimeInterval = 0.8) {
-        // Cancel any existing timer
-        autoExpandTimer?.invalidate()
+        // Cancel any existing task
+        cancelAutoExpand()
         
-        // Schedule new timer
-        autoExpandTimer = Timer.scheduledTimer(withTimeInterval: delay, repeats: false) { _ in
-            self.isExpanded = true
+        // Schedule new task
+        autoExpandTask = Task { [weak self] in
+            do {
+                try await Task.sleep(for: .seconds(delay))
+                await MainActor.run { [weak self] in
+                    self?.isExpanded = true
+                }
+            } catch {
+                // Task was cancelled, which is fine
+            }
         }
     }
     
     func cancelAutoExpand() {
-        autoExpandTimer?.invalidate()
-        autoExpandTimer = nil
+        autoExpandTask?.cancel()
+        autoExpandTask = nil
     }
 }
 
+/// The main view for the corner toast overlay.
+/// Provides a minimal, non-intrusive interface that can be expanded to show the full menu.
+/// Handles keyboard input and manages transitions between collapsed and expanded states.
 struct CornerToastView: View {
     @ObservedObject var state: MenuState
     @ObservedObject var toastState: CornerToastState
@@ -82,7 +216,12 @@ struct CornerToastView: View {
             toastState.cancelAutoExpand()
         }
         .onChange(of: toastState.isExpanded) { oldValue, newValue in
-            // Force window to recalculate size when changing states
+            // Workaround for SwiftUI/AppKit integration challenges:
+            // When transitioning between collapsed/expanded states, SwiftUI's dynamic layout
+            // doesn't always communicate size changes to AppKit windows properly.
+            // We manually set a small frame when collapsing to ensure smooth animation
+            // and prevent layout glitches. The delay allows SwiftUI to complete its
+            // layout pass before we reposition the window.
             if !newValue {
                 // When collapsing, reset to small size first
                 if let window = NSApp.keyWindow as? CornerToastWindow {
@@ -113,16 +252,10 @@ struct CornerToastView: View {
                 .font(.system(size: 16))
                 .foregroundColor(.white.opacity(0.8))
             
-            if !state.breadcrumbs.isEmpty {
-                Text(state.breadcrumbs.last ?? "SwiftKey")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(.white.opacity(0.9))
-                    .lineLimit(1)
-            } else {
-                Text("SwiftKey")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(.white.opacity(0.9))
-            }
+            Text(state.breadcrumbs.last ?? "SwiftKey")
+                .font(.system(size: 13, weight: .medium))
+                .foregroundColor(.white.opacity(0.9))
+                .lineLimit(1)
             
             Image(systemName: "chevron.left")
                 .font(.system(size: 11))
@@ -138,113 +271,28 @@ struct CornerToastView: View {
     var expandedView: some View {
         VStack(alignment: .leading, spacing: 12) {
             // Header
-            HStack {
-                if !state.breadcrumbs.isEmpty {
-                    Text(state.breadcrumbs.joined(separator: " › "))
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.6))
-                        .lineLimit(1)
-                }
-                
-                Spacer()
-                
-                Button(action: {
-                    toastState.isExpanded = false
-                }) {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 14))
-                        .foregroundColor(.white.opacity(0.5))
-                }
-                .buttonStyle(PlainButtonStyle())
-            }
-            .frame(minWidth: 250)
+            ToastHeaderView(
+                breadcrumbs: state.breadcrumbs,
+                onClose: { toastState.isExpanded = false }
+            )
             
             // Menu items
             ScrollView {
                 VStack(alignment: .leading, spacing: 6) {
                     ForEach(Array(state.visibleMenu.enumerated()), id: \.element.id) { index, item in
-                        menuItemView(for: item, index: index)
+                        ToastMenuItemView(item: item, index: index)
                     }
                 }
             }
             .frame(maxHeight: getMaxMenuHeight())
             
             // Footer
-            HStack(spacing: 4) {
-                Text("Type to select")
-                    .font(.caption2)
-                    .foregroundColor(.white.opacity(0.4))
-                
-                Text("•")
-                    .font(.caption2)
-                    .foregroundColor(.white.opacity(0.3))
-                
-                Text("? for help")
-                    .font(.caption2)
-                    .foregroundColor(.white.opacity(0.4))
-                
-                Text("•")
-                    .font(.caption2)
-                    .foregroundColor(.white.opacity(0.3))
-                
-                Text("ESC to close")
-                    .font(.caption2)
-                    .foregroundColor(.white.opacity(0.4))
-            }
-            .padding(.top, 4)
+            ToastFooterView()
         }
         .frame(minWidth: 280, maxWidth: 350, maxHeight: getMaxMenuHeight() + 100)
     }
     
-    func menuItemView(for item: MenuItem, index: Int) -> some View {
-        HStack(spacing: 8) {
-            Text(item.key)
-                .font(.system(size: 11, weight: .semibold, design: .monospaced))
-                .foregroundColor(.white.opacity(0.5))
-                .frame(width: 20, alignment: .center)
-                .padding(.horizontal, 4)
-                .padding(.vertical, 2)
-                .background(
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(Color.white.opacity(0.1))
-                )
-            
-            if item.icon != nil {
-                // SF Symbol
-                item.iconImage
-                    .font(.system(size: 12))
-                    .foregroundColor(.white.opacity(0.7))
-                    .frame(width: 16, height: 16)
-            } else {
-                // App icon or favicon
-                item.iconImage
-                    .resizable()
-                    .interpolation(.high)
-                    .scaledToFit()
-                    .frame(width: 14, height: 14)
-                    .clipShape(RoundedRectangle(cornerRadius: 3))
-            }
-            
-            Text(item.title)
-                .font(.system(size: 13))
-                .foregroundColor(.white.opacity(0.9))
-                .lineLimit(1)
-            
-            Spacer()
-            
-            if item.submenu != nil {
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 10))
-                    .foregroundColor(.white.opacity(0.4))
-            }
-        }
-        .padding(.vertical, 4)
-        .padding(.horizontal, 8)
-        .background(
-            RoundedRectangle(cornerRadius: 6)
-                .fill(Color.white.opacity(0.05))
-        )
-    }
+    // MARK: - Helper Methods
     
     func updateWindowSize(_ size: CGSize) {
         windowSize = size

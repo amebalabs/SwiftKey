@@ -2,6 +2,9 @@ import Cocoa
 import SwiftUI
 import Combine
 
+/// Window controller for the corner toast overlay.
+/// Manages the lifecycle of the toast window and coordinates between AppKit and SwiftUI.
+/// Provides methods to show/hide the toast and handles proper window setup.
 class CornerToastWindowController: NSWindowController {
     private var hostingController: NSHostingController<AnyView>?
     private var sizeObserver: AnyCancellable?
@@ -47,6 +50,8 @@ class CornerToastWindowController: NSWindowController {
         fatalError("init(coder:) has not been implemented")
     }
     
+    /// Shows the corner toast window.
+    /// Resets the view state, positions the window, and makes it visible.
     func show() {
         guard let window = window else { return }
         
@@ -69,6 +74,8 @@ class CornerToastWindowController: NSWindowController {
         }
     }
     
+    /// Hides the corner toast window without closing it.
+    /// The window remains in memory for quick re-display.
     func hide() {
         window?.orderOut(nil)
         // Don't close the window, just hide it so it can be shown again
