@@ -209,11 +209,20 @@ struct CornerToastView: View {
                         .fill(Color.white.opacity(0.1))
                 )
             
-            if let icon = item.icon {
-                Image(systemName: icon)
+            if item.icon != nil {
+                // SF Symbol
+                item.iconImage
                     .font(.system(size: 12))
                     .foregroundColor(.white.opacity(0.7))
-                    .frame(width: 16)
+                    .frame(width: 16, height: 16)
+            } else {
+                // App icon or favicon
+                item.iconImage
+                    .resizable()
+                    .interpolation(.high)
+                    .scaledToFit()
+                    .frame(width: 14, height: 14)
+                    .clipShape(RoundedRectangle(cornerRadius: 3))
             }
             
             Text(item.title)
