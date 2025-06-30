@@ -48,8 +48,9 @@ class FacelessMenuController: DependencyInjectable {
                 )?
                     .withSymbolConfiguration(imageConfig)
             } else {
+                statusItem.button?.title = ""
                 statusItem.button?
-                    .image = NSImage(systemSymbolName: "k.circle", accessibilityDescription: "Active session")?
+                    .image = NSImage(systemSymbolName: "k.circle", accessibilityDescription: "SwiftKey")?
                     .withSymbolConfiguration(imageConfig)
             }
         }

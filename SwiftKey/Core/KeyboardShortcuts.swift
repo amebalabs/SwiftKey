@@ -153,7 +153,8 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
             logger
                 .debug("Sticky: original=\(stickyValue), option=\(isOptionPressed), effective=\(effectiveStickyValue)")
 
-            if effectiveStickyValue, overlayStyle == .panel {
+            // Apply sticky behavior for panel and cornerToast modes
+            if effectiveStickyValue && (overlayStyle == .panel || overlayStyle == .cornerToast) {
                 return .actionExecuted(sticky: true)
             } else {
                 return .actionExecuted(sticky: false)
