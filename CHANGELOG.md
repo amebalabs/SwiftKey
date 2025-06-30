@@ -8,6 +8,16 @@
 
 - Corner Toast UI: New notification style for quick actions and feedback
 
+# v1.4.0 (2025-06-30)
+
+# Eccentric Eggplant
+
+## v1.4.0
+
+## New Features
+
+- Corner Toast UI: New notification style for quick actions and feedback
+
 # v1.3.0 (2025-06-09)
 
 # Dizzy Donut
