@@ -1,7 +1,6 @@
 [![GitHub license](https://img.shields.io/github/license/amebalabs/SwiftKey.svg)](https://github.com/amebalabs/SwiftKey/blob/master/LICENSE)
 [![Latest Release](https://img.shields.io/github/v/release/amebalabs/SwiftKey)](https://github.com/amebalabs/SwiftKey/releases/latest)
 [![macOS](https://img.shields.io/badge/macOS-15.0+-blue.svg)](https://www.apple.com/macos/)
-[![Downloads](https://img.shields.io/github/downloads/amebalabs/SwiftKey/total.svg)](https://github.com/amebalabs/SwiftKey/releases)
 
 <p align="center">
     <a href="https://swiftkey.app"><img width="128" height="128" src="docs/logo.png" style="filter: drop-shadow(0px 2px 4px rgba(80, 50, 6, 0.2));"></a>
