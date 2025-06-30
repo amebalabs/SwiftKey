@@ -252,7 +252,7 @@ struct CornerToastView: View {
                 .font(.system(size: 16))
                 .foregroundColor(.white.opacity(0.8))
             
-            Text(state.breadcrumbs.last ?? "SwiftKey")
+            Text(state.breadcrumbs.last ?? "")
                 .font(.system(size: 13, weight: .medium))
                 .foregroundColor(.white.opacity(0.9))
                 .lineLimit(1)
@@ -261,7 +261,7 @@ struct CornerToastView: View {
                 .font(.system(size: 11))
                 .foregroundColor(.white.opacity(0.5))
         }
-        .frame(minWidth: 120)
+        .frame(minWidth: 40)
         .contentShape(Rectangle())
         .onTapGesture {
             toastState.isExpanded = true
