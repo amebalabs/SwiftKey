@@ -1,0 +1,7 @@
+format: ting.microapp/2
+name: Search the web
+description: Search the web for the clipboard text in the default browser.
+
+input: clipboard
+steps:
+  - open: https://duckduckgo.com/?q=${input|trim|url}

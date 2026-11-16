@@ -3,6 +3,14 @@
 description = "Build tasks"
 run = "xcodebuild -scheme 'SwiftKey' -configuration Release build"
 
+[tasks.test-core]
+description = "Test tasks"
+run = "swift test --package-path Packages/SwiftKeyCore"
+
+[tasks.test]
+description = "Test tasks"
+run = "swift test --package-path Packages/SwiftKeyCore && xcodebuild -scheme 'SwiftKey' -configuration Debug -destination 'platform=macOS' test"
+
 [tasks.format]
 description = "Code quality"
 run = "swiftformat ."

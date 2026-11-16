@@ -1,0 +1,38 @@
+format: ting.microapp/2
+id: dns-lookup
+name: DNS lookup
+description: Look up DNS records of a domain with dig, or its owner with whois.
+tools: [dig, whois]
+
+params:
+  - name: domain
+    type: text
+    required: true
+    prompt: Domain
+  - name: tool
+    type: choice
+    required: false
+    default: dig
+    choices: [dig, whois]
+    prompt: Tool
+  - name: record
+    type: choice
+    required: false
+    default: A
+    choices: [A, AAAA, MX, TXT, NS, CNAME]
+    prompt: Record type (dig only)
+
+input: none
+# dig has no `--`, so a domain that starts with `-` is refused before it can become an option.
+command: |
+  case "$TING_DOMAIN" in
+    -*) echo "Not a domain: $TING_DOMAIN" >&2; exit 2 ;;
+  esac
+  if [ "$TING_TOOL" = whois ]; then
+    whois -- "$TING_DOMAIN"
+  else
+    dig +noall +answer "$TING_DOMAIN" "$TING_RECORD"
+  fi
+output:
+  to: [panel]
+  as: console

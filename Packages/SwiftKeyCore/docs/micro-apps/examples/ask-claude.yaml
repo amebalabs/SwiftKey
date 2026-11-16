@@ -1,0 +1,27 @@
+format: ting.microapp/2
+name: Ask Claude
+description: Ask Claude about the clipboard text and show the answer while it comes.
+timeout: 180
+
+params:
+  - name: question
+    type: text
+    required: true
+    prompt: Question
+
+input: clipboard
+steps:
+  # Add the key once: security add-generic-password -s anthropic -a "$USER" -w
+  - ai: |
+      ${params.question}
+
+      <text>
+      ${input}
+      </text>
+    provider: anthropic
+    model: claude-sonnet-5-5
+    key: ${keychain.anthropic}
+    max_tokens: 4096
+output:
+  to: [panel]
+  as: markdown

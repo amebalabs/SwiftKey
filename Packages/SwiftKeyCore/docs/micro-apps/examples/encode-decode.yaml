@@ -1,0 +1,29 @@
+format: ting.microapp/2
+name: Encode / decode
+description: Encode or decode the clipboard text as Base64 or URL encoding.
+
+params:
+  - name: mode
+    type: choice
+    required: true
+    choices: [base64-encode, base64-decode, url-encode, url-decode]
+    prompt: Mode
+
+input: clipboard
+steps:
+  - python: |
+      import base64, os, sys, urllib.parse
+      text = sys.stdin.read()
+      mode = os.environ["TING_MODE"]
+      if mode == "base64-encode":
+          result = base64.b64encode(text.encode()).decode()
+      elif mode == "base64-decode":
+          result = base64.b64decode("".join(text.split()), validate=True).decode()
+      elif mode == "url-encode":
+          result = urllib.parse.quote(text.rstrip("\n"), safe="~")
+      else:
+          result = urllib.parse.unquote_plus(text)
+      sys.stdout.write(result)
+output:
+  to: [clipboard, panel]
+  as: text

@@ -1,0 +1,11 @@
+format: ting.microapp/2
+name: Count words
+description: Count the words, characters and lines of the clipboard text.
+tools: [wc, awk]
+
+input: clipboard
+# Ting starts commands without a locale; wc counts characters, not bytes, only with UTF-8 set.
+command: |
+  LC_ALL=en_US.UTF-8 wc -lwm | awk '{ printf "| | |\n|---|---:|\n| Words | %d |\n| Characters | %d |\n| Lines | %d |\n", $2, $3, $1 }'
+output:
+  to: [panel]

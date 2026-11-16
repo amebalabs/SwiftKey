@@ -1,0 +1,23 @@
+format: ting.microapp/2
+name: Change case
+description: Change the case of the clipboard text to upper, lower or title case.
+
+params:
+  - name: mode
+    type: choice
+    required: false
+    default: upper
+    choices: [upper, lower, title]
+    prompt: Case
+
+input: clipboard
+steps:
+  # Python reads and writes UTF-8, so non-Latin letters change case too.
+  - python: |
+      import os, sys
+      text = sys.stdin.read()
+      mode = os.environ["TING_MODE"]
+      sys.stdout.write(text.upper() if mode == "upper" else text.lower() if mode == "lower" else text.title())
+output:
+  to: [clipboard, panel]
+  as: text

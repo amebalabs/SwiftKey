@@ -1,0 +1,27 @@
+format: ting.microapp/2
+name: Wikipedia summary
+description: Show the Wikipedia summary of the clipboard word or title.
+
+params:
+  - name: lang
+    type: choice
+    required: false
+    default: en
+    choices: [en, de, uk, ru]
+    prompt: Wikipedia
+
+input: clipboard
+steps:
+  - url: https://${params.lang}.wikipedia.org/api/rest_v1/page/summary/${input|trim|url}
+    id: page
+  - json: extract
+    id: extract
+  - json: content_urls.desktop.page
+    stdin: ${steps.page}
+  - text: |
+      ${steps.extract}
+
+      ${input}
+output:
+  to: [panel]
+  as: markdown

@@ -1,0 +1,21 @@
+format: ting.microapp/2
+name: Translate
+description: Translate the clipboard text with OpenAI into the chosen language and copy the translation.
+timeout: 120
+
+params:
+  - name: language
+    type: choice
+    required: false
+    default: English
+    choices: [English, Ukrainian, Russian, German]
+    prompt: Into
+
+input: clipboard
+steps:
+  - call: translate
+    params:
+      language: ${params.language}
+output:
+  to: [clipboard, panel]
+  as: text

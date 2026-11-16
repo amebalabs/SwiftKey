@@ -1,0 +1,18 @@
+format: ting.microapp/2
+name: About the active app
+description: Show the name, bundle id and path of the active app, and the title and document of its front window.
+
+context: [app, window]
+input: none
+steps:
+  - text: |
+      | | |
+      |---|---|
+      | App | ${context.app.name} |
+      | Bundle id | ${context.app.bundle} |
+      | Path | ${context.app.path} |
+      | Window | ${context.window.title} |
+      | Document | ${context.window.document} |
+output:
+  to: [panel]
+  as: markdown

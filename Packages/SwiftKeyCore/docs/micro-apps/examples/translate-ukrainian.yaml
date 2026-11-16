@@ -1,0 +1,10 @@
+format: ting.microapp/2
+inherit: translate
+name: Translate to Ukrainian
+description: Translate the clipboard text into Ukrainian with OpenAI and copy the translation.
+
+# Everything else comes from libs/translate.yaml; this file sets the language of its `translate` step.
+steps:
+  - id: translate
+    params:
+      language: Ukrainian
