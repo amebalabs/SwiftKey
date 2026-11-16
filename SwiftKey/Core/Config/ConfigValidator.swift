@@ -167,21 +167,24 @@ final class ConfigValidator {
                 issues.append(ValidationIssue(
                     type: .invalidPath,
                     severity: .error,
-                    message: "Application path cannot be empty",
+                    message: "Application path or bundle identifier cannot be empty",
                     itemId: itemId,
                     path: path
                 ))
-            } else {
-                let expandedPath = (appPath as NSString).expandingTildeInPath
-                if !FileManager.default.fileExists(atPath: expandedPath) {
-                    issues.append(ValidationIssue(
-                        type: .invalidPath,
-                        severity: .warning,
-                        message: "Application may not exist: \(appPath)",
-                        itemId: itemId,
-                        path: path
-                    ))
+            } else if LaunchTarget(appPath).resolve() == nil {
+                let message: String
+                if case .bundleID = LaunchTarget(appPath) {
+                    message = "No installed application has the bundle identifier \(appPath)"
+                } else {
+                    message = "Application may not exist: \(appPath)"
                 }
+                issues.append(ValidationIssue(
+                    type: .invalidPath,
+                    severity: .warning,
+                    message: message,
+                    itemId: itemId,
+                    path: path
+                ))
             }
         } else if action.hasPrefix("shell://") {
             let command = String(action.dropFirst("shell://".count))

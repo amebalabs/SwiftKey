@@ -88,22 +88,12 @@ struct MenuItem: Identifiable, Codable, Equatable {
     var actionClosure: (() -> Void)? {
         guard let action = action else { return nil }
         if action.hasPrefix("launch://") {
-            let appPath = String(action.dropFirst("launch://".count))
+            let target = LaunchTarget(String(action.dropFirst("launch://".count)))
             return {
-                AppLogger.app.debug("Launching application at path: \(appPath)")
+                AppLogger.app.debug("Launching application: \(String(describing: target))")
 
                 Task { @MainActor in
-                    let expandedPath = (appPath as NSString).expandingTildeInPath
-                    let appURL = URL(fileURLWithPath: expandedPath)
-
-                    if FileManager.default.fileExists(atPath: appURL.path) {
-                        NSWorkspace.shared.openApplication(
-                            at: appURL, configuration: .init(), completionHandler: nil
-                        )
-                        AppLogger.app.debug("Successfully launched app at: \(appURL.path)")
-                    } else {
-                        AppLogger.app.error("Application not found or invalid at path: \(appPath, privacy: .public)")
-                    }
+                    target.open()
                 }
             }
         }
@@ -210,8 +200,8 @@ extension MenuItem {
             return Image(systemName: icon)
         } else if let action = action {
             if action.hasPrefix("launch://") {
-                let appPath = String(action.dropFirst("launch://".count))
-                if let nsImage = getCachedAppIcon(appPath: appPath) {
+                let target = LaunchTarget(String(action.dropFirst("launch://".count)))
+                if let appPath = target.resolve()?.path, let nsImage = getCachedAppIcon(appPath: appPath) {
                     resultImage = Image(nsImage: nsImage)
                 } else {
                     resultImage = Image(systemName: "questionmark")

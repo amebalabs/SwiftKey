@@ -269,9 +269,8 @@ class ConfigEditorViewModel: ObservableObject {
         var errors: [ValidationError] = []
         
         if action.hasPrefix("launch://") {
-            let path = String(action.dropFirst("launch://".count))
-            let expandedPath = (path as NSString).expandingTildeInPath
-            if !FileManager.default.fileExists(atPath: expandedPath) {
+            let target = LaunchTarget(String(action.dropFirst("launch://".count)))
+            if target.resolve() == nil {
                 errors.append(ValidationError(field: "action", message: "Application not found", severity: .error))
             }
         } else if action.hasPrefix("open://") {
