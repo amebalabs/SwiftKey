@@ -566,6 +566,10 @@ class ConfigManager: DependencyInjectable, ObservableObject {
     }
 
     func resolveConfigFileURL() -> URL? {
+        // SWIFTKEY_CONFIG names the config file and wins over the stored path
+        if let override = AppPaths.current.configOverride {
+            return createConfigIfNeeded(at: override)
+        }
         // Use the direct path
         if let url = settingsStore.configFileResolvedURL {
             logger.debug("Using direct path: \(url.path, privacy: .public)")
@@ -582,6 +586,26 @@ class ConfigManager: DependencyInjectable, ObservableObject {
             }
 
             return defaultConfigPath
+        }
+    }
+
+    /// Copies the bundled default config to `url` when no file is there yet.
+    private func createConfigIfNeeded(at url: URL) -> URL? {
+        if FileManager.default.fileExists(atPath: url.path) {
+            return url
+        }
+        guard let bundledConfigURL = Bundle.main.url(forResource: "menu", withExtension: "yaml") else {
+            logger.fault("Could not find bundled menu.yaml")
+            return nil
+        }
+        do {
+            try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try FileManager.default.copyItem(at: bundledConfigURL, to: url)
+            logger.info("Copied bundled config to \(url.path, privacy: .public)")
+            return url
+        } catch {
+            logger.error("Failed to create config at \(url.path, privacy: .public): \(error.localizedDescription)")
+            return nil
         }
     }
 

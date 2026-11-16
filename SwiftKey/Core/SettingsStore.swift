@@ -35,28 +35,28 @@ class SettingsStore: ObservableObject, DependencyInjectable, SettingsStoring {
         case mouse = "Screen with Mouse"
     }
 
-    @AppStorage("ConfigFilePath") var configFilePath: String = "" {
+    @AppStorage("ConfigFilePath", store: AppPaths.defaults) var configFilePath: String = "" {
         didSet { settingsChangedSubject.send() }
     }
-    @AppStorage("MenuStateResetDelay") var menuStateResetDelay: Double = 3.0 {
+    @AppStorage("MenuStateResetDelay", store: AppPaths.defaults) var menuStateResetDelay: Double = 3.0 {
         didSet { settingsChangedSubject.send() }
     }
-    @AppStorage("UseHorizontalOverlayLayout") var useHorizontalOverlayLayout: Bool = true {
+    @AppStorage("UseHorizontalOverlayLayout", store: AppPaths.defaults) var useHorizontalOverlayLayout: Bool = true {
         didSet { settingsChangedSubject.send() }
     }
-    @AppStorage("OverlayStyle") var overlayStyle: OverlayStyle = .panel {
+    @AppStorage("OverlayStyle", store: AppPaths.defaults) var overlayStyle: OverlayStyle = .panel {
         didSet { settingsChangedSubject.send() }
     }
-    @AppStorage("OverlayScreenOption") var overlayScreenOption: OverlayScreenOption = .primary {
+    @AppStorage("OverlayScreenOption", store: AppPaths.defaults) var overlayScreenOption: OverlayScreenOption = .primary {
         didSet { settingsChangedSubject.send() }
     }
-    @AppStorage("TriggerKeyHoldMode") var triggerKeyHoldMode: Bool = false {
+    @AppStorage("TriggerKeyHoldMode", store: AppPaths.defaults) var triggerKeyHoldMode: Bool = false {
         didSet { settingsChangedSubject.send() }
     }
-    @AppStorage("NeedsOnboarding") var needsOnboarding: Bool = true {
+    @AppStorage("NeedsOnboarding", store: AppPaths.defaults) var needsOnboarding: Bool = true {
         didSet { settingsChangedSubject.send() }
     }
-    @AppStorage("AutomaticallyCheckForUpdates")
+    @AppStorage("AutomaticallyCheckForUpdates", store: AppPaths.defaults)
     public var automaticallyCheckForUpdates: Bool = true {
         didSet {
             activeUpdater.automaticallyChecksForUpdates = automaticallyCheckForUpdates
@@ -64,7 +64,7 @@ class SettingsStore: ObservableObject, DependencyInjectable, SettingsStoring {
         }
     }
 
-    @AppStorage("AutomaticallyDownloadUpdates")
+    @AppStorage("AutomaticallyDownloadUpdates", store: AppPaths.defaults)
     public var automaticallyDownloadUpdates: Bool = false {
         didSet {
             activeUpdater.automaticallyDownloadsUpdates = automaticallyDownloadUpdates
@@ -72,7 +72,7 @@ class SettingsStore: ObservableObject, DependencyInjectable, SettingsStoring {
         }
     }
 
-    @AppStorage("EnableBetaUpdates")
+    @AppStorage("EnableBetaUpdates", store: AppPaths.defaults)
     public var enableBetaUpdates: Bool = false {
         didSet {
             activeUpdater.configureFeedURLs()
