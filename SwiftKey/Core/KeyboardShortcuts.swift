@@ -2,6 +2,7 @@ import AppKit
 import Combine
 import KeyboardShortcuts
 import os
+import SwiftKeyCore
 import Yams
 
 // MARK: - KeyboardShortcut Names
@@ -91,6 +92,16 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
         if normalizedKey == "escape" {
             return .escape
         }
+        // Delete goes back one level; at the top level it closes the menu
+        if normalizedKey == "delete" {
+            let wentBack = await MainActor.run { () -> Bool in
+                guard !menuState.menuStack.isEmpty else { return false }
+                menuState.menuStack.removeLast()
+                if !menuState.breadcrumbs.isEmpty { menuState.breadcrumbs.removeLast() }
+                return true
+            }
+            return wentBack ? .up : .escape
+        }
         if normalizedKey == "cmd+up" {
             await MainActor.run {
                 if !menuState.menuStack.isEmpty { menuState.menuStack.removeLast() }
@@ -103,7 +114,7 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
         }
 
         // Find matching menu item
-        let matchingItem = menuState.currentMenu.first(where: { $0.key == normalizedKey })
+        let matchingItem = menuState.currentMenu.first(where: { SequenceKey.normalize($0.key) == normalizedKey })
 
         guard let item = matchingItem else {
             return .error(key: key)

@@ -20,6 +20,8 @@ struct ToastMenuItemView: View {
                     RoundedRectangle(cornerRadius: 4)
                         .fill(Color.white.opacity(0.1))
                 )
+            KeyHintView(key: item.key, size: 9)
+                .foregroundColor(.white.opacity(0.5))
             
             if item.icon != nil {
                 // SF Symbol

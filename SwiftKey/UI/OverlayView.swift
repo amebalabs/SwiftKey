@@ -261,9 +261,12 @@ struct VerticalMenuItemView: View {
                     .font(.system(size: 14, weight: .medium))
                     .foregroundColor(.primary)
 
-                Text(item.key)
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(.secondary)
+                HStack(spacing: 4) {
+                    Text(item.key)
+                        .font(.system(size: 12, weight: .semibold))
+                    KeyHintView(key: item.key)
+                }
+                .foregroundColor(.secondary)
             }
 
             Spacer()
@@ -304,7 +307,10 @@ struct HorizontalMenuItemView: View {
             ZStack(alignment: .topTrailing) {
                 MenuItemIconView(item: item, size: 60)
 
-                Text(item.key)
+                HStack(spacing: 3) {
+                    Text(item.key)
+                    KeyHintView(key: item.key)
+                }
                     .font(.caption)
                     .padding(6)
                     .background(altMode && item.submenu != nil ? Color.red.opacity(0.7) : Color.black.opacity(0.7))

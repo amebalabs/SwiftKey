@@ -85,3 +85,20 @@ extension View {
         modifier(OptionKeyModifier(isOptionKeyPressed: isPressed))
     }
 }
+
+/// The character of the active non-Latin keyboard layout for a menu key, shown small next to it,
+/// so a person typing in Russian sees that "w" is the key labelled "ц". Shows nothing when the
+/// active layout is the Latin one.
+struct KeyHintView: View {
+    let key: String
+    var size: CGFloat = 10
+
+    var body: some View {
+        if let hint = KeyTranslator.localHint(forLatin: key) {
+            Text(hint)
+                .font(.system(size: size, weight: .regular))
+                .opacity(0.6)
+                .accessibilityLabel("\(hint) in the current keyboard layout")
+        }
+    }
+}
