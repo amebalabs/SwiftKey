@@ -58,20 +58,20 @@ Add `test` and `test-core` tasks to `mise.toml` next to the existing `build` tas
 
 ## Phase 0: Baseline
 
-- [ ] Review the uncommitted refactor (`git status`), finish what is missing, get `xcodebuild build` and `test` green
-- [ ] Commit it in focused commits
-- [ ] Branch `feature/ting-port` from that commit
+- [x] Review the uncommitted refactor (`git status`), finish what is missing, get `xcodebuild build` and `test` green
+- [x] Commit it in focused commits
+- [x] Branch `feature/ting-port` from that commit
 
 ## Phase 1: Core package, keys, small wins
 
-- [ ] Create `Packages/SwiftKeyCore` (swift-tools-version matching the local toolchain; macOS 15) with `SwiftKeyCore`, `SwiftKeyRuntime`, `swiftkey-micro`, test targets; link `SwiftKeyCore` into the Xcode app target
-- [ ] Copy `Keys.swift`, `Leader.swift`, `Bindings.swift` and their tests; rename identifiers from Ting/`io.bobuk` to SwiftKey/`com.ameba`; tests green
-- [ ] `MenuItemTree` adapter: `[MenuItem]` → core tree (key, title, action kind, sticky, batch, hidden, dynamic); tests
-- [ ] Extend `KeyName` / sequence keys: SwiftKey case-sensitive characters plus `space`, `return`, `f1`…`f20`; tests that every existing README example config still parses and resolves
-- [ ] Replace `englishCharactersForKeyEvent` with `KeyTranslator` (current ASCII-capable layout); local-layout hints in panel, HUD and toast item views
-- [ ] `⌫` goes back one level in every overlay style
-- [ ] `launch://` accepts a bundle id (`launch://com.apple.Safari`) as well as a path; running app comes to the front; validator updated; tests
-- [ ] `SWIFTKEY_CONFIG` override for config and every SwiftKey data file; tests for path resolution
+- [x] Create `Packages/SwiftKeyCore` (swift-tools-version matching the local toolchain; macOS 15) with `SwiftKeyCore`, `SwiftKeyRuntime`, `swiftkey-micro`, test targets; link `SwiftKeyCore` into the Xcode app target
+- [x] Copy `Keys.swift`, `Leader.swift`, `Bindings.swift` and their tests; rename identifiers from Ting/`io.bobuk` to SwiftKey/`com.ameba`; tests green
+- [x] `MenuItemTree` adapter: `[MenuItem]` → core tree (key, title, action kind, sticky, batch, hidden, dynamic); tests
+- [x] Extend `KeyName` / sequence keys: SwiftKey case-sensitive characters plus `space`, `return`, `f1`…`f20`; tests that every existing README example config still parses and resolves
+- [x] Replace `englishCharactersForKeyEvent` with `KeyTranslator` (current ASCII-capable layout); local-layout hints in the panel and toast item views (the HUD and menu bar styles list no items)
+- [x] `⌫` goes back one level in every overlay style
+- [x] `launch://` accepts a bundle id (`launch://com.apple.Safari`) as well as a path; running app comes to the front; validator updated; tests
+- [x] `SWIFTKEY_CONFIG` override for config and every SwiftKey data file; tests for path resolution
 
 ## Phase 2: Hotkeys, navigation, fast typing
 
