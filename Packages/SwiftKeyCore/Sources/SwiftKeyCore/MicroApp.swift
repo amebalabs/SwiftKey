@@ -130,9 +130,9 @@ public struct MicroApp: Equatable, Sendable {
     }
 
     /// What the approval panel shows: the command of a `command` file, the whole text of a `steps`
-    /// file, then the text of every library it uses.
+    /// file, then the text of every library it uses. What the file itself runs is always shown.
     public var approvalText: String {
-        let own = libraries.isEmpty ? (command ?? source) : source
+        let own = source.isEmpty ? (command ?? "") : source
         return libraries.reduce(own) { text, library in
             text + (text.hasSuffix("\n") ? "" : "\n") + "\n# ---- \(library.file) ----\n" + library.text
         }

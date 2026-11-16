@@ -67,6 +67,10 @@ public indirect enum YAMLNode: Equatable, Sendable {
 }
 
 public enum YAMLSubset {
+    /// The deepest nesting of maps and lists a file may have. Micro-app files need a few levels;
+    /// the limit keeps a hostile file from overflowing the stack of the recursive parser.
+    public static let maxDepth = 32
+
     /// Parses one document of the subset. Throws the first error found.
     public static func parse(_ text: String) throws -> YAMLNode {
         var parser = YAMLSubsetParser(text: text)
@@ -89,6 +93,8 @@ private struct YAMLSubsetParser {
     var index = 0
     var sawContent = false
     var sawDocumentStart = false
+    /// How many blocks are open around the current one.
+    var depth = 0
 
     init(text: String) {
         var body = Substring(text)
@@ -162,6 +168,11 @@ private struct YAMLSubsetParser {
 
     mutating func parseBlock(indent: Int) throws -> YAMLNode {
         guard let line = try peek() else { return .null(line: lines.last?.number ?? 1) }
+        depth += 1
+        defer { depth -= 1 }
+        guard depth <= YAMLSubset.maxDepth else {
+            throw YAMLError(line: line.number, message: "nesting deeper than \(YAMLSubset.maxDepth) levels is not supported")
+        }
         if Self.isSequenceItem(line.text) { return try parseSequence(indent: indent) }
         return try parseMapping(indent: indent)
     }
