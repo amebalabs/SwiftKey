@@ -1,7 +1,7 @@
 import SwiftUI
 import Combine
 
-class SettingsStore: ObservableObject, DependencyInjectable {
+class SettingsStore: ObservableObject, DependencyInjectable, SettingsStoring {
     // Publisher for settings changes
     private let settingsChangedSubject = PassthroughSubject<Void, Never>()
     var settingsChanged: AnyPublisher<Void, Never> {
@@ -16,6 +16,11 @@ class SettingsStore: ObservableObject, DependencyInjectable {
 
     func injectDependencies(_ container: DependencyContainer) {
         self.sparkleUpdater = container.sparkleUpdater
+    }
+
+    /// Returns the injected updater if available, otherwise the shared instance
+    private var activeUpdater: SparkleUpdater {
+        sparkleUpdater ?? SparkleUpdater.shared
     }
 
     enum OverlayStyle: String, CaseIterable {
@@ -54,12 +59,7 @@ class SettingsStore: ObservableObject, DependencyInjectable {
     @AppStorage("AutomaticallyCheckForUpdates")
     public var automaticallyCheckForUpdates: Bool = true {
         didSet {
-            // Use injected sparkleUpdater if available, otherwise fall back to singleton
-            if let updater = sparkleUpdater {
-                updater.automaticallyChecksForUpdates = automaticallyCheckForUpdates
-            } else {
-                SparkleUpdater.shared.automaticallyChecksForUpdates = automaticallyCheckForUpdates
-            }
+            activeUpdater.automaticallyChecksForUpdates = automaticallyCheckForUpdates
             settingsChangedSubject.send()
         }
     }
@@ -67,11 +67,7 @@ class SettingsStore: ObservableObject, DependencyInjectable {
     @AppStorage("AutomaticallyDownloadUpdates")
     public var automaticallyDownloadUpdates: Bool = false {
         didSet {
-            if let updater = sparkleUpdater {
-                updater.automaticallyDownloadsUpdates = automaticallyDownloadUpdates
-            } else {
-                SparkleUpdater.shared.automaticallyDownloadsUpdates = automaticallyDownloadUpdates
-            }
+            activeUpdater.automaticallyDownloadsUpdates = automaticallyDownloadUpdates
             settingsChangedSubject.send()
         }
     }
@@ -79,11 +75,7 @@ class SettingsStore: ObservableObject, DependencyInjectable {
     @AppStorage("EnableBetaUpdates")
     public var enableBetaUpdates: Bool = false {
         didSet {
-            if let updater = sparkleUpdater {
-                updater.configureFeedURLs()
-            } else {
-                SparkleUpdater.shared.configureFeedURLs()
-            }
+            activeUpdater.configureFeedURLs()
             settingsChangedSubject.send()
         }
     }

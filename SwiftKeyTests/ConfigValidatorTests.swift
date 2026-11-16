@@ -1,0 +1,369 @@
+import Testing
+import Foundation
+@testable import SwiftKey
+
+@Suite("Configuration Validation")
+struct ConfigValidatorTests {
+
+    let validator = ConfigValidator()
+
+    // MARK: - Key Validation
+
+    @Test("Empty key produces validation error")
+    func emptyKeyValidation() {
+        let item = MenuItem(
+            id: UUID(),
+            key: "",
+            icon: nil,
+            title: "Test",
+            action: "open://https://example.com",
+            sticky: false,
+            notify: false,
+            batch: false,
+            hidden: false,
+            submenu: nil,
+            hotkey: nil
+        )
+        let issues = validator.validate(item)
+
+        #expect(issues.contains { $0.type == .emptyKey })
+        #expect(issues.contains { $0.severity == .error })
+    }
+
+    @Test("Multi-character key produces validation error")
+    func multiCharacterKeyValidation() {
+        let item = MenuItem(
+            id: UUID(),
+            key: "abc",
+            icon: nil,
+            title: "Test",
+            action: "open://https://example.com",
+            sticky: false,
+            notify: false,
+            batch: false,
+            hidden: false,
+            submenu: nil,
+            hotkey: nil
+        )
+        let issues = validator.validate(item)
+
+        #expect(issues.contains { $0.type == .invalidKey })
+    }
+
+    @Test("Valid single character key produces no key errors")
+    func validKeyNoErrors() {
+        let item = MenuItem(
+            id: UUID(),
+            key: "a",
+            icon: nil,
+            title: "Test",
+            action: "open://https://example.com",
+            sticky: false,
+            notify: false,
+            batch: false,
+            hidden: false,
+            submenu: nil,
+            hotkey: nil
+        )
+        let issues = validator.validate(item)
+
+        #expect(!issues.contains { $0.type == .emptyKey || $0.type == .invalidKey })
+    }
+
+    // MARK: - Title Validation
+
+    @Test("Empty title produces validation error")
+    func emptyTitleValidation() {
+        let item = MenuItem(
+            id: UUID(),
+            key: "a",
+            icon: nil,
+            title: "   ",
+            action: "open://https://example.com",
+            sticky: false,
+            notify: false,
+            batch: false,
+            hidden: false,
+            submenu: nil,
+            hotkey: nil
+        )
+        let issues = validator.validate(item)
+
+        #expect(issues.contains { $0.type == .emptyTitle })
+    }
+
+    // MARK: - Action Validation
+
+    @Test("Missing action without submenu produces warning")
+    func missingActionWarning() {
+        let item = MenuItem(
+            id: UUID(),
+            key: "a",
+            icon: nil,
+            title: "Test",
+            action: nil,
+            sticky: false,
+            notify: false,
+            batch: false,
+            hidden: false,
+            submenu: nil,
+            hotkey: nil
+        )
+        let issues = validator.validate(item)
+
+        #expect(issues.contains { $0.type == .missingAction && $0.severity == .warning })
+    }
+
+    @Test("Item with submenu but no action is valid")
+    func submenuWithoutActionIsValid() {
+        let submenuItem = MenuItem(
+            id: UUID(),
+            key: "x",
+            icon: nil,
+            title: "Sub Item",
+            action: "open://https://example.com",
+            sticky: false,
+            notify: false,
+            batch: false,
+            hidden: false,
+            submenu: nil,
+            hotkey: nil
+        )
+        let item = MenuItem(
+            id: UUID(),
+            key: "a",
+            icon: nil,
+            title: "Parent",
+            action: nil,
+            sticky: false,
+            notify: false,
+            batch: false,
+            hidden: false,
+            submenu: [submenuItem],
+            hotkey: nil
+        )
+        let issues = validator.validate(item)
+
+        #expect(!issues.contains { $0.type == .missingAction && $0.itemId == item.id })
+    }
+
+    @Test("Empty open URL produces error")
+    func emptyOpenURLError() {
+        let item = MenuItem(
+            id: UUID(),
+            key: "a",
+            icon: nil,
+            title: "Test",
+            action: "open://",
+            sticky: false,
+            notify: false,
+            batch: false,
+            hidden: false,
+            submenu: nil,
+            hotkey: nil
+        )
+        let issues = validator.validate(item)
+
+        #expect(issues.contains { $0.type == .invalidURL && $0.severity == .error })
+    }
+
+    @Test("Empty shell command produces error")
+    func emptyShellCommandError() {
+        let item = MenuItem(
+            id: UUID(),
+            key: "a",
+            icon: nil,
+            title: "Test",
+            action: "shell://   ",
+            sticky: false,
+            notify: false,
+            batch: false,
+            hidden: false,
+            submenu: nil,
+            hotkey: nil
+        )
+        let issues = validator.validate(item)
+
+        #expect(issues.contains { $0.type == .dangerousCommand && $0.severity == .error })
+    }
+
+    @Test("Dangerous shell commands produce warnings")
+    func dangerousShellWarnings() {
+        let dangerousCommands = [
+            "shell://rm -rf /",
+            "shell://sudo reboot",
+            "shell://dd if=/dev/zero of=/dev/sda"
+        ]
+
+        for command in dangerousCommands {
+            let item = MenuItem(
+                id: UUID(),
+                key: "a",
+                icon: nil,
+                title: "Test",
+                action: command,
+                sticky: false,
+                notify: false,
+                batch: false,
+                hidden: false,
+                submenu: nil,
+                hotkey: nil
+            )
+            let issues = validator.validate(item)
+
+            #expect(
+                issues.contains { $0.type == .dangerousCommand && $0.severity == .warning },
+                "Expected warning for: \(command)"
+            )
+        }
+    }
+
+    // MARK: - Hierarchy Validation
+
+    @Test("Duplicate keys at same level produce errors")
+    func duplicateKeyValidation() {
+        let items = [
+            MenuItem(
+                id: UUID(),
+                key: "a",
+                icon: nil,
+                title: "First",
+                action: "open://https://example.com",
+                sticky: false,
+                notify: false,
+                batch: false,
+                hidden: false,
+                submenu: nil,
+                hotkey: nil
+            ),
+            MenuItem(
+                id: UUID(),
+                key: "a",
+                icon: nil,
+                title: "Second",
+                action: "open://https://example.com",
+                sticky: false,
+                notify: false,
+                batch: false,
+                hidden: false,
+                submenu: nil,
+                hotkey: nil
+            )
+        ]
+        let issues = validator.validateHierarchy(items)
+
+        #expect(issues.contains { $0.type == .duplicateKey })
+    }
+
+    @Test("Same keys at different levels are allowed")
+    func sameKeysAtDifferentLevelsAllowed() {
+        let submenuItem = MenuItem(
+            id: UUID(),
+            key: "a",
+            icon: nil,
+            title: "Sub Item",
+            action: "open://https://example.com",
+            sticky: false,
+            notify: false,
+            batch: false,
+            hidden: false,
+            submenu: nil,
+            hotkey: nil
+        )
+        let items = [
+            MenuItem(
+                id: UUID(),
+                key: "a",
+                icon: nil,
+                title: "Parent",
+                action: nil,
+                sticky: false,
+                notify: false,
+                batch: false,
+                hidden: false,
+                submenu: [submenuItem],
+                hotkey: nil
+            )
+        ]
+        let issues = validator.validateHierarchy(items)
+
+        #expect(!issues.contains { $0.type == .duplicateKey })
+    }
+
+    // MARK: - Valid Configuration
+
+    @Test("Valid menu item produces no errors")
+    func validItemNoErrors() {
+        let item = MenuItem(
+            id: UUID(),
+            key: "a",
+            icon: "safari",
+            title: "Open Browser",
+            action: "open://https://example.com",
+            sticky: false,
+            notify: false,
+            batch: false,
+            hidden: false,
+            submenu: nil,
+            hotkey: nil
+        )
+        let issues = validator.validate(item)
+
+        #expect(validator.errors(from: issues).isEmpty)
+    }
+
+    @Test("isValid returns true for valid configuration")
+    func isValidForValidConfig() {
+        let items = [
+            MenuItem(
+                id: UUID(),
+                key: "a",
+                icon: nil,
+                title: "First",
+                action: "open://https://example.com",
+                sticky: false,
+                notify: false,
+                batch: false,
+                hidden: false,
+                submenu: nil,
+                hotkey: nil
+            ),
+            MenuItem(
+                id: UUID(),
+                key: "b",
+                icon: nil,
+                title: "Second",
+                action: "shell://echo hello",
+                sticky: false,
+                notify: false,
+                batch: false,
+                hidden: false,
+                submenu: nil,
+                hotkey: nil
+            )
+        ]
+
+        #expect(validator.isValid(items))
+    }
+
+    @Test("isValid returns false for invalid configuration")
+    func isValidForInvalidConfig() {
+        let items = [
+            MenuItem(
+                id: UUID(),
+                key: "",
+                icon: nil,
+                title: "Missing Key",
+                action: "open://https://example.com",
+                sticky: false,
+                notify: false,
+                batch: false,
+                hidden: false,
+                submenu: nil,
+                hotkey: nil
+            )
+        ]
+
+        #expect(!validator.isValid(items))
+    }
+}

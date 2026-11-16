@@ -7,6 +7,7 @@ struct OverlayView: View {
     @ObservedObject var state: MenuState
     @State private var errorMessage: String = ""
     @State private var altMode: Bool = false
+    @State private var screenSize: CGSize = NSScreen.main?.frame.size ?? CGSize(width: 800, height: 600)
 
     init(state: MenuState) {
         self.state = state
@@ -24,10 +25,6 @@ struct OverlayView: View {
     let horizontalFixedHeight: CGFloat = 100
     let horizontalItemWidth: CGFloat = 180
     let horizontalItemSpacing: CGFloat = 8
-
-    var screenSize: CGSize {
-        NSScreen.main?.frame.size ?? CGSize(width: 800, height: 600)
-    }
 
     var verticalMaxHeight: CGFloat {
         screenSize.height * 2 / 3
@@ -147,6 +144,12 @@ struct OverlayView: View {
         .onReceive(NotificationCenter.default.publisher(for: .hideOverlay)) { _ in
             altMode = false
         }
+        .onAppear {
+            screenSize = NSScreen.main?.frame.size ?? CGSize(width: 800, height: 600)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didChangeScreenParametersNotification)) { _ in
+            screenSize = NSScreen.main?.frame.size ?? CGSize(width: 800, height: 600)
+        }
     }
 
     private func handleKey(key: String, modifierFlags: NSEvent.ModifierFlags?) {
@@ -205,7 +208,7 @@ struct OverlayView: View {
 struct MenuItemIconView: View {
     let item: MenuItem
     let size: CGFloat
-    @State private var refreshToggle = false
+    @State private var iconVersion: Int = 0
 
     var body: some View {
         Group {
@@ -219,10 +222,10 @@ struct MenuItemIconView: View {
                     .opacity(0.9)
             }
         }
-        .id("\(item.id)_\(refreshToggle)")
+        .id("\(item.id)_\(iconVersion)")
         .onReceive(NotificationCenter.default.publisher(for: .menuIconUpdated)) { notification in
             if let id = notification.userInfo?["id"] as? UUID, id == item.id {
-                refreshToggle.toggle()
+                iconVersion += 1
             }
         }
     }

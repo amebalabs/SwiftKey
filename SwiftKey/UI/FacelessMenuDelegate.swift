@@ -14,6 +14,21 @@ class FacelessMenuController: DependencyInjectable {
     var settingsStore: SettingsStore!
     var keyboardManager: KeyboardManager!
 
+    deinit {
+        cleanup()
+    }
+
+    private func cleanup() {
+        sessionTimer?.invalidate()
+        sessionTimer = nil
+        animationTimer?.invalidate()
+        animationTimer = nil
+        if let monitor = localMonitor {
+            NSEvent.removeMonitor(monitor)
+            localMonitor = nil
+        }
+    }
+
     init(
         rootMenu: [MenuItem],
         statusItem: NSStatusItem,
