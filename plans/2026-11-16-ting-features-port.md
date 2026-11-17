@@ -118,10 +118,10 @@ Add `test` and `test-core` tasks to `mise.toml` next to the existing `build` tas
 - [x] `micro://<id>` action in `MenuItem` handling and `ConfigValidator` (unknown id, broken file)
 - [x] Port `MicroAppFlowController`, form, flow and output views in SwiftKey's style; overlay closes on start; `notify: true` on finish; batch runs micro-apps in sequence
 - [x] Remembered values in `Application Support/SwiftKey/micro-values.json`
-- [ ] Port `MicroAppContextReader`, `MicroAppKeyboard`, `AccessibilityWindow`; add `NSAppleEventsUsageDescription`; Accessibility state in Settings › Advanced
-- [ ] `swiftkey-micro` built from the package, copied into `Contents/MacOS/`, signed explicitly in `release.yml` before notarization
-- [ ] Integration tests: runner with real processes in temp folders; all shipped examples through `swiftkey-micro run`
-- [ ] `fm serve` test fixture (free port, `/health` wait, teardown, clear failure if `fm` or the model is unavailable); AI step full and streamed answers, `max_tokens` cut; HTTP step GET/POST/404 against the same server
+- [x] Port `MicroAppContextReader`, `MicroAppKeyboard`, `AccessibilityWindow`; add `NSAppleEventsUsageDescription`; Accessibility state in Settings › Advanced
+- [x] `swiftkey-micro` built from the package, copied into `Contents/MacOS/`, signed explicitly in `release.yml` before notarization
+- [x] Integration tests: runner with real processes in temp folders; all shipped examples through `swiftkey-micro run`
+- [x] `fm serve` test fixture (free port, `/health` wait, teardown, clear failure if `fm` or the model is unavailable); AI step full and streamed answers, `max_tokens` cut; HTTP step GET/POST/404 against the same server
 
 ## Phase 6: Editor, docs, end-to-end
 
