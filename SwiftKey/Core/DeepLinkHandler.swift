@@ -34,6 +34,12 @@ class DeepLinkHandler: DependencyInjectable {
             return
         }
 
+        // swiftkey://launcha opens the search panel
+        if url.host?.lowercased() == "launcha" {
+            await MainActor.run { NotificationCenter.default.post(name: .openLauncha, object: nil) }
+            return
+        }
+
         // Handle regular menu opening URLs
         guard url.host?.lowercased() == "open" else { return }
         let queryItems = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems

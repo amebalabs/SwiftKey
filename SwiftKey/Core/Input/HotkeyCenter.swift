@@ -7,6 +7,8 @@ import SwiftKeyCore
 final class HotkeyCenter: ObservableObject {
     /// The state of the main hotkey, for Settings.
     @Published private(set) var mainStatus: HotkeyService.Status = .inactive
+    /// The state of the launcha hotkey, for Settings.
+    @Published private(set) var launchaStatus: HotkeyService.Status = .inactive
     /// Item hotkeys that could not be registered, by item id, with the reason.
     @Published private(set) var itemProblems: [UUID: String] = [:]
 
@@ -14,6 +16,8 @@ final class HotkeyCenter: ObservableObject {
     var onMainPress: (() -> Void)?
     /// The main hotkey went up.
     var onMainRelease: (() -> Void)?
+    /// The launcha hotkey went down.
+    var onLaunchaPress: (() -> Void)?
     /// The hotkey of the item with this id went down.
     var onItemPress: ((UUID) -> Void)?
 
@@ -23,7 +27,7 @@ final class HotkeyCenter: ObservableObject {
             switch slot {
             case .main: self?.onMainPress?()
             case .item(let id): self?.onItemPress?(id)
-            case .launcha: break
+            case .launcha: self?.onLaunchaPress?()
             }
         }
         service.onRelease = { [weak self] slot in
@@ -45,6 +49,12 @@ final class HotkeyCenter: ObservableObject {
     @MainActor
     func setMain(_ hotkey: Hotkey?) {
         service.activate(hotkey, for: .main)
+    }
+
+    /// Registers `hotkey` as the launcha hotkey; nil turns it off.
+    @MainActor
+    func setLauncha(_ hotkey: Hotkey?) {
+        service.activate(hotkey, for: .launcha)
     }
 
     /// Registers the hotkeys of menu items, by item id, and turns off those of items that are gone.
@@ -75,7 +85,7 @@ final class HotkeyCenter: ObservableObject {
         case .item(let id):
             if case .failed(let reason) = status { itemProblems[id] = reason } else { itemProblems[id] = nil }
         case .launcha:
-            break
+            launchaStatus = status
         }
     }
 }

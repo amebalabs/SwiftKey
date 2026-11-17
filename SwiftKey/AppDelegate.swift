@@ -57,6 +57,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     var hotkeySubscription: AnyCancellable?
     /// Shows the panel after the "Show menu after" delay.
     private let overlayReveal = DelayedReveal()
+    /// The search panel for menu items, apps and files.
+    private(set) var launcha: LaunchaController?
+    var launchaMenuSubscription: AnyCancellable?
+    var launchaOpenSubscription: AnyCancellable?
+    /// Tells a second press of the main key apart from a first one.
+    private var doubleTap = LeaderDoubleTap()
     // Gallery window management
     private static var activeGalleryWindow: NSWindow?
 
@@ -82,6 +88,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
         _ = SparkleUpdater.shared
 
+        setupLauncha()
         setupHotkeys()
 
         if settings.needsOnboarding {
@@ -141,17 +148,28 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         LegacyHotkeyMigration.migrate(AppPaths.defaults)
         let hotkeys = container.hotkeyCenter
         hotkeys.onMainPress = { [weak self] in
-            Task { await self?.toggleSession() }
+            self?.mainKeyPressed()
         }
         hotkeys.onMainRelease = { [weak self] in
-            guard let self, settings.triggerKeyHoldMode else { return }
+            guard let self else { return }
+            doubleTap.release()
+            guard settings.triggerKeyHoldMode else { return }
             Task { await self.hideWindow() }
+        }
+        hotkeys.onLaunchaPress = { [weak self] in
+            self?.launcha?.toggle()
+        }
+        keyboardManager.onKeyInput = { [weak self] in
+            // A key typed in the menu ends a double tap.
+            self?.doubleTap.sequenceInput()
         }
         hotkeys.onItemPress = { [weak self] id in
             guard let self, let item = menuState.rootMenu.findItem(with: id) else { return }
             keyboardManager.runItemHotkey(item)
         }
         hotkeys.setMain(settings.mainHotkeyValue)
+        hotkeys.setLauncha(settings.launchaHotkeyValue)
+        doubleTap = LeaderDoubleTap(settings.launchaSettings)
         hotkeySubscription = menuState.$rootMenu
             .receive(on: RunLoop.main)
             .sink { menu in
@@ -161,9 +179,91 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             }
     }
 
+    /// The main key went down. The first press opens the menu at once; a second press soon after,
+    /// with the menu still at its top level and nothing typed, closes it and opens launcha.
+    @MainActor
+    private func mainKeyPressed() {
+        let menuOpen = isOverlayVisible
+        let press = doubleTap.press(at: ProcessInfo.processInfo.systemUptime, menuOpen: menuOpen,
+                                    menuOpenAtRoot: menuOpen && menuState.keyPath.isEmpty)
+        switch press {
+        case .ignored:
+            return
+        case .double:
+            Task {
+                await hideWindow()
+                launcha?.open()
+            }
+        case .single:
+            Task { await toggleSession() }
+        }
+    }
+
+    /// Creates launcha and keeps its menu items in step with the config.
+    @MainActor
+    private func setupLauncha() {
+        let model = container.launchaModel
+        model.calculator = settings.launchaCalculator
+        let controller = LaunchaController(model: model)
+        controller.chrome.menuIcon = { [weak self] id in
+            guard let self, let uuid = UUID(uuidString: id), let item = menuState.rootMenu.findItem(with: uuid) else {
+                return nil
+            }
+            return item.iconImage
+        }
+        controller.onRunMenu = { [weak self] path in
+            Task { await self?.runFromLauncha(path) }
+        }
+        controller.onError = { message in
+            notifyUser(title: "launcha", message: message)
+        }
+        // Menu items count where they run, from a key press or from launcha.
+        keyboardManager.onLaunch = { [weak model] id in
+            Task { await model?.record(.opened, id: id) }
+        }
+        launcha = controller
+        launchaMenuSubscription = menuState.$rootMenu
+            .receive(on: RunLoop.main)
+            .sink { [weak self] menu in
+                MainActor.assumeIsolated { self?.updateLauncha(menu: menu) }
+            }
+        launchaOpenSubscription = NotificationCenter.default.publisher(for: .openLauncha)
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                MainActor.assumeIsolated { self?.launcha?.open() }
+            }
+        model.prewarm()
+    }
+
+    @MainActor
+    private func updateLauncha(menu: [MenuItem]) {
+        let config = AppPaths.current.configOverride ?? settings.configFileResolvedURL
+        launcha?.model.setMenu(LaunchaMenuCandidate.from(MenuItemTree.build(menu).items), configFile: config)
+    }
+
+    /// Runs a menu item chosen in launcha. A group, a dynamic menu or a sticky action shows the menu.
+    @MainActor
+    private func runFromLauncha(_ path: [String]) async {
+        let result = await keyboardManager.runFromLauncha(path: path)
+        switch result {
+        case .submenuPushed:
+            await launcha?.model.record(.opened, id: LaunchaCandidate.menu(path: path, name: "").id)
+            presentOverlay()
+        case .actionExecuted(sticky: true):
+            presentOverlay()
+        default:
+            menuState.reset()
+        }
+    }
+
     @MainActor
     func applySettings() async {
         container.hotkeyCenter.setMain(settings.mainHotkeyValue)
+        container.hotkeyCenter.setLauncha(settings.launchaHotkeyValue)
+        let launchaSettings = settings.launchaSettings
+        doubleTap.isEnabled = launchaSettings.doubleTap
+        doubleTap.window = launchaSettings.doubleTapWindow
+        launcha?.model.calculator = launchaSettings.calculator
 
         if isOverlayVisible {
             logger.debug("Hiding overlay due to settings change")
@@ -287,6 +387,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
         logger.debug("hideWindow: hiding \(self.settings.overlayStyle.rawValue) overlay")
         overlayReveal.cancel()
+        doubleTap.reset()
 
         // Perform style-specific cleanup
         switch settings.overlayStyle {

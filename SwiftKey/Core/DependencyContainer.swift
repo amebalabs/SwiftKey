@@ -21,6 +21,9 @@ class DependencyContainer {
     let dynamicMenuLoader: DynamicMenuLoader
     let hotkeyCenter: HotkeyCenter
     let approvalGate: ApprovalGate
+    /// launcha's search state, shared by its panel and Settings.
+    @MainActor private(set) lazy var launchaModel = LaunchaModel(historyStore: LaunchaHistoryStore(),
+                                                                 consent: LaunchaConsentStore())
 
     // Track active subscriptions
     private var cancellables = Set<AnyCancellable>()

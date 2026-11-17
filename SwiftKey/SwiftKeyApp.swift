@@ -28,6 +28,7 @@ struct SwiftKeyApp: App {
                 .environmentObject(container.sparkleUpdater)
                 .environmentObject(container.hotkeyCenter)
                 .environmentObject(container.approvalGate)
+                .environment(container.launchaModel)
                 .onAppear {
                     // Show dock icon when settings window opens
                     NSApp.setActivationPolicy(.regular)

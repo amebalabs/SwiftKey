@@ -39,6 +39,11 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
     private(set) var approvalGate: ApprovalGate!
 
     private let lastActionRepeatWindow: TimeInterval = 30
+    /// Called with the launch-history identity of a menu item that ran (`menu:` and its keys),
+    /// from a key press or from launcha, so launcha ranks what is used most.
+    var onLaunch: ((String) -> Void)?
+    /// Called on the main actor for every key typed in an open menu.
+    var onKeyInput: (() -> Void)?
     
     // Default initialization for container creation
     init(approvalGate: ApprovalGate = ApprovalGate()) {
@@ -75,6 +80,7 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
         await MainActor.run {
             menuState.currentKey = key
             menuState.hint = nil
+            onKeyInput?()
         }
 
         if key == "." {
@@ -98,11 +104,43 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
         case "cmd+up": event = .up
         default: event = .key(key, option: modifierFlags?.isOption == true)
         }
+        return await handle(event, key: key)
+    }
+
+    /// Passes `event` to a machine open at the levels `menuState` shows, and applies its effect.
+    private func handle(_ event: LeaderEvent, key: String) async -> KeyPressResult {
         let effect = await MainActor.run { () -> LeaderEffect in
             var machine = makeMachine()
             return machine.handle(event)
         }
         return await apply(effect, key: key)
+    }
+
+    /// Runs a menu item chosen in launcha the way its keys do in the menu: the menu moves to the
+    /// item's group, then the item's key is pressed there. So approvals, batches, sticky items and
+    /// dynamic menus behave exactly as from the keyboard. The caller shows the menu when the press
+    /// opened a group or kept a sticky menu open.
+    @MainActor
+    func runFromLauncha(path keys: [String]) async -> KeyPressResult {
+        guard let last = keys.last else { return .none }
+        menuState.reset()
+        var level = menuState.rootMenu
+        for key in keys.dropLast() {
+            guard let group = level.first(where: { SequenceKey.normalize($0.key) == key }),
+                  let submenu = group.submenu else {
+                menuState.reset()
+                return .error(key: key)
+            }
+            menuState.push(key: key, title: group.title, items: submenu)
+            level = submenu
+        }
+        return await handle(.key(last, option: false), key: last)
+    }
+
+    /// The launch-history identity of the item `key` names at the level `menuState` shows.
+    @MainActor
+    private func launchID(forKey key: String) -> String {
+        LaunchaCandidate.menu(path: menuState.keyPath + [SequenceKey.normalize(key) ?? key], name: "").id
     }
 
     /// A machine open at the levels `menuState` shows now.
@@ -148,6 +186,8 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
                 return .none
             }
             let path = await MainActor.run { menuState.breadcrumbs }
+            let launch = await MainActor.run { launchID(forKey: key) }
+            onLaunch?(launch)
             // The menu closes at once; an action whose code needs approval asks after that.
             let run = { [approvalGate] in
                 Task { @MainActor in
@@ -165,6 +205,8 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
             return .actionExecuted(sticky: false)
         case .runBatch(let groupNode, let actions):
             if let group = await MainActor.run(body: { menuItem(for: groupNode) }) {
+                let launch = await MainActor.run { launchID(forKey: key) }
+                onLaunch?(launch)
                 let ids = Set(actions.compactMap(\.id))
                 let path = await MainActor.run { menuState.breadcrumbs + [group.title] }
                 await executeBatchActions(in: (group.submenu ?? []).filter { ids.contains($0.id.uuidString) }, path: path)

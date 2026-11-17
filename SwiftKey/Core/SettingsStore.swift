@@ -64,6 +64,22 @@ class SettingsStore: ObservableObject, DependencyInjectable, SettingsStoring {
     @AppStorage("ShowMenuDelay", store: AppPaths.defaults) var showMenuDelay: Double = 0.25 {
         didSet { settingsChangedSubject.send() }
     }
+    /// The global hotkey that opens launcha, as a `Hotkey` string; empty when none is set.
+    @AppStorage("LaunchaHotkey", store: AppPaths.defaults) var launchaHotkey: String = "" {
+        didSet { settingsChangedSubject.send() }
+    }
+    /// Pressing the main hotkey twice opens launcha. Not in hold mode, where the key is held.
+    @AppStorage("LaunchaDoubleTap", store: AppPaths.defaults) var launchaDoubleTap: Bool = true {
+        didSet { settingsChangedSubject.send() }
+    }
+    /// The most seconds between the two presses of a double tap.
+    @AppStorage("LaunchaDoubleTapWindow", store: AppPaths.defaults) var launchaDoubleTapWindow: Double = 0.3 {
+        didSet { settingsChangedSubject.send() }
+    }
+    /// A query of digits and an operator shows its value first in launcha.
+    @AppStorage("LaunchaCalculator", store: AppPaths.defaults) var launchaCalculator: Bool = true {
+        didSet { settingsChangedSubject.send() }
+    }
     @AppStorage("NeedsOnboarding", store: AppPaths.defaults) var needsOnboarding: Bool = true {
         didSet { settingsChangedSubject.send() }
     }
@@ -98,6 +114,23 @@ class SettingsStore: ObservableObject, DependencyInjectable, SettingsStoring {
     /// The main hotkey, when one is set and parses.
     var mainHotkeyValue: Hotkey? {
         Hotkey(string: mainHotkey)
+    }
+
+    /// The launcha hotkey, when one is set and parses.
+    var launchaHotkeyValue: Hotkey? {
+        Hotkey(string: launchaHotkey)
+    }
+
+    /// The launcha settings the core uses. The double tap is off in hold mode, where the main
+    /// key is held down and its release hides the menu.
+    var launchaSettings: LaunchaSettings {
+        var settings = LaunchaSettings()
+        settings.hotkey = launchaHotkeyValue
+        settings.doubleTap = launchaDoubleTap && !triggerKeyHoldMode && mainHotkeyValue != nil
+        let range = LaunchaSettings.doubleTapWindowRange
+        settings.doubleTapWindow = min(max(launchaDoubleTapWindow, range.lowerBound), range.upperBound)
+        settings.calculator = launchaCalculator
+        return settings
     }
 
     var facelessMode: Bool {
