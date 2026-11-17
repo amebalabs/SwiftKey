@@ -1,15 +1,8 @@
 import AppKit
 import Combine
-import KeyboardShortcuts
 import os
 import SwiftKeyCore
 import Yams
-
-// MARK: - KeyboardShortcut Names
-
-extension KeyboardShortcuts.Name {
-    static let toggleApp = Self("toggleApp")
-}
 
 // MARK: - KeyPressResult
 
@@ -43,9 +36,6 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
     private(set) var configManager: ConfigManager!
     private(set) var dynamicMenuLoader: DynamicMenuLoader!
 
-    // Global key handlers map for menu hotkeys
-    private var hotkeyHandlers: [String: KeyboardShortcuts.Name] = [:]
-
     private let lastActionRepeatWindow: TimeInterval = 30
     
     // Default initialization for container creation
@@ -69,125 +59,126 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
 
     // MARK: - Key Handling
 
+    /// Handles a key pressed in an open menu. The core `LeaderMachine` decides what the key does
+    /// at the current level; this applies its effect to `menuState` and runs actions.
     func handleKey(
         key: String,
         modifierFlags: NSEvent.ModifierFlags? = nil
     ) async -> KeyPressResult {
         logger.debug("Key pressed: \(key, privacy: .public)")
-        let normalizedKey = key
 
         // Update UI state on main actor
         await MainActor.run {
-            menuState.currentKey = normalizedKey
+            menuState.currentKey = key
         }
 
-        if normalizedKey == "." {
+        if key == "." {
             let result = await handleLastActionRepeat()
             if result != .none {
                 return result
             }
         }
 
-        // Common navigation keys
-        if normalizedKey == "escape" {
+        // Keys that never reach the menu
+        if key == "escape" {
             return .escape
         }
-        // Delete goes back one level; at the top level it closes the menu
-        if normalizedKey == "delete" {
-            let wentBack = await MainActor.run { () -> Bool in
-                guard !menuState.menuStack.isEmpty else { return false }
-                menuState.menuStack.removeLast()
-                if !menuState.breadcrumbs.isEmpty { menuState.breadcrumbs.removeLast() }
-                return true
-            }
-            return wentBack ? .up : .escape
-        }
-        if normalizedKey == "cmd+up" {
-            await MainActor.run {
-                if !menuState.menuStack.isEmpty { menuState.menuStack.removeLast() }
-                if !menuState.breadcrumbs.isEmpty { menuState.breadcrumbs.removeLast() }
-            }
-            return .up
-        }
-        if normalizedKey == "?" {
+        if key == "?" {
             return .help
         }
 
-        // Find matching menu item
-        let matchingItem = menuState.currentMenu.first(where: { SequenceKey.normalize($0.key) == normalizedKey })
-
-        guard let item = matchingItem else {
-            return .error(key: key)
+        let event: LeaderEvent
+        switch key {
+        case "delete": event = .back
+        case "cmd+up": event = .up
+        default: event = .key(key, option: modifierFlags?.isOption == true)
         }
-
-        // Handle dynamic menus
-        if let actionString = item.action, actionString.hasPrefix("dynamic://") {
-            let result = await loadDynamicMenu(for: item)
-            return result
+        let effect = await MainActor.run { () -> LeaderEffect in
+            var machine = makeMachine()
+            return machine.handle(event)
         }
+        return await apply(effect, key: key)
+    }
 
-        // Handle submenu navigation
-        if let submenu = item.submenu {
-            // Batch execution mode (Alt key or batch flag)
-            if modifierFlags?.isOption == true || item.batch == true {
-                await executeBatchActions(in: submenu)
-                return .actionExecuted(sticky: false)
+    /// A machine open at the levels `menuState` shows now.
+    private func makeMachine() -> LeaderMachine {
+        let overlayStyle = settingsStore.overlayStyle
+        return LeaderMachine(
+            items: MenuItemTree.build(menuState.rootMenu).items,
+            openAt: menuState.keyPath,
+            levels: menuState.menuStack.map { MenuItemTree.build($0).items },
+            // Only the panel and the corner toast can stay open after an action.
+            stickyAllowed: overlayStyle == .panel || overlayStyle == .cornerToast
+        )
+    }
+
+    /// The config item a core node came from, in the current menu.
+    private func menuItem(for node: Item) -> MenuItem? {
+        menuState.currentMenu.first { $0.id.uuidString == node.id }
+    }
+
+    private func apply(_ effect: LeaderEffect, key: String) async -> KeyPressResult {
+        switch effect {
+        case .show(let path):
+            return await MainActor.run { () -> KeyPressResult in
+                if path.count < menuState.keyPath.count {
+                    menuState.pop()
+                    return .up
+                }
+                guard let group = menuState.currentMenu.first(where: { SequenceKey.normalize($0.key) == path.last }) else {
+                    return .error(key: key)
+                }
+                menuState.push(key: path.last ?? key, title: group.title, items: group.submenu ?? [])
+                return .submenuPushed(title: group.title)
             }
-
-            // Normal submenu navigation
-            await MainActor.run {
-                menuState.breadcrumbs.append(item.title)
-                menuState.menuStack.append(submenu)
+        case .close:
+            return .escape
+        case .none:
+            // ⌘↑ at the top level stays where it is.
+            return key == "cmd+up" ? .up : .none
+        case .reject(let rejected, _):
+            return .error(key: rejected)
+        case .run(let node), .runAndStay(let node):
+            guard let item = await MainActor.run(body: { menuItem(for: node) }), let action = item.actionClosure else {
+                return .none
             }
-            return .submenuPushed(title: item.title)
-        }
-
-        // Execute action
-        if let action = item.actionClosure {
             Task(priority: .userInitiated) {
                 action()
             }
-
             await MainActor.run {
                 menuState.lastExecutedAction = action
                 menuState.lastActionTime = Date()
             }
-
-            // Handle sticky flag for panel mode
-            let overlayStyle = settingsStore.overlayStyle
-
-            // Check for Option key to invert sticky behavior (similar to how batch works)
-            let isOptionPressed = modifierFlags?.isOption == true
-            let stickyValue = item.sticky ?? false
-            let effectiveStickyValue = isOptionPressed ? !stickyValue : stickyValue
-
-            logger
-                .debug("Sticky: original=\(stickyValue), option=\(isOptionPressed), effective=\(effectiveStickyValue)")
-
-            // Apply sticky behavior for panel and cornerToast modes
-            if effectiveStickyValue && (overlayStyle == .panel || overlayStyle == .cornerToast) {
+            if case .runAndStay = effect {
                 return .actionExecuted(sticky: true)
-            } else {
-                return .actionExecuted(sticky: false)
             }
+            return .actionExecuted(sticky: false)
+        case .runBatch(let groupNode, let actions):
+            if let group = await MainActor.run(body: { menuItem(for: groupNode) }) {
+                let ids = Set(actions.compactMap(\.id))
+                await executeBatchActions(in: (group.submenu ?? []).filter { ids.contains($0.id.uuidString) })
+            }
+            return .actionExecuted(sticky: false)
+        case .loadDynamic(let node):
+            guard let item = await MainActor.run(body: { menuItem(for: node) }) else { return .error(key: key) }
+            return await loadDynamicMenu(for: item, key: node.key)
+        case .open:
+            return .none
         }
-
-        return .none
     }
 
     // MARK: - Dynamic Menu Loading
 
-    func loadDynamicMenu(for item: MenuItem) async -> KeyPressResult {
+    func loadDynamicMenu(for item: MenuItem, key: String) async -> KeyPressResult {
         guard item.action?.hasPrefix("dynamic://") == true else {
             return .error(key: item.key)
         }
 
         // Use the injected instance rather than the shared singleton
         if let submenu = await dynamicMenuLoader.loadDynamicMenu(for: item) {
-            // Update UI state on the main actor
+            // Update the UI state on the main actor
             await MainActor.run {
-                menuState.breadcrumbs.append(item.title)
-                menuState.menuStack.append(submenu)
+                menuState.push(key: key, title: item.title, items: submenu)
             }
             return .submenuPushed(title: item.title)
         } else {
@@ -199,67 +190,37 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
 
     private func executeBatchActions(in submenu: [MenuItem]) async {
         Task(priority: .userInitiated) {
-            for menu in submenu where menu.actionClosure != nil {
-                guard menu.action?.hasPrefix("dynamic://") == false else { continue }
-                menu.actionClosure!()
+            for menu in submenu {
+                menu.actionClosure?()
             }
         }
     }
 
-    // MARK: - Hotkey Registration
+    // MARK: - Item Hotkeys
 
-    /// Register hotkeys for navigation
-    func registerMenuHotkeys(_ menu: [MenuItem]) {
-        let isRootMenu = menu == menuState.rootMenu
-        if isRootMenu {
-            hotkeyHandlers.removeAll()
-        }
-
-        for item in menu {
-            if let hotkeyStr = item.hotkey, let shortcut = KeyboardShortcuts.Shortcut(hotkeyStr) {
-                let name = KeyboardShortcuts.Name(item.id.uuidString)
-                KeyboardShortcuts.setShortcut(shortcut, for: name)
-
-                KeyboardShortcuts.onKeyDown(for: name) { [weak self] in
-                    guard let self = self else { return }
-
-                    if item.submenu != nil {
-                        Task { @MainActor in
-                            self.navigateToMenuItem(item)
-                        }
-                    } else if let action = item.actionClosure {
-                        Task(priority: .userInitiated) {
-                            action()
-                        }
-
-                        // Note: We can't detect the Option key in the hotkey handler,
-                        // so hotkey-triggered actions will always use the default sticky behavior
-                    }
-                }
-
-                hotkeyHandlers[item.id.uuidString] = name
+    /// A global item hotkey fired: an action runs at once, a group opens the menu there.
+    @MainActor
+    func runItemHotkey(_ item: MenuItem) {
+        guard let path = findPathToMenuItem(item, in: menuState.rootMenu) else { return }
+        let keys = path.compactMap { SequenceKey.normalize($0.key) }
+        guard keys.count == path.count else { return }
+        var machine = LeaderMachine(items: MenuItemTree.build(menuState.rootMenu).items)
+        switch machine.open(at: keys) {
+        case .show:
+            menuState.reset()
+            for (key, menuItem) in zip(keys, path) {
+                menuState.push(key: key, title: menuItem.title, items: menuItem.submenu ?? [])
             }
-
-            if let submenu = item.submenu {
-                registerMenuHotkeys(submenu)
-            }
-        }
-    }
-
-    private func navigateToMenuItem(_ item: MenuItem) {
-        menuState.reset()
-
-        if let path = findPathToMenuItem(item, in: menuState.rootMenu) {
-            for (index, menuItem) in path.enumerated() {
-                if index < path.count {
-                    menuState.breadcrumbs.append(menuItem.title)
-                    if let submenu = menuItem.submenu {
-                        menuState.menuStack.append(submenu)
-                    }
-                }
-            }
-
             NotificationCenter.default.post(name: .presentOverlay, object: nil)
+        case .run:
+            // Hotkeys cannot see the Option key, so they always use the default sticky behaviour.
+            if let action = item.actionClosure {
+                Task(priority: .userInitiated) {
+                    action()
+                }
+            }
+        default:
+            break
         }
     }
 
@@ -304,107 +265,5 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
             }
         }
         return .actionExecuted(sticky: false)
-    }
-}
-
-// MARK: - KeyboardShortcuts Extension
-
-extension KeyboardShortcuts.Shortcut {
-    init?(_ string: String) {
-        let components = string.lowercased().split(separator: "+").map(String.init)
-        guard let keyStr = components.last else { return nil }
-
-        var modifiers: NSEvent.ModifierFlags = []
-
-        for modifier in components.dropLast() {
-            switch modifier {
-            case "cmd", "command", "⌘":
-                modifiers.insert(.command)
-            case "ctrl", "control", "⌃":
-                modifiers.insert(.control)
-            case "alt", "option", "⌥":
-                modifiers.insert(.option)
-            case "shift", "⇧":
-                modifiers.insert(.shift)
-            default:
-                continue
-            }
-        }
-
-        // Convert key string to KeyboardShortcuts.Key
-        let key: KeyboardShortcuts.Key
-        switch keyStr {
-        case "a": key = .a
-        case "b": key = .b
-        case "c": key = .c
-        case "d": key = .d
-        case "e": key = .e
-        case "f": key = .f
-        case "g": key = .g
-        case "h": key = .h
-        case "i": key = .i
-        case "j": key = .j
-        case "k": key = .k
-        case "l": key = .l
-        case "m": key = .m
-        case "n": key = .n
-        case "o": key = .o
-        case "p": key = .p
-        case "q": key = .q
-        case "r": key = .r
-        case "s": key = .s
-        case "t": key = .t
-        case "u": key = .u
-        case "v": key = .v
-        case "w": key = .w
-        case "x": key = .x
-        case "y": key = .y
-        case "z": key = .z
-        case "0": key = .zero
-        case "1": key = .one
-        case "2": key = .two
-        case "3": key = .three
-        case "4": key = .four
-        case "5": key = .five
-        case "6": key = .six
-        case "7": key = .seven
-        case "8": key = .eight
-        case "9": key = .nine
-        case "space": key = .space
-        case "return", "enter": key = .return
-        case "tab": key = .tab
-        case "esc", "escape": key = .escape
-        case "left": key = .leftArrow
-        case "right": key = .rightArrow
-        case "up": key = .upArrow
-        case "down": key = .downArrow
-        case "backspace", "delete": key = .delete
-        case "f1": key = .f1
-        case "f2": key = .f2
-        case "f3": key = .f3
-        case "f4": key = .f4
-        case "f5": key = .f5
-        case "f6": key = .f6
-        case "f7": key = .f7
-        case "f8": key = .f8
-        case "f9": key = .f9
-        case "f10": key = .f10
-        case "f11": key = .f11
-        case "f12": key = .f12
-        case "[": key = .leftBracket
-        case "]": key = .rightBracket
-        case "\\": key = .backslash
-        case ";": key = .semicolon
-        case "'", "\"": key = .quote
-        case ",": key = .comma
-        case ".": key = .period
-        case "/": key = .slash
-        case "-": key = .minus
-        case "=": key = .equal
-        case "`": key = .backtick
-        default: return nil
-        }
-
-        self.init(key, modifiers: modifiers)
     }
 }

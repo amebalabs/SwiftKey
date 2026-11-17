@@ -11,7 +11,6 @@
 		5A1C0D0100000000000000A5 /* SwiftKeyRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = 5A1C0D0100000000000000A3 /* SwiftKeyRuntime */; };
 		FA409DFC2D58166200FCFC04 /* Yams in Frameworks */ = {isa = PBXBuildFile; productRef = FA409DFB2D58166200FCFC04 /* Yams */; };
 		FA409EA82D614C5400FCFC04 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = FA409EA72D614C5400FCFC04 /* Sparkle */; };
-		FA62DE5A2D4418A900B1CC0C /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = FA62DE592D4418A900B1CC0C /* KeyboardShortcuts */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -65,7 +64,6 @@
 			files = (
 				FA409EA82D614C5400FCFC04 /* Sparkle in Frameworks */,
 				FA409DFC2D58166200FCFC04 /* Yams in Frameworks */,
-				FA62DE5A2D4418A900B1CC0C /* KeyboardShortcuts in Frameworks */,
 				5A1C0D0100000000000000A4 /* SwiftKeyCore in Frameworks */,
 				5A1C0D0100000000000000A5 /* SwiftKeyRuntime in Frameworks */,
 			);
@@ -130,7 +128,6 @@
 			);
 			name = SwiftKey;
 			packageProductDependencies = (
-				FA62DE592D4418A900B1CC0C /* KeyboardShortcuts */,
 				FA409DFB2D58166200FCFC04 /* Yams */,
 				FA409EA72D614C5400FCFC04 /* Sparkle */,
 				5A1C0D0100000000000000A2 /* SwiftKeyCore */,
@@ -191,7 +188,6 @@
 			mainGroup = FA3044A82D43F59400BA98E2;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				FA62DE582D4418A900B1CC0C /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */,
 				FA409DFA2D58166200FCFC04 /* XCRemoteSwiftPackageReference "Yams" */,
 				FA409EA62D614C5400FCFC04 /* XCRemoteSwiftPackageReference "Sparkle" */,
 				5A1C0D0100000000000000A1 /* XCLocalSwiftPackageReference "Packages/SwiftKeyCore" */,
@@ -536,14 +532,6 @@
 				minimumVersion = 2.6.4;
 			};
 		};
-		FA62DE582D4418A900B1CC0C /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/sindresorhus/KeyboardShortcuts";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 2.2.4;
-			};
-		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -556,11 +544,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = FA409EA62D614C5400FCFC04 /* XCRemoteSwiftPackageReference "Sparkle" */;
 			productName = Sparkle;
-		};
-		FA62DE592D4418A900B1CC0C /* KeyboardShortcuts */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = FA62DE582D4418A900B1CC0C /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */;
-			productName = KeyboardShortcuts;
 		};
 		5A1C0D0100000000000000A2 /* SwiftKeyCore */ = {
 			isa = XCSwiftPackageProductDependency;

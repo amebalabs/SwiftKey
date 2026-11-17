@@ -166,8 +166,7 @@ class FacelessMenuController: DependencyInjectable {
         sessionTimer?.invalidate()
         sessionTimer = nil
         Task { @MainActor in
-            menuState.menuStack = []
-            menuState.breadcrumbs = []
+            menuState.reset()
         }
         updateStatusItem()
     }

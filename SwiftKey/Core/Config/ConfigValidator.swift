@@ -1,4 +1,5 @@
 import Foundation
+import SwiftKeyCore
 
 /// Validates menu configuration for errors and warnings
 final class ConfigValidator {
@@ -13,8 +14,6 @@ final class ConfigValidator {
         "dd if=",
         ":(){ :|:& };:"
     ]
-
-    private let validModifiers = ["cmd", "ctrl", "alt", "shift", "option", "command", "control"]
 
     init() {}
 
@@ -120,6 +119,14 @@ final class ConfigValidator {
         }
 
         return issues
+    }
+
+    /// Hotkeys used by more than one item, or equal to the main SwiftKey hotkey: global hotkeys
+    /// must be unique across the whole menu.
+    func validateHotkeyConflicts(_ items: [MenuItem], mainHotkey: Hotkey?) -> [ValidationIssue] {
+        HotkeyRules.conflicts(in: items, mainHotkey: mainHotkey)
+            .sorted { $0.key.uuidString < $1.key.uuidString }
+            .map { ValidationIssue(type: .invalidHotkey, severity: .error, message: $0.value, itemId: $0.key) }
     }
 
     /// Returns only errors (issues that must be fixed)
@@ -264,49 +271,13 @@ final class ConfigValidator {
     }
 
     private func validateHotkey(_ hotkey: String, itemId: UUID, path: [String]) -> [ValidationIssue] {
-        var issues: [ValidationIssue] = []
-
-        let components = hotkey.components(separatedBy: "+").map { $0.trimmingCharacters(in: .whitespaces).lowercased() }
-
-        guard !components.isEmpty else {
-            issues.append(ValidationIssue(
-                type: .invalidHotkey,
-                severity: .error,
-                message: "Hotkey cannot be empty",
-                itemId: itemId,
-                path: path
-            ))
-            return issues
-        }
-
-        // All but the last component should be valid modifiers
-        for i in 0 ..< (components.count - 1) {
-            if !validModifiers.contains(components[i]) {
-                issues.append(ValidationIssue(
-                    type: .invalidHotkey,
-                    severity: .error,
-                    message: "Invalid modifier '\(components[i])' in hotkey",
-                    itemId: itemId,
-                    path: path
-                ))
-            }
-        }
-
-        // Last component should be a single character or known key name
-        if let lastComponent = components.last {
-            let validKeyNames = ["space", "return", "enter", "tab", "escape", "delete", "backspace",
-                                "up", "down", "left", "right", "home", "end", "pageup", "pagedown"]
-            if lastComponent.count > 1 && !validKeyNames.contains(lastComponent) {
-                issues.append(ValidationIssue(
-                    type: .invalidHotkey,
-                    severity: .warning,
-                    message: "Hotkey '\(lastComponent)' may not be recognized",
-                    itemId: itemId,
-                    path: path
-                ))
-            }
-        }
-
-        return issues
+        guard let problem = HotkeyRules.problem(hotkey) else { return [] }
+        return [ValidationIssue(
+            type: .invalidHotkey,
+            severity: .error,
+            message: problem,
+            itemId: itemId,
+            path: path
+        )]
     }
 }

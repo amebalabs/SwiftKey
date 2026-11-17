@@ -156,6 +156,7 @@ final class WindowManager: ObservableObject {
             onFinish()
         })
         .environmentObject(container.settingsStore)
+        .environmentObject(container.hotkeyCenter)
 
         window.contentView = NSHostingView(rootView: onboardingView)
         window.makeKeyAndOrderFront(nil)

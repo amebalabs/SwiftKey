@@ -1,6 +1,7 @@
 import AppKit
 import Foundation
 import os
+import SwiftKeyCore
 import SwiftUI
 
 /// Handles deep links to the app
@@ -50,8 +51,7 @@ class DeepLinkHandler: DependencyInjectable {
                 if let found = currentMenu.first(where: { $0.key == key }) {
                     lastFound = found
                     if let submenu = found.submenu {
-                        menuState.breadcrumbs.append(found.title)
-                        menuState.menuStack.append(submenu)
+                        menuState.push(key: SequenceKey.normalize(found.key) ?? found.key, title: found.title, items: submenu)
                         currentMenu = submenu
                     } else {
                         break

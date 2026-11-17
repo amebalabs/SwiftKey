@@ -19,6 +19,7 @@ class DependencyContainer {
     let keyboardManager: KeyboardManager
     let snippetsStore: SnippetsStore
     let dynamicMenuLoader: DynamicMenuLoader
+    let hotkeyCenter: HotkeyCenter
 
     // Track active subscriptions
     private var cancellables = Set<AnyCancellable>()
@@ -44,6 +45,7 @@ class DependencyContainer {
         self.keyboardManager = keyboardManager ?? KeyboardManager.create()
         self.snippetsStore = snippetsStore ?? SnippetsStore()
         self.dynamicMenuLoader = dynamicMenuLoader ?? DynamicMenuLoader.create()
+        self.hotkeyCenter = HotkeyCenter()
 
         // Inject dependencies into components in the correct order
         // First inject into services that don't depend on others
@@ -77,8 +79,6 @@ class DependencyContainer {
                 self.logger.debug("Menu publisher received update: \(items.count) items")
                 self.menuState.rootMenu = items
                 self.menuState.reset()
-                self.keyboardManager.registerMenuHotkeys(items)
-                self.logger.debug("Re-registered keyboard shortcuts with \(items.count) menu items")
             }
             .store(in: &cancellables)
 

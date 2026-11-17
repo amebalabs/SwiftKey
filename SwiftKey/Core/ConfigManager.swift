@@ -802,21 +802,6 @@ class ConfigManager: DependencyInjectable, ObservableObject {
 
     /// Validates the hotkey format
     private func isValidHotkeyFormat(_ hotkey: String) -> Bool {
-        // Simple validation for now - can be made more sophisticated
-        let components = hotkey.components(separatedBy: "+")
-
-        // Hotkey must have at least one component
-        guard !components.isEmpty else { return false }
-
-        // Check for valid modifiers
-        let validModifiers = ["cmd", "ctrl", "alt", "shift"]
-        // At least all but the last component should be valid modifiers
-        for i in 0 ..< (components.count - 1) {
-            if !validModifiers.contains(components[i].lowercased()) {
-                return false
-            }
-        }
-
-        return true
+        HotkeyRules.problem(hotkey) == nil
     }
 }

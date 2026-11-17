@@ -2,8 +2,10 @@ import SwiftUI
 
 final class MenuState: ObservableObject {
     @Published var rootMenu: [MenuItem] = []
-    @Published var menuStack: [[MenuItem]] = []
-    @Published var breadcrumbs: [String] = []
+    @Published private(set) var menuStack: [[MenuItem]] = []
+    @Published private(set) var breadcrumbs: [String] = []
+    /// The keys of the entered groups, one per `menuStack` level.
+    private(set) var keyPath: [String] = []
     @Published var currentKey: String?
     @Published var lastExecutedAction: (() -> Void)? = nil
     @Published var lastActionTime: Date? = nil
@@ -11,6 +13,22 @@ final class MenuState: ObservableObject {
     func reset() {
         menuStack = []
         breadcrumbs = []
+        keyPath = []
+    }
+
+    /// Enters a group: its key, the title shown in the breadcrumbs, and its items.
+    func push(key: String, title: String, items: [MenuItem]) {
+        keyPath.append(key)
+        breadcrumbs.append(title)
+        menuStack.append(items)
+    }
+
+    /// Leaves the current group. Does nothing at the top level.
+    func pop() {
+        guard !menuStack.isEmpty else { return }
+        menuStack.removeLast()
+        if !breadcrumbs.isEmpty { breadcrumbs.removeLast() }
+        if !keyPath.isEmpty { keyPath.removeLast() }
     }
 
     // Returns the current menu (raw, including hidden items)

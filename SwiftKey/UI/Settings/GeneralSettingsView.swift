@@ -1,8 +1,9 @@
-import KeyboardShortcuts
+import SwiftKeyCore
 import SwiftUI
 
 struct GeneralSettingsView: View {
     @EnvironmentObject var settings: SettingsStore
+    @EnvironmentObject private var hotkeys: HotkeyCenter
     @ObservedObject private var launchAtLogin = LaunchAtLogin.observable
     @EnvironmentObject private var sparkleUpdater: SparkleUpdater
 
@@ -30,7 +31,10 @@ struct GeneralSettingsView: View {
                 Slider(value: settings.$menuStateResetDelay, in: 0 ... 10, step: 0.5)
                 Text("\(settings.menuStateResetDelay, specifier: "%.1f")")
             }
-            KeyboardShortcuts.Recorder("Hot key", name: .toggleApp)
+            LabeledContent("Hot key") {
+                HotkeyRecorderField(hotkey: settings.$mainHotkey, gate: hotkeys.recordingGate,
+                                    placeholder: "Not set", problem: mainHotkeyProblem)
+            }
             Toggle("Trigger hold mode", isOn: settings.$triggerKeyHoldMode)
             Divider()
 
@@ -68,6 +72,11 @@ struct GeneralSettingsView: View {
         .frame(width: 420)
     }
 
+    private var mainHotkeyProblem: String? {
+        if case .failed(let reason) = hotkeys.mainStatus { return reason }
+        return nil
+    }
+
     private var currentVersion: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "Unknown"
     }
@@ -81,5 +90,7 @@ struct GeneralSettingsView: View {
 }
 
 #Preview {
-    GeneralSettingsView().environmentObject(SettingsStore())
+    GeneralSettingsView()
+        .environmentObject(SettingsStore())
+        .environmentObject(HotkeyCenter())
 }

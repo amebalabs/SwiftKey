@@ -1,8 +1,8 @@
 import AppKit
 import Carbon.HIToolbox
 import Combine
-import KeyboardShortcuts
 import os
+import SwiftKeyCore
 import SwiftUI
 
 class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
@@ -54,6 +54,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     var statusItem: NSStatusItem?
     var facelessMenuController: FacelessMenuController?
     var defaultsObserver: AnyCancellable?
+    var hotkeySubscription: AnyCancellable?
     // Gallery window management
     private static var activeGalleryWindow: NSWindow?
 
@@ -79,19 +80,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
         _ = SparkleUpdater.shared
 
-        KeyboardShortcuts.onKeyDown(for: .toggleApp) { [self] in
-            Task {
-                await toggleSession()
-            }
-        }
-
-        KeyboardShortcuts.onKeyUp(for: .toggleApp) { [self] in
-            if settings.triggerKeyHoldMode {
-                Task {
-                    await hideWindow()
-                }
-            }
-        }
+        setupHotkeys()
 
         if settings.needsOnboarding {
             Task {
@@ -144,8 +133,36 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         }
     }
 
+    /// Registers the main hotkey and the item hotkeys, and keeps them in step with settings and the menu.
+    @MainActor
+    private func setupHotkeys() {
+        LegacyHotkeyMigration.migrate(AppPaths.defaults)
+        let hotkeys = container.hotkeyCenter
+        hotkeys.onMainPress = { [weak self] in
+            Task { await self?.toggleSession() }
+        }
+        hotkeys.onMainRelease = { [weak self] in
+            guard let self, settings.triggerKeyHoldMode else { return }
+            Task { await self.hideWindow() }
+        }
+        hotkeys.onItemPress = { [weak self] id in
+            guard let self, let item = menuState.rootMenu.findItem(with: id) else { return }
+            keyboardManager.runItemHotkey(item)
+        }
+        hotkeys.setMain(settings.mainHotkeyValue)
+        hotkeySubscription = menuState.$rootMenu
+            .receive(on: RunLoop.main)
+            .sink { menu in
+                MainActor.assumeIsolated {
+                    hotkeys.setItems(HotkeyCenter.itemHotkeys(in: menu))
+                }
+            }
+    }
+
     @MainActor
     func applySettings() async {
+        container.hotkeyCenter.setMain(settings.mainHotkeyValue)
+
         if isOverlayVisible {
             logger.debug("Hiding overlay due to settings change")
             NotificationCenter.default.post(name: .hideOverlay, object: nil)
@@ -332,8 +349,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 if let submenu = await dynamicMenuLoader.loadDynamicMenu(for: item) {
                     // Update the menu state with the loaded submenu on the main actor
                     await MainActor.run {
-                        self.menuState.breadcrumbs.append(item.title)
-                        self.menuState.menuStack.append(submenu)
+                        self.menuState.push(key: SequenceKey.normalize(item.key) ?? item.key, title: item.title,
+                                            items: submenu)
 
                         // Now that the menu is loaded, present the UI
                         self.showOverlayWindow()
@@ -424,6 +441,7 @@ extension AppDelegate {
             }
         })
         .environmentObject(settings)
+        .environmentObject(container.hotkeyCenter)
         window.contentView = NSHostingView(rootView: onboardingView)
         window.makeKeyAndOrderFront(nil)
     }

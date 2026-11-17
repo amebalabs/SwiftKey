@@ -1,5 +1,6 @@
 import SwiftUI
 import Combine
+import SwiftKeyCore
 
 class SettingsStore: ObservableObject, DependencyInjectable, SettingsStoring {
     // Publisher for settings changes
@@ -53,6 +54,11 @@ class SettingsStore: ObservableObject, DependencyInjectable, SettingsStoring {
     @AppStorage("TriggerKeyHoldMode", store: AppPaths.defaults) var triggerKeyHoldMode: Bool = false {
         didSet { settingsChangedSubject.send() }
     }
+    /// The global hotkey that opens SwiftKey, as a `Hotkey` string such as "option+shift+cmd+f";
+    /// empty when none is set.
+    @AppStorage(SettingsStore.mainHotkeyKey, store: AppPaths.defaults) var mainHotkey: String = "" {
+        didSet { settingsChangedSubject.send() }
+    }
     @AppStorage("NeedsOnboarding", store: AppPaths.defaults) var needsOnboarding: Bool = true {
         didSet { settingsChangedSubject.send() }
     }
@@ -78,6 +84,13 @@ class SettingsStore: ObservableObject, DependencyInjectable, SettingsStoring {
             activeUpdater.configureFeedURLs()
             settingsChangedSubject.send()
         }
+    }
+
+    static let mainHotkeyKey = "MainHotkey"
+
+    /// The main hotkey, when one is set and parses.
+    var mainHotkeyValue: Hotkey? {
+        Hotkey(string: mainHotkey)
     }
 
     var facelessMode: Bool {

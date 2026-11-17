@@ -1,6 +1,7 @@
 import SwiftUI
 import Combine
 import os
+import SwiftKeyCore
 import Yams
 
 class ConfigEditorViewModel: ObservableObject {
@@ -187,6 +188,11 @@ class ConfigEditorViewModel: ObservableObject {
     func validateAll() {
         validationErrors.removeAll()
         validateMenuItems(menuItems, parentPath: [])
+        // Global hotkeys must be unique across the whole menu and differ from the main hotkey.
+        let mainHotkey = Hotkey(string: AppPaths.defaults.string(forKey: SettingsStore.mainHotkeyKey) ?? "")
+        for (id, message) in HotkeyRules.conflicts(in: menuItems, mainHotkey: mainHotkey) {
+            validationErrors[id, default: []].append(ValidationError(field: "hotkey", message: message, severity: .error))
+        }
     }
     
     func validateItem(_ item: MenuItem) {
@@ -222,6 +228,11 @@ class ConfigEditorViewModel: ObservableObject {
                 errors.append(ValidationError(field: "action", message: "Item must have either an action or submenu", severity: .warning))
             }
             
+            // Hotkey validation
+            if let hotkey = item.hotkey, let problem = HotkeyRules.problem(hotkey) {
+                errors.append(ValidationError(field: "hotkey", message: problem, severity: .error))
+            }
+
             // Icon validation
             if let icon = item.icon, !icon.isEmpty {
                 // TODO: Validate against SF Symbols list

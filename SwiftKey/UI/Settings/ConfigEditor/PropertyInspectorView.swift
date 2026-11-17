@@ -1,8 +1,10 @@
 import SwiftUI
-import KeyboardShortcuts
+import SwiftKeyCore
 
 struct PropertyInspectorView: View {
     @Binding var selectedItem: MenuItem?
+    @EnvironmentObject private var hotkeys: HotkeyCenter
+    @EnvironmentObject private var settings: SettingsStore
     let onUpdate: (MenuItem) -> Void
     let validationErrors: [ConfigEditorViewModel.ValidationError]
     
@@ -405,28 +407,23 @@ struct PropertyInspectorView: View {
                 Text("Hotkey:")
                     .frame(width: 80, alignment: .trailing)
                 
-                HStack {
-                    TextField("e.g. cmd+shift+a", text: Binding(
+                HotkeyRecorderField(
+                    hotkey: Binding(
                         get: { item.hotkey ?? "" },
                         set: { newValue in
                             var updatedItem = item
                             updatedItem.hotkey = newValue.isEmpty ? nil : newValue
                             onUpdate(updatedItem)
                         }
-                    ))
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .frame(maxWidth: 200)
-                    .help("Format: cmd+shift+a, ctrl+alt+x, etc.")
-                    
-                    if item.hotkey != nil {
-                        Button("Clear") {
-                            var updatedItem = item
-                            updatedItem.hotkey = nil
-                            onUpdate(updatedItem)
-                        }
-                        .controlSize(.small)
+                    ),
+                    gate: hotkeys.recordingGate,
+                    placeholder: "None",
+                    problem: hotkeys.itemProblems[item.id],
+                    conflict: { hotkey in
+                        hotkey == settings.mainHotkeyValue ? "\(hotkey.display) is the SwiftKey hotkey. Press another key." : nil
                     }
-                }
+                )
+                .help("A global hotkey that runs this item, or opens the menu at it, from any app.")
             }
             
             HStack {
