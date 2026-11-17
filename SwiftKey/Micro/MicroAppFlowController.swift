@@ -227,7 +227,13 @@ final class MicroAppFlowController: NSObject, NSWindowDelegate, MicroAppRunning 
         task?.cancel()
         task = nil
         session.state = .closed
+        let wasShown = panel?.isVisible == true
         panel?.orderOut(nil)
+        // After an approval SwiftKey is the active app: give the keyboard back to the app the
+        // person worked in.
+        if wasShown, NSApp.isActive, let pid = target?.pid, pid != ProcessInfo.processInfo.processIdentifier {
+            NSRunningApplication(processIdentifier: pid)?.activate()
+        }
         let ended = outcome
         outcome = .notRun
         if let finish {

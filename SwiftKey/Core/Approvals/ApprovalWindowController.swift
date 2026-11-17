@@ -10,6 +10,7 @@ final class ApprovalWindowController: NSObject, ApprovalPrompt, NSWindowDelegate
     private var window: NSWindow?
     private var continuation: CheckedContinuation<Bool, Never>?
     private var previousApp: NSRunningApplication?
+    private var returnsFocus = true
 
     /// Makes no window; the window opens on the main actor when there is something to ask.
     nonisolated override init() {
@@ -17,9 +18,10 @@ final class ApprovalWindowController: NSObject, ApprovalPrompt, NSWindowDelegate
     }
 
     @MainActor
-    func ask(_ pending: [PendingCode]) async -> Bool {
+    func ask(_ pending: [PendingCode], returnsFocus: Bool) async -> Bool {
         // One question at a time: a second request while the window is open is declined.
         guard window == nil else { return false }
+        self.returnsFocus = returnsFocus
         return await withCheckedContinuation { continuation in
             self.continuation = continuation
             show(pending)
@@ -54,7 +56,7 @@ final class ApprovalWindowController: NSObject, ApprovalPrompt, NSWindowDelegate
         self.window = nil
         window?.delegate = nil
         window?.close()
-        previousApp?.activate()
+        if !approved || returnsFocus { previousApp?.activate() }
         previousApp = nil
         continuation.resume(returning: approved)
     }

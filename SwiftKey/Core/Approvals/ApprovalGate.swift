@@ -107,8 +107,10 @@ enum MicroAppOutcome: Equatable {
 /// Asks the person to approve commands.
 @MainActor
 protocol ApprovalPrompt: Sendable {
-    /// True when the person approved every command in `pending`.
-    func ask(_ pending: [PendingCode]) async -> Bool
+    /// True when the person approved every command in `pending`. With `returnsFocus` false an
+    /// approval leaves the keyboard with SwiftKey, whose next panel needs it; a decline always
+    /// gives it back to the app the person worked in.
+    func ask(_ pending: [PendingCode], returnsFocus: Bool) async -> Bool
 }
 
 /// The one way SwiftKey runs code from the config. A `shell://` or `dynamic://` command runs only
@@ -161,7 +163,7 @@ final class ApprovalGate: ObservableObject {
     func authorize(_ items: [MenuItem], path: [String]) async -> Bool {
         let pending = pendingCode(for: items, path: path)
         guard !pending.isEmpty else { return true }
-        guard await prompt.ask(pending) else {
+        guard await prompt.ask(pending, returnsFocus: true) else {
             logger.info("Command approval declined for \(pending.count) command(s)")
             return false
         }
@@ -183,7 +185,9 @@ final class ApprovalGate: ObservableObject {
         let pending = PendingCode(subject: .microApp(PendingMicroApp(app: app, hash: hash, file: file)),
                                   title: app.shownName, path: path.joined(separator: " › "),
                                   origin: "the micro-app file \(file)")
-        guard await prompt.ask([pending]) else {
+        // The micro-app's own panel takes the keyboard next: focus going back to the app now
+        // would close it at once.
+        guard await prompt.ask([pending], returnsFocus: false) else {
             logger.info("Micro-app approval declined for \(app.id, privacy: .public)")
             return false
         }
