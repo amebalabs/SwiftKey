@@ -115,6 +115,8 @@ jobs:
         run: |
           echo "Checking binary architectures..."
           lipo -archs "build/Build/Products/Release/${{ env.APP_NAME }}.app/Contents/MacOS/${{ env.APP_NAME }}"
+          echo "Checking the swiftkey-micro tool..."
+          lipo "build/Build/Products/Release/${{ env.APP_NAME }}.app/Contents/MacOS/swiftkey-micro" -verify_arch arm64 x86_64
       - name: Package App Bundle
         run: |
           cd build/Build/Products/Release

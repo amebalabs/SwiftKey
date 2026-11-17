@@ -1,8 +1,12 @@
 import SwiftUI
-import KeyboardShortcuts
+import SwiftKeyCore
 
 struct PropertyInspectorView: View {
     @Binding var selectedItem: MenuItem?
+    @EnvironmentObject private var hotkeys: HotkeyCenter
+    @EnvironmentObject private var settings: SettingsStore
+    @EnvironmentObject private var approvalGate: ApprovalGate
+    @EnvironmentObject private var microApps: MicroAppDirectory
     let onUpdate: (MenuItem) -> Void
     let validationErrors: [ConfigEditorViewModel.ValidationError]
     
@@ -15,6 +19,7 @@ struct PropertyInspectorView: View {
         case shell = "Shell"
         case shortcut = "Shortcut"
         case dynamic = "Dynamic"
+        case micro = "Micro-app"
         
         var prefix: String? {
             switch self {
@@ -24,6 +29,7 @@ struct PropertyInspectorView: View {
             case .shell: return "shell://"
             case .shortcut: return "shortcut://"
             case .dynamic: return "dynamic://"
+            case .micro: return "micro://"
             }
         }
         
@@ -34,34 +40,56 @@ struct PropertyInspectorView: View {
             if action.hasPrefix("shell://") { return .shell }
             if action.hasPrefix("shortcut://") { return .shortcut }
             if action.hasPrefix("dynamic://") { return .dynamic }
+            if action.hasPrefix("micro://") { return .micro }
             return .none
         }
-    }
-    
-    var body: some View {
-        ScrollView {
-            if let item = selectedItem {
-                VStack(alignment: .leading, spacing: 16) {
-                    basicPropertiesSection(for: item)
-                    Divider()
-                    actionSection(for: item)
-                    Divider()
-                    flagsSection(for: item)
-                    Divider()
-                    advancedSection(for: item)
-                }
-                .padding()
-            } else {
-                VStack(spacing: 16) {
-                    Image(systemName: "sidebar.left")
-                        .font(.system(size: 48))
-                        .foregroundColor(.secondary)
-                    Text("Select a menu item to edit")
-                        .foregroundColor(.secondary)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+        /// The name in the type pop-up.
+        var menuTitle: String {
+            switch self {
+            case .none: return "None"
+            case .launch: return "Launch App"
+            case .open: return "Open URL"
+            case .shell: return "Shell Command"
+            case .shortcut: return "Run Shortcut"
+            case .dynamic: return "Dynamic Menu"
+            case .micro: return "Micro-app"
             }
         }
+
+        var symbol: String {
+            switch self {
+            case .none: return "circle.slash"
+            case .launch: return "app"
+            case .open: return "link"
+            case .shell: return "terminal"
+            case .shortcut: return "square.2.layers.3d"
+            case .dynamic: return "list.bullet.indent"
+            case .micro: return "puzzlepiece.extension"
+            }
+        }
+    }
+
+    var body: some View {
+        Group {
+            if let item = selectedItem {
+                Form {
+                    itemSection(for: item)
+                    actionSection(for: item)
+                    optionsSection(for: item)
+                    hotkeySection(for: item)
+                }
+                .formStyle(.grouped)
+            } else {
+                ContentUnavailableView(
+                    "No Item Selected",
+                    systemImage: "sidebar.left",
+                    description: Text("Select a menu item to edit it.")
+                )
+            }
+        }
+        // Fill the pane whether a form or the empty state shows, so the split view keeps its height.
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .sheet(isPresented: $showingSFSymbolPicker) {
             if let item = selectedItem {
                 SFSymbolPicker(selectedSymbol: item.icon ?? "star") { symbol in
@@ -73,387 +101,339 @@ struct PropertyInspectorView: View {
             }
         }
     }
-    
-    // MARK: - Basic Properties Section
-    
+
+    // MARK: - Item Section
+
     @ViewBuilder
-    private func basicPropertiesSection(for item: MenuItem) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Basic Properties")
-                .font(.headline)
-            
-            // Key field
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    Text("Key:")
-                        .frame(width: 80, alignment: .trailing)
-                    TextField("Single character", text: Binding(
-                        get: { item.key },
-                        set: { newValue in
-                            var updatedItem = item
-                            updatedItem.key = String(newValue.prefix(1))
-                            onUpdate(updatedItem)
-                        }
-                    ))
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .frame(width: 60)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 4)
-                            .stroke(hasError(for: "key") ? Color.red : Color.clear, lineWidth: 1)
-                    )
+    private func itemSection(for item: MenuItem) -> some View {
+        Section {
+            // A single character keeps its case; named keys are space, return and f1…f20.
+            TextField("Key", text: Binding(
+                get: { item.key },
+                set: { newValue in
+                    var updatedItem = item
+                    updatedItem.key = newValue
+                    onUpdate(updatedItem)
                 }
-                if let error = validationErrors.first(where: { $0.field == "key" }) {
-                    Text(error.message)
-                        .font(.caption)
-                        .foregroundColor(.red)
-                        .padding(.leading, 84)
+            ), prompt: Text("a, B, space, f5"))
+            .font(.system(.body, design: .monospaced))
+            fieldError("key")
+
+            TextField("Title", text: Binding(
+                get: { item.title },
+                set: { newValue in
+                    var updatedItem = item
+                    updatedItem.title = newValue
+                    onUpdate(updatedItem)
                 }
-            }
-            
-            // Title field
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    Text("Title:")
-                        .frame(width: 80, alignment: .trailing)
-                    TextField("Menu item title", text: Binding(
-                        get: { item.title },
-                        set: { newValue in
-                            var updatedItem = item
-                            updatedItem.title = newValue
-                            onUpdate(updatedItem)
-                        }
-                    ))
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 4)
-                            .stroke(hasError(for: "title") ? Color.red : Color.clear, lineWidth: 1)
-                    )
-                }
-                if let error = validationErrors.first(where: { $0.field == "title" }) {
-                    Text(error.message)
-                        .font(.caption)
-                        .foregroundColor(.red)
-                        .padding(.leading, 84)
-                }
-            }
-            
-            // Icon picker
-            HStack {
-                Text("Icon:")
-                    .frame(width: 80, alignment: .trailing)
-                Button(action: { showingSFSymbolPicker = true }) {
-                    HStack {
+            ), prompt: Text("Menu item title"))
+            fieldError("title")
+
+            LabeledContent("Icon") {
+                HStack(spacing: 8) {
+                    Button(action: { showingSFSymbolPicker = true }) {
                         if let iconName = item.icon {
-                            Image(systemName: iconName)
-                                .foregroundColor(.primary)
+                            Label(iconName, systemImage: iconName)
+                        } else {
+                            Text("Choose…")
                         }
-                        Text(item.icon ?? "Choose...")
-                            .foregroundColor(item.icon == nil ? .secondary : .primary)
-                        Spacer()
-                        Image(systemName: "chevron.down")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
                     }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(Color(NSColor.controlBackgroundColor))
-                    .cornerRadius(4)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 4)
-                            .stroke(Color(NSColor.separatorColor), lineWidth: 1)
-                    )
-                }
-                .buttonStyle(PlainButtonStyle())
-                
-                if item.icon != nil {
-                    Button("Clear") {
-                        var updatedItem = item
-                        updatedItem.icon = nil
-                        onUpdate(updatedItem)
+                    if item.icon != nil {
+                        Button("Clear") {
+                            var updatedItem = item
+                            updatedItem.icon = nil
+                            onUpdate(updatedItem)
+                        }
+                        .buttonStyle(.borderless)
                     }
-                    .foregroundColor(.secondary)
-                    .font(.caption)
                 }
             }
+        } header: {
+            Text("Item")
         }
     }
-    
+
     // MARK: - Action Section
-    
+
     @ViewBuilder
     private func actionSection(for item: MenuItem) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Action")
-                .font(.headline)
-            
-            // Action type picker
-            HStack {
-                Text("Type:")
-                    .frame(width: 80, alignment: .trailing)
-                Picker("", selection: Binding(
-                    get: { ActionType.from(action: item.action) },
-                    set: { newType in
-                        var updatedItem = item
-                        if newType == .none {
-                            updatedItem.action = nil
-                        } else if let prefix = newType.prefix {
-                            updatedItem.action = prefix
-                        }
-                        onUpdate(updatedItem)
+        let currentType = ActionType.from(action: item.action)
+        Section {
+            Picker("Type", selection: Binding(
+                get: { currentType },
+                set: { newType in
+                    var updatedItem = item
+                    if newType == .none {
+                        updatedItem.action = nil
+                    } else if let prefix = newType.prefix {
+                        updatedItem.action = prefix
                     }
-                )) {
-                    ForEach(ActionType.allCases, id: \.self) { type in
-                        Text(type.rawValue).tag(type)
-                    }
+                    onUpdate(updatedItem)
                 }
-                .pickerStyle(SegmentedPickerStyle())
+            )) {
+                ForEach(ActionType.allCases, id: \.self) { type in
+                    Label(type.menuTitle, systemImage: type.symbol).tag(type)
+                }
             }
-            
-            // Action value editor
-            let currentType = ActionType.from(action: item.action)
+
             if currentType != .none {
                 actionValueEditor(for: item, type: currentType)
             }
-            
-            // Action validation errors
+
             if let error = validationErrors.first(where: { $0.field == "action" }) {
-                HStack {
-                    Image(systemName: error.severity == .warning ? "exclamationmark.triangle.fill" : "xmark.circle.fill")
-                        .foregroundColor(error.severity == .warning ? .orange : .red)
-                    Text(error.message)
-                        .font(.caption)
-                        .foregroundColor(error.severity == .warning ? .orange : .red)
-                }
-                .padding(.leading, 84)
+                issueRow(error)
+            }
+        } header: {
+            Text("Action")
+        } footer: {
+            if item.submenu != nil, currentType == .none {
+                Text("A group opens its submenu.")
+                    .foregroundStyle(.secondary)
             }
         }
     }
-    
+
     @ViewBuilder
     private func actionValueEditor(for item: MenuItem, type: ActionType) -> some View {
         let actionValue = item.action?.dropFirst(type.prefix?.count ?? 0) ?? ""
-        
+        let value = Binding(
+            get: { String(actionValue) },
+            set: { (newValue: String) in
+                var updatedItem = item
+                updatedItem.action = (type.prefix ?? "") + newValue
+                onUpdate(updatedItem)
+            }
+        )
+
         switch type {
         case .launch:
-            HStack {
-                Text("App:")
-                    .frame(width: 80, alignment: .trailing)
-                TextField("/Applications/App.app", text: Binding(
-                    get: { String(actionValue) },
-                    set: { newValue in
-                        var updatedItem = item
-                        updatedItem.action = "launch://\(newValue)"
-                        onUpdate(updatedItem)
-                    }
-                ))
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                
-                Button("Browse...") {
-                    let panel = NSOpenPanel()
-                    panel.allowsMultipleSelection = false
-                    panel.canChooseDirectories = false
-                    panel.canChooseFiles = true
-                    panel.allowedContentTypes = [.application]
-                    panel.directoryURL = URL(fileURLWithPath: "/Applications")
-                    
-                    if panel.runModal() == .OK, let url = panel.url {
-                        var updatedItem = item
-                        updatedItem.action = "launch://\(url.path)"
-                        onUpdate(updatedItem)
+            LabeledContent("App") {
+                HStack {
+                    TextField("App", text: value, prompt: Text("/Applications/App.app or com.apple.Safari"))
+                        .labelsHidden()
+                    Button("Choose…") {
+                        let panel = NSOpenPanel()
+                        panel.allowsMultipleSelection = false
+                        panel.canChooseDirectories = false
+                        panel.canChooseFiles = true
+                        panel.allowedContentTypes = [.application]
+                        panel.directoryURL = URL(fileURLWithPath: "/Applications")
+
+                        if panel.runModal() == .OK, let url = panel.url {
+                            value.wrappedValue = url.path
+                        }
                     }
                 }
             }
-            
+
         case .open:
-            HStack {
-                Text("URL:")
-                    .frame(width: 80, alignment: .trailing)
-                TextField("https://example.com", text: Binding(
-                    get: { String(actionValue) },
-                    set: { newValue in
-                        var updatedItem = item
-                        updatedItem.action = "open://\(newValue)"
-                        onUpdate(updatedItem)
-                    }
-                ))
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-            }
-            
+            TextField("URL", text: value, prompt: Text("https://example.com"))
+
         case .shell:
-            HStack {
-                Text("Command:")
-                    .frame(width: 80, alignment: .trailing)
-                TextField("echo 'Hello World'", text: Binding(
-                    get: { String(actionValue) },
-                    set: { newValue in
-                        var updatedItem = item
-                        updatedItem.action = "shell://\(newValue)"
-                        onUpdate(updatedItem)
-                    }
-                ))
-                .textFieldStyle(RoundedBorderTextFieldStyle())
+            TextField("Command", text: value, prompt: Text("echo 'Hello World'"), axis: .vertical)
                 .font(.system(.body, design: .monospaced))
-            }
-            
+                .lineLimit(1...4)
+
         case .shortcut:
-            HStack {
-                Text("Shortcut:")
-                    .frame(width: 80, alignment: .trailing)
-                TextField("Shortcut Name", text: Binding(
-                    get: { String(actionValue) },
-                    set: { newValue in
-                        var updatedItem = item
-                        updatedItem.action = "shortcut://\(newValue)"
-                        onUpdate(updatedItem)
-                    }
-                ))
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-            }
-            
+            TextField("Shortcut", text: value, prompt: Text("Shortcut name"))
+
         case .dynamic:
-            HStack {
-                Text("Script:")
-                    .frame(width: 80, alignment: .trailing)
-                TextField("~/scripts/menu.sh", text: Binding(
-                    get: { String(actionValue) },
-                    set: { newValue in
-                        var updatedItem = item
-                        updatedItem.action = "dynamic://\(newValue)"
-                        onUpdate(updatedItem)
-                    }
-                ))
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                
-                Button("Browse...") {
-                    let panel = NSOpenPanel()
-                    panel.allowsMultipleSelection = false
-                    panel.canChooseDirectories = false
-                    panel.canChooseFiles = true
-                    
-                    if panel.runModal() == .OK, let url = panel.url {
-                        var updatedItem = item
-                        updatedItem.action = "dynamic://\(url.path)"
-                        onUpdate(updatedItem)
+            LabeledContent("Script") {
+                HStack {
+                    TextField("Script", text: value, prompt: Text("~/scripts/menu.sh"))
+                        .labelsHidden()
+                        .font(.system(.body, design: .monospaced))
+                    Button("Choose…") {
+                        let panel = NSOpenPanel()
+                        panel.allowsMultipleSelection = false
+                        panel.canChooseDirectories = false
+                        panel.canChooseFiles = true
+
+                        if panel.runModal() == .OK, let url = panel.url {
+                            value.wrappedValue = url.path
+                        }
                     }
                 }
             }
-            
+
+        case .micro:
+            microAppEditor(for: item, id: String(actionValue))
+
         case .none:
             EmptyView()
         }
     }
-    
-    // MARK: - Flags Section
-    
+
+    /// Picks a loaded micro-app by id. A broken or missing id stays listed, marked, until another
+    /// one is chosen; its problem shows below the picker.
     @ViewBuilder
-    private func flagsSection(for item: MenuItem) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Options")
-                .font(.headline)
-            
-            VStack(alignment: .leading, spacing: 8) {
-                Toggle("Sticky - Keep window open after action", isOn: Binding(
-                    get: { item.sticky ?? false },
-                    set: { newValue in
-                        var updatedItem = item
-                        updatedItem.sticky = newValue ? true : nil
-                        onUpdate(updatedItem)
-                    }
-                ))
-                
-                Toggle("Notify - Show notification after action", isOn: Binding(
-                    get: { item.notify ?? false },
-                    set: { newValue in
-                        var updatedItem = item
-                        updatedItem.notify = newValue ? true : nil
-                        onUpdate(updatedItem)
-                    }
-                ))
-                
-                Toggle("Batch - Run all submenu items", isOn: Binding(
-                    get: { item.batch ?? false },
-                    set: { newValue in
-                        var updatedItem = item
-                        updatedItem.batch = newValue ? true : nil
-                        onUpdate(updatedItem)
-                    }
-                ))
-                .disabled(item.submenu?.isEmpty ?? true)
-                
-                Toggle("Hidden - Hide from UI but keep activatable", isOn: Binding(
-                    get: { item.hidden ?? false },
-                    set: { newValue in
-                        var updatedItem = item
-                        updatedItem.hidden = newValue ? true : nil
-                        onUpdate(updatedItem)
-                    }
-                ))
+    private func microAppEditor(for item: MenuItem, id: String) -> some View {
+        let choices = microApps.choices(current: id)
+        if choices.isEmpty {
+            LabeledContent("Micro-app") {
+                Text("No micro-apps in \(microApps.folderURL.map { ($0.path as NSString).abbreviatingWithTildeInPath } ?? "the micro-apps folder")")
+                    .foregroundStyle(.secondary)
             }
-            .padding(.leading, 84)
+        } else {
+            Picker("Micro-app", selection: Binding(
+                get: { id },
+                set: { newID in
+                    var updatedItem = item
+                    updatedItem.action = "micro://\(newID)"
+                    onUpdate(updatedItem)
+                }
+            )) {
+                if id.isEmpty {
+                    Text("Choose a micro-app").tag("")
+                }
+                ForEach(choices) { choice in
+                    Text(choice.title).tag(choice.id)
+                }
+            }
+        }
+        LabeledContent("File") {
+            Button("Reveal in Finder") {
+                if let url = microApps.fileURL(for: id) {
+                    NSWorkspace.shared.activateFileViewerSelecting([url])
+                }
+            }
+            .disabled(microApps.fileURL(for: id) == nil)
+            .help("Show the micro-app's file in Finder")
+        }
+        if let problem = microApps.problem(for: id) {
+            Label {
+                Text(problem)
+                    .textSelection(.enabled)
+            } icon: {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.orange)
+            }
+            .font(.callout)
+            .foregroundStyle(.secondary)
         }
     }
-    
-    // MARK: - Advanced Section
-    
+
+    // MARK: - Options Section
+
     @ViewBuilder
-    private func advancedSection(for item: MenuItem) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Advanced")
-                .font(.headline)
-            
-            HStack {
-                Text("Hotkey:")
-                    .frame(width: 80, alignment: .trailing)
-                
-                HStack {
-                    TextField("e.g. cmd+shift+a", text: Binding(
+    private func optionsSection(for item: MenuItem) -> some View {
+        Section {
+            optionToggle("Sticky", "Keep the menu open after the action runs.", isOn: Binding(
+                get: { item.sticky ?? false },
+                set: { newValue in
+                    var updatedItem = item
+                    updatedItem.sticky = newValue ? true : nil
+                    onUpdate(updatedItem)
+                }
+            ))
+
+            optionToggle("Notify", "Show a notification when the action finishes.", isOn: Binding(
+                get: { item.notify ?? false },
+                set: { newValue in
+                    var updatedItem = item
+                    updatedItem.notify = newValue ? true : nil
+                    onUpdate(updatedItem)
+                }
+            ))
+
+            optionToggle("Batch", item.submenu?.isEmpty ?? true
+                ? "Only for groups: runs every item in the submenu."
+                : "Run every item in the submenu at once.", isOn: Binding(
+                get: { item.batch ?? false },
+                set: { newValue in
+                    var updatedItem = item
+                    updatedItem.batch = newValue ? true : nil
+                    onUpdate(updatedItem)
+                }
+            ))
+            .disabled(item.submenu?.isEmpty ?? true)
+            fieldError("batch")
+
+            optionToggle("Hidden", "Leave out of the menu and launcha; the key still works.", isOn: Binding(
+                get: { item.hidden ?? false },
+                set: { newValue in
+                    var updatedItem = item
+                    updatedItem.hidden = newValue ? true : nil
+                    onUpdate(updatedItem)
+                }
+            ))
+        } header: {
+            Text("Options")
+        }
+    }
+
+    private func optionToggle(_ title: String, _ detail: String, isOn: Binding<Bool>) -> some View {
+        Toggle(isOn: isOn) {
+            Text(title)
+            Text(detail)
+        }
+    }
+
+    // MARK: - Hotkey Section
+
+    @ViewBuilder
+    private func hotkeySection(for item: MenuItem) -> some View {
+        Section {
+            LabeledContent("Global hotkey") {
+                HotkeyRecorderField(
+                    hotkey: Binding(
                         get: { item.hotkey ?? "" },
                         set: { newValue in
                             var updatedItem = item
                             updatedItem.hotkey = newValue.isEmpty ? nil : newValue
                             onUpdate(updatedItem)
                         }
-                    ))
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .frame(maxWidth: 200)
-                    .help("Format: cmd+shift+a, ctrl+alt+x, etc.")
-                    
-                    if item.hotkey != nil {
-                        Button("Clear") {
-                            var updatedItem = item
-                            updatedItem.hotkey = nil
-                            onUpdate(updatedItem)
-                        }
-                        .controlSize(.small)
+                    ),
+                    gate: hotkeys.recordingGate,
+                    placeholder: "None",
+                    problem: hotkeys.itemProblems[item.id],
+                    conflict: { hotkey in
+                        hotkey == settings.mainHotkeyValue ? "\(hotkey.display) is the SwiftKey hotkey. Press another key." : nil
                     }
-                }
+                )
             }
-            
-            HStack {
+            fieldError("hotkey")
+        } footer: {
+            HStack(alignment: .firstTextBaseline) {
+                Text("Runs this item, or opens the menu at it, from any app.")
+                    .foregroundStyle(.secondary)
                 Spacer()
-                    .frame(width: 84)
-                
                 if item.action != nil {
                     Button("Test Action") {
                         testAction(item)
                     }
-                }
-                
-                Button("Validate") {
-                    // Validation happens automatically
+                    .help("Run this item now, with the same approval as a key press")
                 }
             }
         }
     }
-    
+
     // MARK: - Helpers
-    
-    private func hasError(for field: String) -> Bool {
-        validationErrors.contains { $0.field == field }
+
+    /// The validation problem of one field, shown under it.
+    @ViewBuilder
+    private func fieldError(_ field: String) -> some View {
+        if let error = validationErrors.first(where: { $0.field == field }) {
+            issueRow(error)
+        }
     }
-    
+
+    private func issueRow(_ error: ConfigEditorViewModel.ValidationError) -> some View {
+        Label {
+            Text(error.message)
+        } icon: {
+            Image(systemName: error.severity == .warning ? "exclamationmark.triangle.fill" : "xmark.circle.fill")
+                .foregroundStyle(error.severity == .warning ? .orange : .red)
+        }
+        .font(.callout)
+        .foregroundStyle(error.severity == .warning ? Color.secondary : Color.red)
+    }
+
+    /// Runs the item as it is now, through the same approval as a key press: the field may hold
+    /// a command that was not typed here.
     private func testAction(_ item: MenuItem) {
-        guard let closure = item.actionClosure else { return }
-        closure()
+        Task { @MainActor in
+            await approvalGate.run(item, path: [])
+        }
     }
 }

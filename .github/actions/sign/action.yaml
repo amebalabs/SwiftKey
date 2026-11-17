@@ -47,6 +47,27 @@ runs:
         security find-identity -v signing_temp.keychain | grep "${{ inputs.apple-team-id }}" | grep "Developer ID Application"
         codesign --keychain signing_temp.keychain --force --deep --sign "${{ inputs.apple-team-id }}" ${{ env.entitlements_arg }} --options=runtime "${{ inputs.app-path }}"
 
+    # --deep gave the command-line tools next to the app's executable the app's entitlements.
+    # Sign each tool on its own (hardened runtime, timestamp, its own identifier, no app
+    # entitlements), then seal the app again so its signature covers the re-signed tools.
+    - name: Code sign command-line tools
+      shell: bash
+      run: |
+        APP="${{ inputs.app-path }}"
+        MAIN="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$APP/Contents/Info.plist")"
+        BUNDLE_ID="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Contents/Info.plist")"
+        SIGNED=0
+        for tool in "$APP"/Contents/MacOS/*; do
+          [ "$(basename "$tool")" = "$MAIN" ] && continue
+          [ -f "$tool" ] && [ -x "$tool" ] || continue
+          codesign --keychain signing_temp.keychain --force --sign "${{ inputs.apple-team-id }}" \
+            --options=runtime --timestamp --identifier "$BUNDLE_ID.$(basename "$tool")" "$tool"
+          SIGNED=1
+        done
+        if [ "$SIGNED" = 1 ]; then
+          codesign --keychain signing_temp.keychain --force --sign "${{ inputs.apple-team-id }}" ${{ env.entitlements_arg }} --options=runtime "$APP"
+        fi
+
     - name: Validate code signature
       shell: bash
       run: |

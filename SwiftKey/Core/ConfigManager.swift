@@ -2,6 +2,7 @@ import AppKit
 import Combine
 import Foundation
 import os
+import SwiftKeyCore
 import Yams
 
 /// Manages loading, parsing, and updating configuration files
@@ -23,10 +24,14 @@ class ConfigManager: DependencyInjectable, ObservableObject {
     // Dependencies - using non-optional since this is a required dependency
     private(set) var settingsStore: SettingsStore
 
+    /// A config file that wins over every other source; nil uses SWIFTKEY_CONFIG or the stored path.
+    private let configURL: URL?
+
     // Default initializer for container creation
-    init() {
+    init(configURL: URL? = nil) {
         // Default empty initialization, proper values will be set by injectDependencies
         self.settingsStore = SettingsStore()
+        self.configURL = configURL
     }
 
     func injectDependencies(_ container: DependencyContainer) {
@@ -132,6 +137,9 @@ class ConfigManager: DependencyInjectable, ObservableObject {
                     return .failure(.emptyConfiguration)
                 }
 
+                // Items with a key or hotkey SwiftKey cannot use are left out, not the whole config.
+                let config = loadableMenuItems(config)
+
                 // Validate the menu items structure
                 let validationResult = validateMenuItems(config)
                 switch validationResult {
@@ -150,7 +158,7 @@ class ConfigManager: DependencyInjectable, ObservableObject {
                             logger.debug("Menu item: '\(item.title)' with key '\(item.key)'")
                             if let action = item.action {
                                 logger.debug(" - Action: '\(action)'")
-                                if item.actionClosure == nil {
+                                if item.actionClosure == nil, item.microAppID == nil {
                                     logger.error(" - No action closure generated for action: '\(action)'")
                                 } else {
                                     logger.debug(" - Action closure successfully generated")
@@ -323,6 +331,7 @@ class ConfigManager: DependencyInjectable, ObservableObject {
     }
     
     func importSnippet(menuItems: [MenuItem], strategy: MergeStrategy) async throws {
+        let menuItems = loadableMenuItems(menuItems)
         // Validate the menu items
         let validationResult = await Task {
             validateMenuItems(menuItems)
@@ -566,6 +575,13 @@ class ConfigManager: DependencyInjectable, ObservableObject {
     }
 
     func resolveConfigFileURL() -> URL? {
+        if let configURL {
+            return configURL
+        }
+        // SWIFTKEY_CONFIG names the config file and wins over the stored path
+        if let override = AppPaths.current.configOverride {
+            return createConfigIfNeeded(at: override)
+        }
         // Use the direct path
         if let url = settingsStore.configFileResolvedURL {
             logger.debug("Using direct path: \(url.path, privacy: .public)")
@@ -582,6 +598,26 @@ class ConfigManager: DependencyInjectable, ObservableObject {
             }
 
             return defaultConfigPath
+        }
+    }
+
+    /// Copies the bundled default config to `url` when no file is there yet.
+    private func createConfigIfNeeded(at url: URL) -> URL? {
+        if FileManager.default.fileExists(atPath: url.path) {
+            return url
+        }
+        guard let bundledConfigURL = Bundle.main.url(forResource: "menu", withExtension: "yaml") else {
+            logger.fault("Could not find bundled menu.yaml")
+            return nil
+        }
+        do {
+            try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try FileManager.default.copyItem(at: bundledConfigURL, to: url)
+            logger.info("Copied bundled config to \(url.path, privacy: .public)")
+            return url
+        } catch {
+            logger.error("Failed to create config at \(url.path, privacy: .public): \(error.localizedDescription)")
+            return nil
         }
     }
 
@@ -650,19 +686,30 @@ class ConfigManager: DependencyInjectable, ObservableObject {
         return (line, column)
     }
 
+    /// The items SwiftKey can use: an item whose key is not a key is left out, and a hotkey that
+    /// is not a hotkey is ignored. Each one is logged; the config editor shows them as issues.
+    /// One bad item never stops the rest of the config from loading.
+    func loadableMenuItems(_ items: [MenuItem]) -> [MenuItem] {
+        items.compactMap { item in
+            guard SequenceKey.normalize(item.key) != nil else {
+                logger.error("Skipped menu item '\(item.title)': \(ConfigValidator.invalidKeyMessage), found '\(item.key)'")
+                return nil
+            }
+            var item = item
+            if let hotkey = item.hotkey, let problem = HotkeyRules.problem(hotkey) {
+                logger.error("Ignored the hotkey of '\(item.title)': \(problem)")
+                item.hotkey = nil
+            }
+            if let submenu = item.submenu {
+                item.submenu = loadableMenuItems(submenu)
+            }
+            return item
+        }
+    }
+
     /// Validates menu items recursively using Result
     private func validateMenuItems(_ items: [MenuItem]) -> Result<Void, ConfigError> {
         for item in items {
-            // Validate key format (should be a single character)
-            if item.key.count != 1 {
-                logger.error("Invalid key format: \(item.key)")
-                return .failure(ConfigError.invalidYamlFormat(
-                    message: "Key must be a single character, found '\(item.key)'",
-                    line: 0,
-                    column: 0
-                ))
-            }
-
             // Validate title is not empty
             if item.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 logger.error("Empty title for key: \(item.key)")
@@ -695,16 +742,6 @@ class ConfigManager: DependencyInjectable, ObservableObject {
                 }
             }
 
-            // Validate hotkey format if present
-            if let hotkey = item.hotkey, !isValidHotkeyFormat(hotkey) {
-                logger.error("Invalid hotkey format: \(hotkey)")
-                return .failure(ConfigError.invalidYamlFormat(
-                    message: "Invalid hotkey format: '\(hotkey)' for key '\(item.key)'",
-                    line: 0,
-                    column: 0
-                ))
-            }
-
             // Recursively validate submenu if present
             if let submenu = item.submenu {
                 let result = validateMenuItems(submenu)
@@ -728,11 +765,17 @@ class ConfigManager: DependencyInjectable, ObservableObject {
             }
         }
 
+        if action.hasPrefix("micro://") {
+            // The id must not be empty; a missing or broken micro-app is a validation warning, not a load error.
+            return !action.dropFirst("micro://".count).trimmingCharacters(in: .whitespaces).isEmpty
+        }
+
         let validPrefixes = ["launch://", "open://", "shortcut://", "dynamic://"]
         return validPrefixes.contains { action.hasPrefix($0) }
     }
 
-    /// Validates shell commands for security and proper format
+    /// Validates the format of shell commands. Safety comes from approval: no command runs before
+    /// the person approved its exact text.
     private func validateShellCommand(_ command: String) -> Result<Void, ConfigError> {
         // Strip the "shell://" prefix
         let shellCmd = String(command.dropFirst("shell://".count)).trimmingCharacters(in: .whitespacesAndNewlines)
@@ -745,17 +788,6 @@ class ConfigManager: DependencyInjectable, ObservableObject {
             ))
         }
 
-        // Check for blacklisted commands
-        let blacklistedPrefixes = ["rm -rf /", "sudo ", "> /", ">> /", "mkfs", "dd if=", ":(){ :|:& };:"]
-        for prefix in blacklistedPrefixes {
-            if shellCmd.hasPrefix(prefix) || shellCmd.contains(" " + prefix) {
-                return .failure(ConfigError.invalidShellCommand(
-                    message: "Shell command contains potentially dangerous operation",
-                    command: command
-                ))
-            }
-        }
-
         // Check command length to prevent very long commands
         if shellCmd.count > 1000 {
             return .failure(ConfigError.invalidShellCommand(
@@ -764,83 +796,6 @@ class ConfigManager: DependencyInjectable, ObservableObject {
             ))
         }
 
-        // Check for proper quoting
-        let quoteCount = shellCmd.filter { $0 == "\"" || $0 == "'" }.count
-        if quoteCount % 2 != 0 {
-            return .failure(ConfigError.invalidShellCommand(
-                message: "Shell command has unbalanced quotes",
-                command: command
-            ))
-        }
-
         return .success(())
-    }
-
-    /// Validates the hotkey format
-    private func isValidHotkeyFormat(_ hotkey: String) -> Bool {
-        // Simple validation for now - can be made more sophisticated
-        let components = hotkey.components(separatedBy: "+")
-
-        // Hotkey must have at least one component
-        guard !components.isEmpty else { return false }
-
-        // Check for valid modifiers
-        let validModifiers = ["cmd", "ctrl", "alt", "shift"]
-        // At least all but the last component should be valid modifiers
-        for i in 0 ..< (components.count - 1) {
-            if !validModifiers.contains(components[i].lowercased()) {
-                return false
-            }
-        }
-
-        return true
-    }
-}
-
-// MARK: - Error Types
-
-enum ConfigError: Error {
-    case fileNotFound
-    case accessDenied
-    case readFailed(underlying: Error)
-    case emptyFile
-    case emptyConfiguration
-    case invalidYamlFormat(message: String, line: Int, column: Int)
-    case missingRequiredField(field: String, context: String)
-    case typeMismatch(field: String, context: String)
-    case parsingFailed(underlying: Error)
-    case invalidShellCommand(message: String, command: String)
-    case unknown(underlying: Error)
-    case dependencyNotReady
-}
-
-extension ConfigError: LocalizedError {
-    var errorDescription: String? {
-        switch self {
-        case .fileNotFound:
-            return "Configuration file not found."
-        case .accessDenied:
-            return "Access to the configuration file was denied."
-        case let .readFailed(error):
-            return "Failed to read the configuration file: \(error.localizedDescription)"
-        case .emptyFile:
-            return "Configuration file is empty."
-        case .emptyConfiguration:
-            return "Configuration does not contain any menu items."
-        case let .invalidYamlFormat(message, line, column):
-            return "Invalid YAML format at line \(line), column \(column): \(message)"
-        case let .missingRequiredField(field, _):
-            return "Required field '\(field)' is missing in the configuration."
-        case let .typeMismatch(field, _):
-            return "Type mismatch for field '\(field)' in the configuration."
-        case let .parsingFailed(error):
-            return "Failed to parse the configuration: \(error.localizedDescription)"
-        case let .invalidShellCommand(message, command):
-            return "Invalid shell command: \(message) in '\(command)'"
-        case let .unknown(error):
-            return "Unknown error processing configuration: \(error.localizedDescription)"
-        case .dependencyNotReady:
-            return "Configuration manager dependencies are not ready."
-        }
     }
 }

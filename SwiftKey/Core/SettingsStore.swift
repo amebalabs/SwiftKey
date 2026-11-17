@@ -1,7 +1,8 @@
 import SwiftUI
 import Combine
+import SwiftKeyCore
 
-class SettingsStore: ObservableObject, DependencyInjectable {
+class SettingsStore: ObservableObject, DependencyInjectable, SettingsStoring {
     // Publisher for settings changes
     private let settingsChangedSubject = PassthroughSubject<Void, Never>()
     var settingsChanged: AnyPublisher<Void, Never> {
@@ -18,6 +19,11 @@ class SettingsStore: ObservableObject, DependencyInjectable {
         self.sparkleUpdater = container.sparkleUpdater
     }
 
+    /// Returns the injected updater if available, otherwise the shared instance
+    private var activeUpdater: SparkleUpdater {
+        sparkleUpdater ?? SparkleUpdater.shared
+    }
+
     enum OverlayStyle: String, CaseIterable {
         case panel = "Default"
         case hud = "Compact: HUD"
@@ -30,62 +36,101 @@ class SettingsStore: ObservableObject, DependencyInjectable {
         case mouse = "Screen with Mouse"
     }
 
-    @AppStorage("ConfigFilePath") var configFilePath: String = "" {
+    @AppStorage("ConfigFilePath", store: AppPaths.defaults) var configFilePath: String = "" {
         didSet { settingsChangedSubject.send() }
     }
-    @AppStorage("MenuStateResetDelay") var menuStateResetDelay: Double = 3.0 {
+    @AppStorage("MenuStateResetDelay", store: AppPaths.defaults) var menuStateResetDelay: Double = 3.0 {
         didSet { settingsChangedSubject.send() }
     }
-    @AppStorage("UseHorizontalOverlayLayout") var useHorizontalOverlayLayout: Bool = true {
+    @AppStorage("UseHorizontalOverlayLayout", store: AppPaths.defaults) var useHorizontalOverlayLayout: Bool = true {
         didSet { settingsChangedSubject.send() }
     }
-    @AppStorage("OverlayStyle") var overlayStyle: OverlayStyle = .panel {
+    @AppStorage("OverlayStyle", store: AppPaths.defaults) var overlayStyle: OverlayStyle = .panel {
         didSet { settingsChangedSubject.send() }
     }
-    @AppStorage("OverlayScreenOption") var overlayScreenOption: OverlayScreenOption = .primary {
+    @AppStorage("OverlayScreenOption", store: AppPaths.defaults) var overlayScreenOption: OverlayScreenOption = .primary {
         didSet { settingsChangedSubject.send() }
     }
-    @AppStorage("TriggerKeyHoldMode") var triggerKeyHoldMode: Bool = false {
+    @AppStorage("TriggerKeyHoldMode", store: AppPaths.defaults) var triggerKeyHoldMode: Bool = false {
         didSet { settingsChangedSubject.send() }
     }
-    @AppStorage("NeedsOnboarding") var needsOnboarding: Bool = true {
+    /// The global hotkey that opens SwiftKey, as a `Hotkey` string such as "option+shift+cmd+f";
+    /// empty when none is set.
+    @AppStorage(SettingsStore.mainHotkeyKey, store: AppPaths.defaults) var mainHotkey: String = "" {
         didSet { settingsChangedSubject.send() }
     }
-    @AppStorage("AutomaticallyCheckForUpdates")
+    /// Seconds before the panel, HUD or corner toast becomes visible. Keys typed before then work
+    /// without the menu ever showing; 0 shows it at once.
+    @AppStorage("ShowMenuDelay", store: AppPaths.defaults) var showMenuDelay: Double = 0.25 {
+        didSet { settingsChangedSubject.send() }
+    }
+    /// The global hotkey that opens launcha, as a `Hotkey` string; empty when none is set.
+    @AppStorage("LaunchaHotkey", store: AppPaths.defaults) var launchaHotkey: String = "" {
+        didSet { settingsChangedSubject.send() }
+    }
+    /// Pressing the main hotkey twice opens launcha. Not in hold mode, where the key is held.
+    @AppStorage("LaunchaDoubleTap", store: AppPaths.defaults) var launchaDoubleTap: Bool = true {
+        didSet { settingsChangedSubject.send() }
+    }
+    /// The most seconds between the two presses of a double tap.
+    @AppStorage("LaunchaDoubleTapWindow", store: AppPaths.defaults) var launchaDoubleTapWindow: Double = 0.3 {
+        didSet { settingsChangedSubject.send() }
+    }
+    /// A query of digits and an operator shows its value first in launcha.
+    @AppStorage("LaunchaCalculator", store: AppPaths.defaults) var launchaCalculator: Bool = true {
+        didSet { settingsChangedSubject.send() }
+    }
+    @AppStorage("NeedsOnboarding", store: AppPaths.defaults) var needsOnboarding: Bool = true {
+        didSet { settingsChangedSubject.send() }
+    }
+    @AppStorage("AutomaticallyCheckForUpdates", store: AppPaths.defaults)
     public var automaticallyCheckForUpdates: Bool = true {
         didSet {
-            // Use injected sparkleUpdater if available, otherwise fall back to singleton
-            if let updater = sparkleUpdater {
-                updater.automaticallyChecksForUpdates = automaticallyCheckForUpdates
-            } else {
-                SparkleUpdater.shared.automaticallyChecksForUpdates = automaticallyCheckForUpdates
-            }
+            activeUpdater.automaticallyChecksForUpdates = automaticallyCheckForUpdates
             settingsChangedSubject.send()
         }
     }
 
-    @AppStorage("AutomaticallyDownloadUpdates")
+    @AppStorage("AutomaticallyDownloadUpdates", store: AppPaths.defaults)
     public var automaticallyDownloadUpdates: Bool = false {
         didSet {
-            if let updater = sparkleUpdater {
-                updater.automaticallyDownloadsUpdates = automaticallyDownloadUpdates
-            } else {
-                SparkleUpdater.shared.automaticallyDownloadsUpdates = automaticallyDownloadUpdates
-            }
+            activeUpdater.automaticallyDownloadsUpdates = automaticallyDownloadUpdates
             settingsChangedSubject.send()
         }
     }
 
-    @AppStorage("EnableBetaUpdates")
+    @AppStorage("EnableBetaUpdates", store: AppPaths.defaults)
     public var enableBetaUpdates: Bool = false {
         didSet {
-            if let updater = sparkleUpdater {
-                updater.configureFeedURLs()
-            } else {
-                SparkleUpdater.shared.configureFeedURLs()
-            }
+            activeUpdater.configureFeedURLs()
             settingsChangedSubject.send()
         }
+    }
+
+    static let mainHotkeyKey = "MainHotkey"
+    /// The allowed range of `showMenuDelay`, in seconds.
+    static let showMenuDelayRange: ClosedRange<Double> = 0...1
+
+    /// The main hotkey, when one is set and parses.
+    var mainHotkeyValue: Hotkey? {
+        Hotkey(string: mainHotkey)
+    }
+
+    /// The launcha hotkey, when one is set and parses.
+    var launchaHotkeyValue: Hotkey? {
+        Hotkey(string: launchaHotkey)
+    }
+
+    /// The launcha settings the core uses. The double tap is off in hold mode, where the main
+    /// key is held down and its release hides the menu.
+    var launchaSettings: LaunchaSettings {
+        var settings = LaunchaSettings()
+        settings.hotkey = launchaHotkeyValue
+        settings.doubleTap = launchaDoubleTap && !triggerKeyHoldMode && mainHotkeyValue != nil
+        let range = LaunchaSettings.doubleTapWindowRange
+        settings.doubleTapWindow = min(max(launchaDoubleTapWindow, range.lowerBound), range.upperBound)
+        settings.calculator = launchaCalculator
+        return settings
     }
 
     var facelessMode: Bool {

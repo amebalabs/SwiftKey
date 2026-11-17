@@ -17,9 +17,14 @@ class FaviconManager {
         config.timeoutIntervalForRequest = 10
         config.requestCachePolicy = .returnCacheDataElseLoad
         session = URLSession(configuration: config)
-        
+
         let fileManager = FileManager.default
-        let appSupportURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        guard let appSupportURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
+            AppLogger.app.error("Failed to locate Application Support directory")
+            // Fall back to temp directory
+            self.cacheDirectory = fileManager.temporaryDirectory.appendingPathComponent("SwiftKeyIconCache")
+            return
+        }
         let bundleID = Bundle.main.bundleIdentifier ?? "com.swiftkey"
         let appCacheURL = appSupportURL.appendingPathComponent(bundleID).appendingPathComponent("IconCache")
         

@@ -1,0 +1,19 @@
+format: ting.microapp/2
+name: Checksum of Finder files
+description: Show the SHA-256 checksum of each file selected in Finder.
+tools: [shasum]
+
+context: [finder]
+input: none
+# One selected path per line; folders get a note instead of a checksum.
+command: |
+  if [ -z "$TING_CONTEXT_FINDER_SELECTION" ]; then
+    echo "Nothing is selected in Finder."
+    exit 0
+  fi
+  printf '%s\n' "$TING_CONTEXT_FINDER_SELECTION" | while IFS= read -r file; do
+    if [ -f "$file" ]; then shasum -a 256 "$file"; else echo "not a file: $file"; fi
+  done
+output:
+  to: [panel]
+  as: console

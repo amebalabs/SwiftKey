@@ -19,6 +19,24 @@ class DependencyContainer {
     let keyboardManager: KeyboardManager
     let snippetsStore: SnippetsStore
     let dynamicMenuLoader: DynamicMenuLoader
+    let hotkeyCenter: HotkeyCenter
+    let approvalGate: ApprovalGate
+    /// launcha's search state, shared by its panel and Settings.
+    @MainActor private(set) lazy var launchaModel = LaunchaModel(historyStore: LaunchaHistoryStore(),
+                                                                 consent: LaunchaConsentStore())
+
+    /// The micro-app flow. `approvalGate` starts micro-apps through it.
+    @MainActor private(set) lazy var microAppFlow: MicroAppFlowController = {
+        let flow = MicroAppFlowController(gate: approvalGate)
+        approvalGate.microApps = flow
+        return flow
+    }()
+
+    /// The loaded micro-apps, for the config editor's picker.
+    let microAppDirectory = MicroAppDirectory()
+
+    /// The Accessibility help window; Settings reads its access state.
+    @MainActor private(set) lazy var accessibilityWindow = AccessibilityWindowController()
 
     // Track active subscriptions
     private var cancellables = Set<AnyCancellable>()
@@ -32,7 +50,8 @@ class DependencyContainer {
         deepLinkHandler: DeepLinkHandler? = nil,
         keyboardManager: KeyboardManager? = nil,
         snippetsStore: SnippetsStore? = nil,
-        dynamicMenuLoader: DynamicMenuLoader? = nil
+        dynamicMenuLoader: DynamicMenuLoader? = nil,
+        approvalGate: ApprovalGate? = nil
     ) {
         self.sparkleUpdater = sparkleUpdater ?? SparkleUpdater.shared
 
@@ -44,6 +63,8 @@ class DependencyContainer {
         self.keyboardManager = keyboardManager ?? KeyboardManager.create()
         self.snippetsStore = snippetsStore ?? SnippetsStore()
         self.dynamicMenuLoader = dynamicMenuLoader ?? DynamicMenuLoader.create()
+        self.hotkeyCenter = HotkeyCenter()
+        self.approvalGate = approvalGate ?? ApprovalGate()
 
         // Inject dependencies into components in the correct order
         // First inject into services that don't depend on others
@@ -77,8 +98,6 @@ class DependencyContainer {
                 self.logger.debug("Menu publisher received update: \(items.count) items")
                 self.menuState.rootMenu = items
                 self.menuState.reset()
-                self.keyboardManager.registerMenuHotkeys(items)
-                self.logger.debug("Re-registered keyboard shortcuts with \(items.count) menu items")
             }
             .store(in: &cancellables)
 

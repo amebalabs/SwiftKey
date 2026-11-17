@@ -3,6 +3,18 @@
 description = "Build tasks"
 run = "xcodebuild -scheme 'SwiftKey' -configuration Release build"
 
+[tasks.test-core]
+description = "Test tasks"
+run = "swift test --package-path Packages/SwiftKeyCore"
+
+[tasks.test]
+description = "Test tasks"
+run = "swift test --package-path Packages/SwiftKeyCore && xcodebuild -scheme 'SwiftKey' -configuration Debug -destination 'platform=macOS' -test-timeouts-enabled YES -default-test-execution-time-allowance 60 test"
+
+[tasks.test-ui]
+description = "Test tasks (presses keys and takes focus: run only when nobody is typing)"
+run = "xcodebuild -scheme 'SwiftKeyUITests' -configuration Debug -destination 'platform=macOS' -test-timeouts-enabled YES -default-test-execution-time-allowance 120 test"
+
 [tasks.format]
 description = "Code quality"
 run = "swiftformat ."

@@ -17,12 +17,14 @@ struct ConfigEditorBaseView: View {
                 HSplitView {
                     // Menu tree
                     menuTreePanel
-                        .frame(minWidth: 250, idealWidth: 350, maxWidth: 400)
+                        .frame(minWidth: 240, idealWidth: 300, maxWidth: 380)
                     
                     // Property inspector
                     propertyInspectorPanel
-                        .frame(minWidth: 400, idealWidth: 550)
+                        .frame(minWidth: 420, idealWidth: 520, maxWidth: .infinity)
+                        .layoutPriority(1)
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
     }
@@ -94,6 +96,7 @@ struct ConfigEditorBaseView: View {
                 onDelete: viewModel.deleteMenuItem,
                 onMove: viewModel.moveMenuItem
             )
+            .frame(maxHeight: .infinity)
         }
     }
     
@@ -105,7 +108,6 @@ struct ConfigEditorBaseView: View {
             onUpdate: viewModel.updateMenuItem,
             validationErrors: viewModel.selectedItem.flatMap { viewModel.validationErrors[$0.id] } ?? []
         )
-        .background(Color(NSColor.controlBackgroundColor))
     }
     
     // MARK: - Validation Indicator

@@ -11,12 +11,14 @@ extension UTType {
 struct ConfigEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var configManager: ConfigManager
+    @EnvironmentObject var approvalGate: ApprovalGate
     @State private var showingImportDialog = false
     @State private var showingValidationPanel = false
     
     var body: some View {
         ConfigEditorContent(
             configManager: configManager,
+            approvalGate: approvalGate,
             showingImportDialog: $showingImportDialog,
             showingValidationPanel: $showingValidationPanel,
             dismiss: dismiss
@@ -32,12 +34,13 @@ private struct ConfigEditorContent: View {
     let dismiss: DismissAction
     @StateObject private var viewModel: ConfigEditorViewModel
     
-    init(configManager: ConfigManager, showingImportDialog: Binding<Bool>, showingValidationPanel: Binding<Bool>, dismiss: DismissAction) {
+    init(configManager: ConfigManager, approvalGate: ApprovalGate, showingImportDialog: Binding<Bool>,
+         showingValidationPanel: Binding<Bool>, dismiss: DismissAction) {
         self.configManager = configManager
         self._showingImportDialog = showingImportDialog
         self._showingValidationPanel = showingValidationPanel
         self.dismiss = dismiss
-        self._viewModel = StateObject(wrappedValue: ConfigEditorViewModel(configManager: configManager))
+        self._viewModel = StateObject(wrappedValue: ConfigEditorViewModel(configManager: configManager, approvalGate: approvalGate))
     }
     
     var body: some View {

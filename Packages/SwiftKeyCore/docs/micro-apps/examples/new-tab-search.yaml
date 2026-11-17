@@ -1,0 +1,10 @@
+format: ting.microapp/2
+name: Search in a new tab
+description: Open a new tab in the front browser and search there for the clipboard text.
+
+input: clipboard
+steps:
+  # The key presses and the text go to the app that was in front, here a browser.
+  - keys: cmd+t
+  - paste: ${input|trim}
+  - keys: return

@@ -1,8 +1,9 @@
 import AppKit
 import Carbon.HIToolbox
 import Combine
-import KeyboardShortcuts
 import os
+import SwiftKeyCore
+import SwiftKeyRuntime
 import SwiftUI
 
 class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
@@ -54,6 +55,19 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     var statusItem: NSStatusItem?
     var facelessMenuController: FacelessMenuController?
     var defaultsObserver: AnyCancellable?
+    var hotkeySubscription: AnyCancellable?
+    /// Shows the panel after the "Show menu after" delay.
+    private let overlayReveal = DelayedReveal()
+    /// The search panel for menu items, apps and files.
+    private(set) var launcha: LaunchaController?
+    var launchaMenuSubscription: AnyCancellable?
+    var launchaOpenSubscription: AnyCancellable?
+    /// The micro-apps folder of the current config, loaded and watched.
+    private(set) var microAppStore: MicroAppStore?
+    /// The config file `microAppStore` belongs to.
+    private var microAppConfig: URL?
+    /// Tells a second press of the main key apart from a first one.
+    private var doubleTap = LeaderDoubleTap()
     // Gallery window management
     private static var activeGalleryWindow: NSWindow?
 
@@ -67,6 +81,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     func applicationDidFinishLaunching(_: Notification) {
+        WorkingApp.shared.start()
         logger.notice("SwiftKey application starting")
 
         let contentView = OverlayView(state: menuState)
@@ -79,19 +94,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
         _ = SparkleUpdater.shared
 
-        KeyboardShortcuts.onKeyDown(for: .toggleApp) { [self] in
-            Task {
-                await toggleSession()
-            }
-        }
-
-        KeyboardShortcuts.onKeyUp(for: .toggleApp) { [self] in
-            if settings.triggerKeyHoldMode {
-                Task {
-                    await hideWindow()
-                }
-            }
-        }
+        setupLauncha()
+        setupMicroApps()
+        setupHotkeys()
 
         if settings.needsOnboarding {
             Task {
@@ -114,11 +119,17 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             }
         }
         NotificationCenter.default
-            .addObserver(forName: .presentOverlay, object: nil, queue: nil) { [weak self] _ in
+            .addObserver(forName: .presentOverlay, object: nil, queue: nil) { [weak self] notification in
                 guard let self = self else { return }
+                let loadsDynamicMenu = notification.userInfo?[PresentOverlayKey.loadsDynamicMenu] as? Bool ?? true
                 Task {
-                    await self.presentOverlay()
+                    await self.presentOverlay(loadsDynamicMenu: loadsDynamicMenu)
                 }
+            }
+
+        NotificationCenter.default
+            .addObserver(forName: .showAccessibilityHelp, object: nil, queue: nil) { [weak self] _ in
+                Task { @MainActor in self?.container.accessibilityWindow.show() }
             }
 
         NotificationCenter.default
@@ -144,8 +155,183 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         }
     }
 
+    /// Registers the main hotkey and the item hotkeys, and keeps them in step with settings and the menu.
+    @MainActor
+    private func setupHotkeys() {
+        LegacyHotkeyMigration.migrate(AppPaths.defaults)
+        let hotkeys = container.hotkeyCenter
+        hotkeys.onMainPress = { [weak self] in
+            self?.mainKeyPressed()
+        }
+        hotkeys.onMainRelease = { [weak self] in
+            guard let self else { return }
+            doubleTap.release()
+            guard settings.triggerKeyHoldMode else { return }
+            Task { await self.hideWindow() }
+        }
+        hotkeys.onLaunchaPress = { [weak self] in
+            self?.launcha?.toggle()
+        }
+        keyboardManager.onKeyInput = { [weak self] in
+            // A key typed in the menu ends a double tap.
+            self?.doubleTap.sequenceInput()
+        }
+        hotkeys.onItemPress = { [weak self] id in
+            guard let self, let item = menuState.rootMenu.findItem(with: id) else { return }
+            keyboardManager.runItemHotkey(item)
+        }
+        hotkeys.setMain(settings.mainHotkeyValue)
+        hotkeys.setLauncha(settings.launchaHotkeyValue)
+        doubleTap = LeaderDoubleTap(settings.launchaSettings)
+        hotkeySubscription = menuState.$rootMenu
+            .receive(on: RunLoop.main)
+            .sink { menu in
+                MainActor.assumeIsolated {
+                    hotkeys.setItems(HotkeyCenter.itemHotkeys(in: menu))
+                }
+            }
+    }
+
+    /// The main key went down. The first press opens the menu at once; a second press soon after,
+    /// with the menu still at its top level and nothing typed, closes it and opens launcha.
+    @MainActor
+    private func mainKeyPressed() {
+        let menuOpen = isOverlayVisible
+        let press = doubleTap.press(at: ProcessInfo.processInfo.systemUptime, menuOpen: menuOpen,
+                                    menuOpenAtRoot: menuOpen && menuState.keyPath.isEmpty)
+        switch press {
+        case .ignored:
+            return
+        case .double:
+            Task {
+                await hideWindow()
+                launcha?.open()
+            }
+        case .single:
+            Task { await toggleSession() }
+        }
+    }
+
+    /// Creates launcha and keeps its menu items in step with the config.
+    @MainActor
+    private func setupLauncha() {
+        let model = container.launchaModel
+        model.calculator = settings.launchaCalculator
+        let controller = LaunchaController(model: model)
+        controller.chrome.menuIcon = { [weak self] id in
+            guard let self, let uuid = UUID(uuidString: id), let item = menuState.rootMenu.findItem(with: uuid) else {
+                return nil
+            }
+            return item.iconImage
+        }
+        controller.onRunMenu = { [weak self] path in
+            Task { await self?.runFromLauncha(path) }
+        }
+        controller.onError = { message in
+            notifyUser(title: "launcha", message: message)
+        }
+        // Menu items count where they run, from a key press or from launcha.
+        keyboardManager.onLaunch = { [weak model] id in
+            Task { await model?.record(.opened, id: id) }
+        }
+        launcha = controller
+        launchaMenuSubscription = menuState.$rootMenu
+            .receive(on: RunLoop.main)
+            .sink { [weak self] menu in
+                MainActor.assumeIsolated { self?.updateLauncha(menu: menu) }
+            }
+        launchaOpenSubscription = NotificationCenter.default.publisher(for: .openLauncha)
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                MainActor.assumeIsolated { self?.launcha?.open() }
+            }
+        model.prewarm()
+    }
+
+    @MainActor
+    private func updateLauncha(menu: [MenuItem]) {
+        let config = AppPaths.current.configOverride ?? settings.configFileResolvedURL
+        launcha?.model.setMenu(LaunchaMenuCandidate.from(MenuItemTree.build(menu).items), configFile: config)
+        // The config may have moved, and binding labels name micro-apps in launcha.
+        loadMicroAppsIfNeeded()
+        if let catalog = microAppStore?.catalog { applyMicroApps(catalog) }
+    }
+
+    // MARK: - Micro-apps
+
+    /// Connects the micro-app flow to launcha and notifications, then loads the micro-apps folder.
+    @MainActor
+    private func setupMicroApps() {
+        let flow = container.microAppFlow
+        flow.onToast = { message in
+            notifyUser(title: "SwiftKey", message: message)
+        }
+        flow.onAccessibilityNeeded = { [weak self] in
+            self?.container.accessibilityWindow.show()
+        }
+        flow.folderDisplay = { [weak self] in
+            self?.microAppStore?.displayPath ?? "the micro-apps folder"
+        }
+        launcha?.onStartMicro = { [weak flow] start in
+            guard let flow else { return .notRun }
+            switch start {
+            case .id(let id): return await flow.run(id: id)
+            case .file(let file): return await flow.run(file: file)
+            }
+        }
+        loadMicroAppsIfNeeded()
+    }
+
+    /// Loads and watches the micro-apps folder of the current config; again when the config moved.
+    @MainActor
+    private func loadMicroAppsIfNeeded() {
+        guard let config = AppPaths.current.configOverride ?? settings.configFileResolvedURL,
+              config != microAppConfig else { return }
+        microAppStore?.stopWatching()
+        let store = MicroAppStore(configURL: config)
+        // A change in the folder also reads the login shell's PATH and variables again.
+        store.onLoad = { UserPATH.refresh() }
+        microAppStore = store
+        microAppConfig = config
+        applyMicroApps(store.load())
+        store.watch { [weak self] _, current in
+            self?.applyMicroApps(current)
+        }
+        logger.info("Micro-apps loaded from \(store.displayPath, privacy: .public)")
+    }
+
+    @MainActor
+    private func applyMicroApps(_ catalog: MicroAppCatalog) {
+        container.microAppFlow.setCatalog(catalog)
+        container.microAppDirectory.update(catalog, folder: microAppStore?.folderURL)
+        let bindings = MenuItemTree.build(menuState.rootMenu).items
+        launcha?.model.setMicroApps(catalog.launchaCandidates(bindings: bindings), folder: microAppStore?.folderURL)
+    }
+
+    /// Runs a menu item chosen in launcha. A group, a dynamic menu or a sticky action shows the menu.
+    @MainActor
+    private func runFromLauncha(_ path: [String]) async {
+        let result = await keyboardManager.runFromLauncha(path: path)
+        switch result {
+        case .submenuPushed:
+            await launcha?.model.record(.opened, id: LaunchaCandidate.menu(path: path, name: "").id)
+            presentOverlay()
+        case .actionExecuted(sticky: true):
+            presentOverlay()
+        default:
+            menuState.reset()
+        }
+    }
+
     @MainActor
     func applySettings() async {
+        container.hotkeyCenter.setMain(settings.mainHotkeyValue)
+        container.hotkeyCenter.setLauncha(settings.launchaHotkeyValue)
+        let launchaSettings = settings.launchaSettings
+        doubleTap.isEnabled = launchaSettings.doubleTap
+        doubleTap.window = launchaSettings.doubleTapWindow
+        launcha?.model.calculator = launchaSettings.calculator
+
         if isOverlayVisible {
             logger.debug("Hiding overlay due to settings change")
             NotificationCenter.default.post(name: .hideOverlay, object: nil)
@@ -195,7 +381,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
         case .hud:
             setupNotchContextIfNeeded()
-            notchContext?.open()
+            notchContext?.open(revealAfter: settings.showMenuDelay)
 
         case .panel:
             if settings.menuStateResetDelay == 0 {
@@ -205,11 +391,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             {
                 menuState.reset()
             }
-            presentOverlay()
+            presentOverlay(revealAfter: settings.showMenuDelay)
             
         case .cornerToast:
             setupCornerToastIfNeeded()
-            cornerToastController?.show()
+            cornerToastController?.show(revealAfter: settings.showMenuDelay)
         }
     }
 
@@ -267,21 +453,29 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         }
 
         logger.debug("hideWindow: hiding \(self.settings.overlayStyle.rawValue) overlay")
+        overlayReveal.cancel()
+        doubleTap.reset()
 
-        // Perform style-specific cleanup
-        switch settings.overlayStyle {
-        case .hud:
-            overlayWindow?.orderOut(nil)
+        // Perform style-specific cleanup for every overlay that is showing, not only the current
+        // style's: the style may have changed in Settings while an overlay was open.
+        let style = settings.overlayStyle
+        let panelShown = overlayWindow?.isVisible == true || style == .panel
+        let hudShown = notchContext?.presented == true || style == .hud
+        let toastShown = cornerToastController?.window?.isVisible == true || style == .cornerToast
+        let facelessShown = facelessMenuController?.sessionActive == true || style == .faceless
+
+        overlayWindow?.orderOut(nil)
+        if panelShown {
+            lastHideTime = Date()
+        }
+        if hudShown {
             menuState.reset()
             notchContext?.close()
-        case .panel:
-            overlayWindow?.orderOut(nil)
-            lastHideTime = Date()
-        case .faceless:
-            overlayWindow?.orderOut(nil)
+        }
+        if facelessShown {
             facelessMenuController?.endSession()
-        case .cornerToast:
-            overlayWindow?.orderOut(nil)
+        }
+        if toastShown {
             cornerToastController?.hide()
             menuState.reset()
         }
@@ -317,32 +511,36 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         }
     }
 
+    /// Shows the panel. With a delay the panel takes keys at once but appears only after
+    /// `revealAfter` seconds, and never when it closes first. `loadsDynamicMenu` false shows a
+    /// lone `dynamic://` item as it is instead of running its command.
     @MainActor
-    func presentOverlay() {
+    func presentOverlay(revealAfter delay: TimeInterval = 0, loadsDynamicMenu: Bool = true) {
         notchContext?.close()
 
         // Check if current menu consists of a single dynamic menu item
-        if menuState.hasSingleDynamicMenuItem,
+        if loadsDynamicMenu, menuState.hasSingleDynamicMenuItem,
            let item = menuState.singleDynamicMenuItem
         {
             logger.debug("Detected single dynamic menu item: \(item.title, privacy: .public)")
 
             Task {
                 // Don't show the UI yet - first load the dynamic menu
-                if let submenu = await dynamicMenuLoader.loadDynamicMenu(for: item) {
+                let path = await MainActor.run { self.menuState.breadcrumbs }
+                if let submenu = await dynamicMenuLoader.loadDynamicMenu(for: item, path: path) {
                     // Update the menu state with the loaded submenu on the main actor
                     await MainActor.run {
-                        self.menuState.breadcrumbs.append(item.title)
-                        self.menuState.menuStack.append(submenu)
+                        self.menuState.push(key: SequenceKey.normalize(item.key) ?? item.key, title: item.title,
+                                            items: submenu)
 
                         // Now that the menu is loaded, present the UI
-                        self.showOverlayWindow()
+                        self.showOverlayWindow(revealAfter: delay)
                     }
                 } else {
                     // Handle failure
                     await MainActor.run {
                         self.logger.error("Failed to load dynamic menu for: \(item.title, privacy: .public)")
-                        self.showOverlayWindow()
+                        self.showOverlayWindow(revealAfter: delay)
                     }
                 }
             }
@@ -350,12 +548,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         }
 
         // Regular case - show the window directly
-        showOverlayWindow()
+        showOverlayWindow(revealAfter: delay)
     }
 
     /// Shows the overlay window positioned appropriately on screen
     @MainActor
-    private func showOverlayWindow() {
+    private func showOverlayWindow(revealAfter delay: TimeInterval = 0) {
         guard let window = overlayWindow, let screen = chosenScreen() else { return }
         let frame = window.frame
         let screenFrame = screen.visibleFrame
@@ -366,7 +564,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             y: screenFrame.origin.y + (screenFrame.height - frame.height) / 2 + verticalAdjustment
         )
         window.setFrameOrigin(newOrigin)
+        // Key at once, visible only after the delay: fast typing never shows the panel.
+        window.alphaValue = delay > 0 ? 0 : 1
         window.makeKeyAndOrderFront(nil)
+        overlayReveal.start(after: delay) { [weak window] in
+            window?.alphaValue = 1
+        }
     }
 
     @MainActor
@@ -424,6 +627,7 @@ extension AppDelegate {
             }
         })
         .environmentObject(settings)
+        .environmentObject(container.hotkeyCenter)
         window.contentView = NSHostingView(rootView: onboardingView)
         window.makeKeyAndOrderFront(nil)
     }

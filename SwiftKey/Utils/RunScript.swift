@@ -7,7 +7,6 @@ let sharedEnv = ProcessEnv.shared
 
 enum ScriptError: Error {
     case emptyCommand
-    case dangerousCommand(String)
     case executionFailed(Int32, String)
     case invalidShell
 
@@ -15,8 +14,6 @@ enum ScriptError: Error {
         switch self {
         case .emptyCommand:
             return "Empty command provided"
-        case let .dangerousCommand(cmd):
-            return "Potentially dangerous command rejected: \(cmd)"
         case let .executionFailed(status, message):
             return "Command failed with status \(status): \(message)"
         case .invalidShell:
@@ -55,15 +52,6 @@ func runScript(
         throw ScriptError.emptyCommand
     }
 
-    // Runtime security check - redundant with config-time check but provides defense in depth
-    let blacklistedPrefixes = ["rm -rf /", "sudo ", "> /", ">> /", "mkfs", "dd if="]
-    for prefix in blacklistedPrefixes {
-        if trimmedCommand.hasPrefix(prefix) || trimmedCommand.contains(" " + prefix) {
-            logger.error("Potentially dangerous command rejected: \(trimmedCommand)")
-            throw ScriptError.dangerousCommand(trimmedCommand)
-        }
-    }
-
     // Set up execution environment
     let swiftbarEnv = sharedEnv.systemEnvStr.merging(env) { current, _ in current }
     process.environment = swiftbarEnv.merging(ProcessInfo.processInfo.environment) { current, _ in current }
@@ -96,15 +84,6 @@ func runScript(
     guard !trimmedCommand.isEmpty else {
         logger.error("Empty command provided")
         throw ScriptError.emptyCommand
-    }
-
-    // Runtime security check - redundant with config-time check but provides defense in depth
-    let blacklistedPrefixes = ["rm -rf /", "sudo ", "> /", ">> /", "mkfs", "dd if="]
-    for prefix in blacklistedPrefixes {
-        if trimmedCommand.hasPrefix(prefix) || trimmedCommand.contains(" " + prefix) {
-            logger.error("Potentially dangerous command rejected: \(trimmedCommand)")
-            throw ScriptError.dangerousCommand(trimmedCommand)
-        }
     }
 
     // Set up execution environment
@@ -148,6 +127,32 @@ public struct ShellOutError: Swift.Error, CustomStringConvertible {
     }
 }
 
+// MARK: - Command line
+
+/// How a command from the config reaches the shell: as its text, so the command that runs is the
+/// one that was approved.
+enum ShellCommandLine {
+    /// The arguments of `zsh` for `script`. The text is the shell code as it is, except that one pair
+    /// of single quotes around the whole command (`'cd ~/x && git status'`, the form the README
+    /// shows) is removed. `args` are passed as positional parameters, so they never change how the
+    /// command is split.
+    static func arguments(for script: String, args: [String]) -> [String] {
+        let code = command(from: script)
+        if args.isEmpty { return ["-l", "-c", code] }
+        return ["-l", "-c", code + " \"$@\"", "zsh"] + args
+    }
+
+    /// The shell code of a command from the config.
+    static func command(from script: String) -> String {
+        let text = script.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard text.count >= 2, text.hasPrefix("'"), text.hasSuffix("'") else { return text }
+        let inner = text.dropFirst().dropLast()
+        // A quote inside means the outer pair does not wrap the whole command, as in `'a' 'b'`.
+        guard !inner.contains("'") else { return text }
+        return String(inner)
+    }
+}
+
 // MARK: - Private
 
 private extension Process {
@@ -160,7 +165,7 @@ private extension Process {
     ) async throws -> (out: String, err: String?) {
         let shell = "/bin/zsh"
         executableURL = URL(fileURLWithPath: shell)
-        arguments = ["-l", "-c", "\(script.escaped()) \(args.joined(separator: " "))"]
+        arguments = ShellCommandLine.arguments(for: script, args: args)
 
         guard let executableURL = executableURL, FileManager.default.fileExists(atPath: executableURL.path) else {
             logger.error("Shell executable not found: \(shell)")
@@ -173,35 +178,47 @@ private extension Process {
         let errorPipe = Pipe()
         standardError = errorPipe
 
-        // Create a Task to handle the process asynchronously
+        // Both pipes are drained while the command runs, so a command with a lot of output never
+        // blocks on a full pipe; the termination handler then resumes exactly once.
         return try await withCheckedThrowingContinuation { continuation in
-            do {
-                try run()
+            let drained = DispatchGroup()
+            let output = PipeDrain(), errors = PipeDrain()
+            for (pipe, drain) in [(outputPipe, output), (errorPipe, errors)] {
+                drained.enter()
+                DispatchQueue.global(qos: .userInitiated).async {
+                    drain.data = pipe.fileHandleForReading.readDataToEndOfFile()
+                    drained.leave()
+                }
+            }
 
-                // Create a Task to wait for the process to complete
-                Task {
-                    // Wait for process to exit asynchronously
-                    waitUntilExit()
-
-                    // Read output and error data
-                    let outputData = outputPipe.fileHandleForReading.readDataToEndOfFile()
-                    let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
-
-                    if terminationStatus != 0 {
+            terminationHandler = { process in
+                drained.notify(queue: .global(qos: .userInitiated)) {
+                    let outputData = output.data
+                    let errorData = errors.data
+                    if process.terminationStatus != 0 {
                         let errorMessage = String(data: errorData, encoding: .utf8) ?? "Unknown error"
-                        logger.error("Command failed with status \(self.terminationStatus): \(errorMessage)")
+                        logger.error("Command failed with status \(process.terminationStatus): \(errorMessage)")
                         continuation.resume(throwing: ShellOutError(
-                            terminationStatus: terminationStatus,
+                            terminationStatus: process.terminationStatus,
                             errorData: errorData,
                             outputData: outputData
                         ))
                     } else {
-                        let output = String(data: outputData, encoding: .utf8) ?? ""
+                        let out = String(data: outputData, encoding: .utf8) ?? ""
                         let err = String(data: errorData, encoding: .utf8)
-                        continuation.resume(returning: (out: output, err: err))
+                        continuation.resume(returning: (out: out, err: err))
                     }
                 }
+            }
+
+            do {
+                try run()
             } catch {
+                // The command never started: no termination handler will run. Close the pipes so
+                // the drains end.
+                terminationHandler = nil
+                try? outputPipe.fileHandleForWriting.close()
+                try? errorPipe.fileHandleForWriting.close()
                 logger.error("Failed to run command: \(error.localizedDescription)")
                 continuation.resume(throwing: error)
             }
@@ -217,7 +234,7 @@ private extension Process {
     ) throws -> (out: String, err: String?) {
         let shell = "/bin/zsh"
         executableURL = URL(fileURLWithPath: shell)
-        arguments = ["-l", "-c", "\(script.escaped()) \(args.joined(separator: " "))"]
+        arguments = ShellCommandLine.arguments(for: script, args: args)
 
         guard let executableURL = executableURL, FileManager.default.fileExists(atPath: executableURL.path) else {
             logger.error("Shell executable not found: \(shell)")
@@ -341,5 +358,15 @@ private extension Data {
 
         // Remove trailing newline characters
         return output.trimmingCharacters(in: .newlines)
+    }
+}
+
+/// The bytes one pipe gave, written by its reading thread and read after it finished.
+private final class PipeDrain: @unchecked Sendable {
+    private let lock = NSLock()
+    private var bytes = Data()
+    var data: Data {
+        get { lock.withLock { bytes } }
+        set { lock.withLock { bytes = newValue } }
     }
 }

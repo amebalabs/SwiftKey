@@ -7,13 +7,21 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		5A1C0D0100000000000000A4 /* SwiftKeyCore in Frameworks */ = {isa = PBXBuildFile; productRef = 5A1C0D0100000000000000A2 /* SwiftKeyCore */; };
+		5A1C0D0100000000000000A5 /* SwiftKeyRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = 5A1C0D0100000000000000A3 /* SwiftKeyRuntime */; };
 		FA409DFC2D58166200FCFC04 /* Yams in Frameworks */ = {isa = PBXBuildFile; productRef = FA409DFB2D58166200FCFC04 /* Yams */; };
 		FA409EA82D614C5400FCFC04 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = FA409EA72D614C5400FCFC04 /* Sparkle */; };
-		FA62DE5A2D4418A900B1CC0C /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = FA62DE592D4418A900B1CC0C /* KeyboardShortcuts */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
 		FA409E3D2D5E575C00FCFC04 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = FA3044A92D43F59400BA98E2 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = FA3044B02D43F59400BA98E2;
+			remoteInfo = SwiftKey;
+		};
+		5A1C0D010000000000000C0A /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = FA3044A92D43F59400BA98E2 /* Project object */;
 			proxyType = 1;
@@ -28,6 +36,7 @@
 		FA409E472D5EBFF000FCFC04 /* LICENSE */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
 		FA409E482D5EBFF000FCFC04 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		FA409E492D5EBFF000FCFC04 /* swiftformat.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = swiftformat.sh; sourceTree = "<group>"; };
+		5A1C0D010000000000000C02 /* SwiftKeyUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SwiftKeyUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -54,6 +63,11 @@
 			path = SwiftKeyTests;
 			sourceTree = "<group>";
 		};
+		5A1C0D010000000000000C03 /* SwiftKeyUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = SwiftKeyUITests;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -63,11 +77,19 @@
 			files = (
 				FA409EA82D614C5400FCFC04 /* Sparkle in Frameworks */,
 				FA409DFC2D58166200FCFC04 /* Yams in Frameworks */,
-				FA62DE5A2D4418A900B1CC0C /* KeyboardShortcuts in Frameworks */,
+				5A1C0D0100000000000000A4 /* SwiftKeyCore in Frameworks */,
+				5A1C0D0100000000000000A5 /* SwiftKeyRuntime in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		FA409E362D5E575B00FCFC04 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5A1C0D010000000000000C05 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -84,6 +106,7 @@
 				FA409E482D5EBFF000FCFC04 /* README.md */,
 				FA409E492D5EBFF000FCFC04 /* swiftformat.sh */,
 				FA409E3A2D5E575C00FCFC04 /* SwiftKeyTests */,
+				5A1C0D010000000000000C03 /* SwiftKeyUITests */,
 				FAF87AD92D4A8D6E008986C6 /* Frameworks */,
 				FA3044B22D43F59400BA98E2 /* Products */,
 				FA3044B32D43F59400BA98E2 /* SwiftKey */,
@@ -95,6 +118,7 @@
 			children = (
 				FA3044B12D43F59400BA98E2 /* SwiftKey.app */,
 				FA409E392D5E575B00FCFC04 /* SwiftKeyTests.xctest */,
+				5A1C0D010000000000000C02 /* SwiftKeyUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -116,6 +140,8 @@
 				FA3044AD2D43F59400BA98E2 /* Sources */,
 				FA3044AE2D43F59400BA98E2 /* Frameworks */,
 				FA3044AF2D43F59400BA98E2 /* Resources */,
+				5A1C0D0100000000000000B1 /* Embed swiftkey-micro */,
+				5A1C0D0100000000000000B2 /* Bundle micro-app docs */,
 			);
 			buildRules = (
 			);
@@ -126,9 +152,10 @@
 			);
 			name = SwiftKey;
 			packageProductDependencies = (
-				FA62DE592D4418A900B1CC0C /* KeyboardShortcuts */,
 				FA409DFB2D58166200FCFC04 /* Yams */,
 				FA409EA72D614C5400FCFC04 /* Sparkle */,
+				5A1C0D0100000000000000A2 /* SwiftKeyCore */,
+				5A1C0D0100000000000000A3 /* SwiftKeyRuntime */,
 			);
 			productName = SwiftKey;
 			productReference = FA3044B12D43F59400BA98E2 /* SwiftKey.app */;
@@ -157,6 +184,29 @@
 			productReference = FA409E392D5E575B00FCFC04 /* SwiftKeyTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		5A1C0D010000000000000C01 /* SwiftKeyUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5A1C0D010000000000000C07 /* Build configuration list for PBXNativeTarget "SwiftKeyUITests" */;
+			buildPhases = (
+				5A1C0D010000000000000C04 /* Sources */,
+				5A1C0D010000000000000C05 /* Frameworks */,
+				5A1C0D010000000000000C06 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				5A1C0D010000000000000C0B /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				5A1C0D010000000000000C03 /* SwiftKeyUITests */,
+			);
+			name = SwiftKeyUITests;
+			packageProductDependencies = (
+			);
+			productName = SwiftKeyUITests;
+			productReference = 5A1C0D010000000000000C02 /* SwiftKeyUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -173,6 +223,10 @@
 					FA409E382D5E575B00FCFC04 = {
 						CreatedOnToolsVersion = 16.2;
 					};
+					5A1C0D010000000000000C01 = {
+						CreatedOnToolsVersion = 27.0;
+						TestTargetID = FA3044B02D43F59400BA98E2;
+					};
 				};
 			};
 			buildConfigurationList = FA3044AC2D43F59400BA98E2 /* Build configuration list for PBXProject "SwiftKey" */;
@@ -185,9 +239,9 @@
 			mainGroup = FA3044A82D43F59400BA98E2;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				FA62DE582D4418A900B1CC0C /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */,
 				FA409DFA2D58166200FCFC04 /* XCRemoteSwiftPackageReference "Yams" */,
 				FA409EA62D614C5400FCFC04 /* XCRemoteSwiftPackageReference "Sparkle" */,
+				5A1C0D0100000000000000A1 /* XCLocalSwiftPackageReference "Packages/SwiftKeyCore" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = FA3044B22D43F59400BA98E2 /* Products */;
@@ -196,6 +250,7 @@
 			targets = (
 				FA3044B02D43F59400BA98E2 /* SwiftKey */,
 				FA409E382D5E575B00FCFC04 /* SwiftKeyTests */,
+				5A1C0D010000000000000C01 /* SwiftKeyUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -215,7 +270,58 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		5A1C0D010000000000000C06 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		5A1C0D0100000000000000B1 /* Embed swiftkey-micro */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Embed swiftkey-micro";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(EXECUTABLE_FOLDER_PATH)/swiftkey-micro",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/bash;
+			shellScript = "# Builds the swiftkey-micro console tool from Packages/SwiftKeyCore and puts it next to the app's\n# executable, signed like the app. swift build is incremental, so an unchanged tool costs little;\n# the copy and the signature happen only when the tool changed.\nset -euo pipefail\nPACKAGE=\"$SRCROOT/Packages/SwiftKeyCore\"\nSCRATCH=\"$OBJROOT/swiftkey-micro\"\nDEST=\"$TARGET_BUILD_DIR/$EXECUTABLE_FOLDER_PATH/swiftkey-micro\"\nif [ \"$CONFIGURATION\" = \"Release\" ]; then\n  ARGS=(-c release --arch arm64 --arch x86_64)\nelse\n  ARGS=(-c debug)\nfi\n# Xcode's build variables point SwiftPM at the wrong SDK and toolchain settings; build in a clean environment.\nbuild() {\n  env -i PATH=\"/usr/bin:/bin:/usr/sbin:/sbin\" HOME=\"$HOME\" DEVELOPER_DIR=\"$DEVELOPER_DIR\" TMPDIR=\"${TMPDIR:-/tmp}\" \\\n    xcrun swift build --package-path \"$PACKAGE\" --scratch-path \"$SCRATCH\" \"${ARGS[@]}\" --product swiftkey-micro \"$@\"\n}\nbuild\nBIN=\"$(build --show-bin-path)/swiftkey-micro\"\nmkdir -p \"$(dirname \"$DEST\")\"\nif [ -f \"$DEST\" ] && [ \"$DEST\" -nt \"$BIN\" ]; then\n  exit 0\nfi\ncp -f \"$BIN\" \"$DEST\"\nIDENTITY=\"${EXPANDED_CODE_SIGN_IDENTITY:-}\"\nif [ -n \"$IDENTITY\" ]; then\n  TIMESTAMP=\"--timestamp=none\"\n  if [ \"$CONFIGURATION\" = \"Release\" ] && [ \"$IDENTITY\" != \"-\" ]; then TIMESTAMP=\"--timestamp\"; fi\n  codesign --force --options runtime \"$TIMESTAMP\" --identifier \"$PRODUCT_BUNDLE_IDENTIFIER.swiftkey-micro\" --sign \"$IDENTITY\" \"$DEST\"\nfi\n";
+		};
+		5A1C0D0100000000000000B2 /* Bundle micro-app docs */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Bundle micro-app docs";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/CONFIGURING.md",
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/FORMAT.md",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/bash;
+			shellScript = "# Copies the agent guide, the micro-app format and its examples from Packages/SwiftKeyCore/docs\n# into the app's Resources, so an agent reads the version that matches the installed SwiftKey.\nset -euo pipefail\nDOCS=\"$SRCROOT/Packages/SwiftKeyCore/docs\"\nDEST=\"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"\nmkdir -p \"$DEST/micro-apps\"\ncp -f \"$DOCS/CONFIGURING.md\" \"$DOCS/micro-apps/FORMAT.md\" \"$DEST/\"\nrsync -a --delete \"$DOCS/micro-apps/examples/\" \"$DEST/micro-apps/examples/\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		FA3044AD2D43F59400BA98E2 /* Sources */ = {
@@ -232,6 +338,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		5A1C0D010000000000000C04 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -239,6 +352,11 @@
 			isa = PBXTargetDependency;
 			target = FA3044B02D43F59400BA98E2 /* SwiftKey */;
 			targetProxy = FA409E3D2D5E575C00FCFC04 /* PBXContainerItemProxy */;
+		};
+		5A1C0D010000000000000C0B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = FA3044B02D43F59400BA98E2 /* SwiftKey */;
+			targetProxy = 5A1C0D010000000000000C0A /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -368,6 +486,7 @@
 		FA3044C12D43F59600BA98E2 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = SwiftKey/Resources/SwiftKey.entitlements;
@@ -404,6 +523,7 @@
 		FA3044C22D43F59600BA98E2 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = SwiftKey/Resources/SwiftKey.entitlements;
@@ -450,6 +570,8 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SwiftKey.app/Contents/MacOS/SwiftKey";
 			};
 			name = Debug;
 		};
@@ -466,6 +588,44 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SwiftKey.app/Contents/MacOS/SwiftKey";
+			};
+			name = Release;
+		};
+		5A1C0D010000000000000C08 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = X93LWC49WV;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 1.0;
+				CODE_SIGN_ENTITLEMENTS = SwiftKeyUITests/SwiftKeyUITests.entitlements;
+				PRODUCT_BUNDLE_IDENTIFIER = co.ameba.SwiftKeyUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = SwiftKey;
+			};
+			name = Debug;
+		};
+		5A1C0D010000000000000C09 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = X93LWC49WV;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 1.0;
+				CODE_SIGN_ENTITLEMENTS = SwiftKeyUITests/SwiftKeyUITests.entitlements;
+				PRODUCT_BUNDLE_IDENTIFIER = co.ameba.SwiftKeyUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = SwiftKey;
 			};
 			name = Release;
 		};
@@ -499,7 +659,23 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		5A1C0D010000000000000C07 /* Build configuration list for PBXNativeTarget "SwiftKeyUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5A1C0D010000000000000C08 /* Debug */,
+				5A1C0D010000000000000C09 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		5A1C0D0100000000000000A1 /* XCLocalSwiftPackageReference "Packages/SwiftKeyCore" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/SwiftKeyCore;
+		};
+/* End XCLocalSwiftPackageReference section */
 
 /* Begin XCRemoteSwiftPackageReference section */
 		FA409DFA2D58166200FCFC04 /* XCRemoteSwiftPackageReference "Yams" */ = {
@@ -518,14 +694,6 @@
 				minimumVersion = 2.6.4;
 			};
 		};
-		FA62DE582D4418A900B1CC0C /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/sindresorhus/KeyboardShortcuts";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 2.2.4;
-			};
-		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -539,10 +707,13 @@
 			package = FA409EA62D614C5400FCFC04 /* XCRemoteSwiftPackageReference "Sparkle" */;
 			productName = Sparkle;
 		};
-		FA62DE592D4418A900B1CC0C /* KeyboardShortcuts */ = {
+		5A1C0D0100000000000000A2 /* SwiftKeyCore */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = FA62DE582D4418A900B1CC0C /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */;
-			productName = KeyboardShortcuts;
+			productName = SwiftKeyCore;
+		};
+		5A1C0D0100000000000000A3 /* SwiftKeyRuntime */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = SwiftKeyRuntime;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

@@ -14,6 +14,21 @@ class FacelessMenuController: DependencyInjectable {
     var settingsStore: SettingsStore!
     var keyboardManager: KeyboardManager!
 
+    deinit {
+        cleanup()
+    }
+
+    private func cleanup() {
+        sessionTimer?.invalidate()
+        sessionTimer = nil
+        animationTimer?.invalidate()
+        animationTimer = nil
+        if let monitor = localMonitor {
+            NSEvent.removeMonitor(monitor)
+            localMonitor = nil
+        }
+    }
+
     init(
         rootMenu: [MenuItem],
         statusItem: NSStatusItem,
@@ -103,7 +118,7 @@ class FacelessMenuController: DependencyInjectable {
 
         localMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard let self = self,
-                  let key = englishCharactersForKeyEvent(event: event),
+                  let key = MainActor.assumeIsolated({ KeyTranslator.keyName(for: event) }),
                   !key.isEmpty else { return event }
 
             // Spawn a Task to handle the key press asynchronously
@@ -151,8 +166,7 @@ class FacelessMenuController: DependencyInjectable {
         sessionTimer?.invalidate()
         sessionTimer = nil
         Task { @MainActor in
-            menuState.menuStack = []
-            menuState.breadcrumbs = []
+            menuState.reset()
         }
         updateStatusItem()
     }

@@ -17,6 +17,8 @@
 	</array>
 	<key>LSMinimumSystemVersion</key>
 	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>SwiftKey asks Finder and your browser for the selected files and the front tab when a micro-app you started needs them. Nothing is read otherwise.</string>
 	<key>SUPublicEDKey</key>
 	<string>c1vnuzkyrl2y6GNfNk/N91wC0S2w0PYxfbBonj+QrT0=</string>
 	<key>SUEnableAutomaticChecks</key>

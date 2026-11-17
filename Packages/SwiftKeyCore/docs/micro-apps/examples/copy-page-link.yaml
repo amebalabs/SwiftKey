@@ -1,0 +1,14 @@
+format: ting.microapp/2
+name: Copy page link
+description: Copy the front browser tab as a Markdown link.
+
+context: [browser]
+input: none
+command: |
+  if [ -z "$TING_CONTEXT_BROWSER_URL" ]; then
+    echo "No browser tab is open." >&2
+    exit 1
+  fi
+  printf '[%s](%s)' "${TING_CONTEXT_BROWSER_TITLE:-$TING_CONTEXT_BROWSER_URL}" "$TING_CONTEXT_BROWSER_URL"
+output:
+  to: [clipboard]

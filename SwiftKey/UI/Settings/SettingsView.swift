@@ -3,11 +3,11 @@ import SwiftUI
 
 struct SettingsView: View {
     private enum Tabs: Hashable {
-        case general, configEditor, snippets, about
+        case general, launcha, configEditor, snippets, about
         
         var idealSize: CGSize {
             switch self {
-            case .general, .snippets, .about:
+            case .general, .launcha, .snippets, .about:
                 return CGSize(width: 460, height: 500)
             case .configEditor:
                 return CGSize(width: 940, height: 700)
@@ -26,6 +26,12 @@ struct SettingsView: View {
                     Label("General", systemImage: "gear")
                 }
                 .tag(Tabs.general)
+
+            LaunchaSettingsView()
+                .tabItem {
+                    Label("launcha", systemImage: "magnifyingglass")
+                }
+                .tag(Tabs.launcha)
 
             ConfigEditorSettingsView()
                 .tabItem {

@@ -1,10 +1,10 @@
-import KeyboardShortcuts
 import SwiftUI
 
 struct OnboardingView: View {
     let onFinish: () -> Void
     @State private var isDismissing = false
     @EnvironmentObject var settings: SettingsStore
+    @EnvironmentObject private var hotkeys: HotkeyCenter
 
     var body: some View {
         VStack(spacing: 20) {
@@ -23,8 +23,14 @@ struct OnboardingView: View {
             .multilineTextAlignment(.center)
             .padding(.horizontal)
 
-            KeyboardShortcuts.Recorder("Set your Hotkey", name: .toggleApp)
-                .padding(.horizontal)
+            VStack(alignment: .leading, spacing: 6) {
+                HotkeyRecorderField(hotkey: $settings.mainHotkey, gate: hotkeys.recordingGate,
+                                    placeholder: "Click to record your hotkey")
+                Text("Any key works: Home, F13, or a combination such as ⌥⇧⌘K. A modifier alone cannot be a hotkey.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal)
 
             Button(action: {
                 withAnimation {
@@ -57,4 +63,6 @@ struct PrimaryButtonStyle: ButtonStyle {
 
 #Preview {
     OnboardingView(onFinish: {})
+        .environmentObject(SettingsStore())
+        .environmentObject(HotkeyCenter())
 }

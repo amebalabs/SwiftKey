@@ -12,8 +12,12 @@ class NotchContext {
 
     var settingsStore: SettingsStore?
 
+    /// Shows the HUD after the "Show menu after" delay.
+    private let reveal = DelayedReveal()
+
+    /// Open, or waiting to appear: either way the HUD takes keys and must be closed.
     var presented: Bool {
-        viewModel?.status == .opened
+        viewModel?.status == .opened || reveal.isPending
     }
 
     init(screen: NSScreen, headerLeadingView: AnyView, headerTrailingView: AnyView, bodyView: AnyView, animated: Bool) {
@@ -61,8 +65,10 @@ class NotchContext {
         self.settingsStore = settingsStore
     }
 
+    /// Opens the HUD. It takes keys at once; with `revealAfter` it stays invisible, and its open
+    /// animation waits, until that many seconds have passed.
     @MainActor
-    func open(forInterval interval: TimeInterval = 0) {
+    func open(forInterval interval: TimeInterval = 0, revealAfter delay: TimeInterval = 0) {
         let window = NotchWindowController(screen: screen)
         window.window?.setFrameOrigin(.zero)
         viewModel = NotchViewModel(
@@ -85,20 +91,28 @@ class NotchContext {
         )
         window.window?.setFrameOrigin(topRect.origin)
         window.window?.setContentSize(topRect.size)
+        window.window?.alphaValue = delay > 0 ? 0 : 1
         window.window?.orderFront(nil)
         window.window?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            window.window?.makeFirstResponder(window.window?.contentView)
-            viewModel.open()
+        // The HUD body takes keys from the start, so keys typed before the reveal are not lost; it
+        // is drawn, with the open animation, at the reveal, which `close()` cancels.
+        viewModel.open(revealed: false)
+        reveal.start(after: max(delay, 0.1)) { [weak window] in
+            window?.window?.alphaValue = 1
+            viewModel.reveal()
         }
         viewModel.referencedWindow = window
         guard interval > 0 else { return }
         viewModel.scheduleClose(after: interval)
     }
 
+    @MainActor
     func close() {
+        reveal.cancel()
         guard let vm = viewModel else { return }
+        // Closed at once, so a press right after counts as opening the HUD again, not hiding it.
+        vm.close()
         Task {
             await vm.destroy()
         }

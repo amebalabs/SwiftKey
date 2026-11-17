@@ -1,6 +1,7 @@
 import SwiftUI
 import Combine
 import os
+import SwiftKeyCore
 import Yams
 
 class ConfigEditorViewModel: ObservableObject {
@@ -13,6 +14,13 @@ class ConfigEditorViewModel: ObservableObject {
     @Published var errorMessage: String?
     
     let configManager: ConfigManager
+    /// Approves the commands typed here once they are saved. Without it nothing is approved.
+    private let approvalGate: ApprovalGate?
+    /// The `shell://` and `dynamic://` action last typed in the inspector for each item since the
+    /// last save, by item id. Only these are approved on save, and only while the item still holds
+    /// them: a command that came from an outside edit or an import, or a draft passed through while
+    /// typing, still asks before it runs.
+    private(set) var typedCommands: [UUID: String] = [:]
     private let undoManager = UndoManager()
     private var cancellables = Set<AnyCancellable>()
     private var originalItems: [MenuItem] = []
@@ -28,8 +36,9 @@ class ConfigEditorViewModel: ObservableObject {
         }
     }
     
-    init(configManager: ConfigManager) {
+    init(configManager: ConfigManager, approvalGate: ApprovalGate? = nil) {
         self.configManager = configManager
+        self.approvalGate = approvalGate
     }
     
     func loadConfiguration() {
@@ -80,6 +89,8 @@ class ConfigEditorViewModel: ObservableObject {
                     guard let self = self else { return }
                     self.originalItems = self.menuItems
                     self.hasUnsavedChanges = false
+                    // Delivered on the main queue (`receive(on:)` above).
+                    MainActor.assumeIsolated { self.approveTypedCommands() }
                     AppLogger.config.info("Configuration saved successfully")
                     
                     // Restore selection
@@ -92,7 +103,24 @@ class ConfigEditorViewModel: ObservableObject {
             .store(in: &cancellables)
     }
     
+    /// Approves the typed commands that their items still hold in the saved config.
+    @MainActor
+    func approveTypedCommands() {
+        let typed = typedCommands.compactMap { id, action in
+            findMenuItem(with: id, in: menuItems)?.action == action ? action : nil
+        }
+        typedCommands = [:]
+        guard let approvalGate, !typed.isEmpty else { return }
+        do {
+            try approvalGate.approveTyped(typed)
+        } catch {
+            AppLogger.config.error("Failed to save approvals of typed commands: \(error)")
+            errorMessage = "Saved, but the approval of the typed commands was not saved: \(error.localizedDescription)"
+        }
+    }
+
     func discardChanges() {
+        typedCommands = [:]
         menuItems = originalItems
         hasUnsavedChanges = false
         selectedItem = nil
@@ -146,6 +174,10 @@ class ConfigEditorViewModel: ObservableObject {
         registerUndo()
         
         if let indexPath = findIndexPath(for: item) {
+            if let action = item.action, CodeRequest(action: action) != nil,
+               action != findMenuItem(with: item.id, in: menuItems)?.action {
+                typedCommands[item.id] = action
+            }
             updateMenuItem(item, at: indexPath)
             hasUnsavedChanges = true
             
@@ -187,6 +219,11 @@ class ConfigEditorViewModel: ObservableObject {
     func validateAll() {
         validationErrors.removeAll()
         validateMenuItems(menuItems, parentPath: [])
+        // Global hotkeys must be unique across the whole menu and differ from the main hotkey.
+        let mainHotkey = Hotkey(string: AppPaths.defaults.string(forKey: SettingsStore.mainHotkeyKey) ?? "")
+        for (id, message) in HotkeyRules.conflicts(in: menuItems, mainHotkey: mainHotkey) {
+            validationErrors[id, default: []].append(ValidationError(field: "hotkey", message: message, severity: .error))
+        }
     }
     
     func validateItem(_ item: MenuItem) {
@@ -202,8 +239,8 @@ class ConfigEditorViewModel: ObservableObject {
             // Key validation
             if item.key.isEmpty {
                 errors.append(ValidationError(field: "key", message: "Key is required", severity: .error))
-            } else if item.key.count > 1 {
-                errors.append(ValidationError(field: "key", message: "Key must be a single character", severity: .error))
+            } else if SequenceKey.normalize(item.key) == nil {
+                errors.append(ValidationError(field: "key", message: ConfigValidator.invalidKeyMessage, severity: .error))
             } else if seenKeys.contains(item.key) {
                 errors.append(ValidationError(field: "key", message: "Duplicate key at this level", severity: .error))
             } else {
@@ -222,6 +259,11 @@ class ConfigEditorViewModel: ObservableObject {
                 errors.append(ValidationError(field: "action", message: "Item must have either an action or submenu", severity: .warning))
             }
             
+            // Hotkey validation
+            if let hotkey = item.hotkey, let problem = HotkeyRules.problem(hotkey) {
+                errors.append(ValidationError(field: "hotkey", message: problem, severity: .error))
+            }
+
             // Icon validation
             if let icon = item.icon, !icon.isEmpty {
                 // TODO: Validate against SF Symbols list
@@ -250,8 +292,8 @@ class ConfigEditorViewModel: ObservableObject {
         
         if item.key.isEmpty {
             errors.append(ValidationError(field: "key", message: "Key is required", severity: .error))
-        } else if item.key.count > 1 {
-            errors.append(ValidationError(field: "key", message: "Key must be a single character", severity: .error))
+        } else if SequenceKey.normalize(item.key) == nil {
+            errors.append(ValidationError(field: "key", message: ConfigValidator.invalidKeyMessage, severity: .error))
         }
         
         if item.title.isEmpty {
@@ -269,9 +311,8 @@ class ConfigEditorViewModel: ObservableObject {
         var errors: [ValidationError] = []
         
         if action.hasPrefix("launch://") {
-            let path = String(action.dropFirst("launch://".count))
-            let expandedPath = (path as NSString).expandingTildeInPath
-            if !FileManager.default.fileExists(atPath: expandedPath) {
+            let target = LaunchTarget(String(action.dropFirst("launch://".count)))
+            if target.resolve() == nil {
                 errors.append(ValidationError(field: "action", message: "Application not found", severity: .error))
             }
         } else if action.hasPrefix("open://") {
@@ -281,8 +322,8 @@ class ConfigEditorViewModel: ObservableObject {
             }
         } else if action.hasPrefix("shell://") {
             let command = String(action.dropFirst("shell://".count))
-            if command.contains("rm ") || command.contains("sudo") {
-                errors.append(ValidationError(field: "action", message: "Potentially dangerous command", severity: .warning))
+            if command.filter({ $0 == "\"" || $0 == "'" }).count % 2 != 0 {
+                errors.append(ValidationError(field: "action", message: "Shell command has unbalanced quotes", severity: .warning))
             }
         } else if action.hasPrefix("dynamic://") {
             let scriptPath = String(action.dropFirst("dynamic://".count))
@@ -313,6 +354,7 @@ class ConfigEditorViewModel: ObservableObject {
             // Store the imported items temporarily for confirmation
             // The UI will show a confirmation dialog and call confirmImport if user accepts
             self.pendingImportItems = importedItems
+            self.pendingImportName = url.lastPathComponent
             completion(true)
         } catch {
             errorMessage = "Failed to import configuration: \(error.localizedDescription)"
@@ -322,9 +364,16 @@ class ConfigEditorViewModel: ObservableObject {
     }
     
     private var pendingImportItems: [MenuItem]?
+    private var pendingImportName: String?
     
+    @MainActor
     func confirmImport() {
         guard let items = pendingImportItems else { return }
+        do {
+            try approvalGate?.recordImportedFile(named: pendingImportName ?? "", items: items)
+        } catch {
+            AppLogger.config.error("Failed to record the origin of imported commands: \(error)")
+        }
         
         registerUndo()
         menuItems = items
