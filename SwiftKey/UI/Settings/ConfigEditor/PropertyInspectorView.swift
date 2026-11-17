@@ -6,6 +6,7 @@ struct PropertyInspectorView: View {
     @EnvironmentObject private var hotkeys: HotkeyCenter
     @EnvironmentObject private var settings: SettingsStore
     @EnvironmentObject private var approvalGate: ApprovalGate
+    @EnvironmentObject private var microApps: MicroAppDirectory
     let onUpdate: (MenuItem) -> Void
     let validationErrors: [ConfigEditorViewModel.ValidationError]
     
@@ -18,6 +19,7 @@ struct PropertyInspectorView: View {
         case shell = "Shell"
         case shortcut = "Shortcut"
         case dynamic = "Dynamic"
+        case micro = "Micro-app"
         
         var prefix: String? {
             switch self {
@@ -27,6 +29,7 @@ struct PropertyInspectorView: View {
             case .shell: return "shell://"
             case .shortcut: return "shortcut://"
             case .dynamic: return "dynamic://"
+            case .micro: return "micro://"
             }
         }
         
@@ -37,6 +40,7 @@ struct PropertyInspectorView: View {
             if action.hasPrefix("shell://") { return .shell }
             if action.hasPrefix("shortcut://") { return .shortcut }
             if action.hasPrefix("dynamic://") { return .dynamic }
+            if action.hasPrefix("micro://") { return .micro }
             return .none
         }
     }
@@ -341,8 +345,66 @@ struct PropertyInspectorView: View {
                 }
             }
             
+        case .micro:
+            microAppEditor(for: item, id: String(actionValue))
+
         case .none:
             EmptyView()
+        }
+    }
+
+    /// Picks a loaded micro-app by id. A broken or missing id stays listed, marked, until another
+    /// one is chosen; its problem shows below the picker.
+    @ViewBuilder
+    private func microAppEditor(for item: MenuItem, id: String) -> some View {
+        let choices = microApps.choices(current: id)
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text("Micro-app:")
+                    .frame(width: 80, alignment: .trailing)
+                if choices.isEmpty {
+                    Text("No micro-apps in \(microApps.folderURL.map { ($0.path as NSString).abbreviatingWithTildeInPath } ?? "the micro-apps folder")")
+                        .foregroundColor(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                } else {
+                    Picker("Micro-app", selection: Binding(
+                        get: { id },
+                        set: { newID in
+                            var updatedItem = item
+                            updatedItem.action = "micro://\(newID)"
+                            onUpdate(updatedItem)
+                        }
+                    )) {
+                        if id.isEmpty {
+                            Text("Choose a micro-app").tag("")
+                        }
+                        ForEach(choices) { choice in
+                            Text(choice.title).tag(choice.id)
+                        }
+                    }
+                    .labelsHidden()
+                    .accessibilityLabel("Micro-app")
+                }
+                Button("Reveal File") {
+                    if let url = microApps.fileURL(for: id) {
+                        NSWorkspace.shared.activateFileViewerSelecting([url])
+                    }
+                }
+                .disabled(microApps.fileURL(for: id) == nil)
+                .help("Show the micro-app's file in Finder")
+            }
+            if let problem = microApps.problem(for: id) {
+                HStack(alignment: .firstTextBaseline) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundColor(.orange)
+                        .accessibilityHidden(true)
+                    Text(problem)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .textSelection(.enabled)
+                }
+                .padding(.leading, 84)
+            }
         }
     }
     

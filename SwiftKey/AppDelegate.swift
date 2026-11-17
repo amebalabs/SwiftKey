@@ -301,6 +301,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     @MainActor
     private func applyMicroApps(_ catalog: MicroAppCatalog) {
         container.microAppFlow.setCatalog(catalog)
+        container.microAppDirectory.update(catalog, folder: microAppStore?.folderURL)
         let bindings = MenuItemTree.build(menuState.rootMenu).items
         launcha?.model.setMicroApps(catalog.launchaCandidates(bindings: bindings), folder: microAppStore?.folderURL)
     }

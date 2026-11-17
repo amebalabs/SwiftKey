@@ -28,6 +28,7 @@ struct SwiftKeyApp: App {
                 .environmentObject(container.sparkleUpdater)
                 .environmentObject(container.hotkeyCenter)
                 .environmentObject(container.approvalGate)
+                .environmentObject(container.microAppDirectory)
                 .environment(container.launchaModel)
                 .environment(container.accessibilityWindow.access)
                 .onAppear {

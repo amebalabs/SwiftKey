@@ -32,6 +32,9 @@ class DependencyContainer {
         return flow
     }()
 
+    /// The loaded micro-apps, for the config editor's picker.
+    let microAppDirectory = MicroAppDirectory()
+
     /// The Accessibility help window; Settings reads its access state.
     @MainActor private(set) lazy var accessibilityWindow = AccessibilityWindowController()
 
