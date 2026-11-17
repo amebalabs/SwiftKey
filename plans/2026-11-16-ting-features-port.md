@@ -111,12 +111,12 @@ Add `test` and `test-core` tasks to `mise.toml` next to the existing `build` tas
 
 ## Phase 5: Micro-apps
 
-- [ ] Copy `MicroApp*.swift`, `MicroAppYAML.swift` (strict YAML subset), libraries, templates, flow, form, output, context models with tests
-- [ ] Copy `TingRuntime` (runner, ChildProcess, services incl. keychain, CLI) as `SwiftKeyRuntime`; keep `format: ting.microapp/2` and `$TING_*` names
-- [ ] Micro-app folder next to the chosen config; extend `ConfigWatcher` to `micro/` and `micro/libs/`; errors to `micro-errors.log`; broken files never block others
-- [ ] `micro://<id>` action in `MenuItem` handling and `ConfigValidator` (unknown id, broken file)
-- [ ] Port `MicroAppFlowController`, form, flow and output views in SwiftKey's style; overlay closes on start; `notify: true` on finish; batch runs micro-apps in sequence
-- [ ] Remembered values in `Application Support/SwiftKey/micro-values.json`
+- [x] Copy `MicroApp*.swift`, `MicroAppYAML.swift` (strict YAML subset), libraries, templates, flow, form, output, context models with tests
+- [x] Copy `TingRuntime` (runner, ChildProcess, services incl. keychain, CLI) as `SwiftKeyRuntime`; keep `format: ting.microapp/2` and `$TING_*` names
+- [x] Micro-app folder next to the chosen config; extend `ConfigWatcher` to `micro/` and `micro/libs/`; errors to `micro-errors.log`; broken files never block others
+- [x] `micro://<id>` action in `MenuItem` handling and `ConfigValidator` (unknown id, broken file)
+- [x] Port `MicroAppFlowController`, form, flow and output views in SwiftKey's style; overlay closes on start; `notify: true` on finish; batch runs micro-apps in sequence
+- [x] Remembered values in `Application Support/SwiftKey/micro-values.json`
 - [ ] Port `MicroAppContextReader`, `MicroAppKeyboard`, `AccessibilityWindow`; add `NSAppleEventsUsageDescription`; Accessibility state in Settings › Advanced
 - [ ] `swiftkey-micro` built from the package, copied into `Contents/MacOS/`, signed explicitly in `release.yml` before notarization
 - [ ] Integration tests: runner with real processes in temp folders; all shipped examples through `swiftkey-micro run`
