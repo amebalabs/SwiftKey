@@ -7,9 +7,7 @@ final class CheckCommandTests: XCTestCase {
         .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
 
     /// The executable next to the test bundle in the build products folder.
-    private var executable: URL {
-        Bundle(for: Self.self).bundleURL.deletingLastPathComponent().appendingPathComponent("swiftkey-micro")
-    }
+    private var executable: URL { BuiltTool.swiftkeyMicro }
 
     private struct Run { var status: Int32; var output: String; var errors: String }
 

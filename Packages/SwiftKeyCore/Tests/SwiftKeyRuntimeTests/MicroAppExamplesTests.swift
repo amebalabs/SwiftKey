@@ -19,7 +19,7 @@ final class MicroAppExamplesTests: XCTestCase {
     }
 
     private func run(_ name: String, _ arguments: [String] = [], input: String = "") async throws -> Run {
-        let executable = Self.root.appendingPathComponent(".build/debug/swiftkey-micro").path
+        let executable = BuiltTool.swiftkeyMicro.path
         XCTAssertTrue(FileManager.default.isExecutableFile(atPath: executable), executable)
         let file = Self.examples.appendingPathComponent(name + ".yaml").path
         let outcome = await ChildProcess.run(.init(executable: executable, arguments: ["run", file] + arguments,
@@ -33,7 +33,7 @@ final class MicroAppExamplesTests: XCTestCase {
         let names = try FileManager.default.contentsOfDirectory(atPath: Self.examples.path)
             .filter { $0.hasSuffix(".yaml") }.sorted()
         XCTAssertEqual(names.count, 15)
-        let executable = Self.root.appendingPathComponent(".build/debug/swiftkey-micro").path
+        let executable = BuiltTool.swiftkeyMicro.path
         let files = names.map { Self.examples.appendingPathComponent($0).path }
             + [Self.examples.appendingPathComponent("libs/translate.yaml").path]
         let outcome = await ChildProcess.run(.init(executable: executable, arguments: ["check"] + files,

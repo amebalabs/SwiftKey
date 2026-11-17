@@ -38,8 +38,7 @@ final class MicroAppCLITests: XCTestCase {
     }
 
     private func run(_ arguments: [String], input: String = "") async throws -> ChildProcessOutcome {
-        let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
-        let executable = root.appendingPathComponent(".build/debug/swiftkey-micro").path
+        let executable = BuiltTool.swiftkeyMicro.path
         XCTAssertTrue(FileManager.default.isExecutableFile(atPath: executable))
         return await ChildProcess.run(.init(executable: executable, arguments: arguments,
                                             environment: ["PATH": "/usr/bin:/bin", "CLI_TEST_VALUE": "secret"],
@@ -62,9 +61,8 @@ final class MicroAppCLITests: XCTestCase {
 
     func testSIGINTCancelsTheChildProcess() async throws {
         let url = try file(header + "command: sleep 20\n")
-        let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
         let process = Process()
-        process.executableURL = root.appendingPathComponent(".build/debug/swiftkey-micro")
+        process.executableURL = BuiltTool.swiftkeyMicro
         process.arguments = ["run", url.path, "--verbose"]
         process.standardInput = FileHandle.nullDevice
         process.standardOutput = FileHandle.nullDevice
