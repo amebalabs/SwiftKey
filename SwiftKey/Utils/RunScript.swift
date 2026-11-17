@@ -127,6 +127,32 @@ public struct ShellOutError: Swift.Error, CustomStringConvertible {
     }
 }
 
+// MARK: - Command line
+
+/// How a command from the config reaches the shell: as its text, so the command that runs is the
+/// one that was approved.
+enum ShellCommandLine {
+    /// The arguments of `zsh` for `script`. The text is the shell code as it is, except that one pair
+    /// of single quotes around the whole command (`'cd ~/x && git status'`, the form the README
+    /// shows) is removed. `args` are passed as positional parameters, so they never change how the
+    /// command is split.
+    static func arguments(for script: String, args: [String]) -> [String] {
+        let code = command(from: script)
+        if args.isEmpty { return ["-l", "-c", code] }
+        return ["-l", "-c", code + " \"$@\"", "zsh"] + args
+    }
+
+    /// The shell code of a command from the config.
+    static func command(from script: String) -> String {
+        let text = script.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard text.count >= 2, text.hasPrefix("'"), text.hasSuffix("'") else { return text }
+        let inner = text.dropFirst().dropLast()
+        // A quote inside means the outer pair does not wrap the whole command, as in `'a' 'b'`.
+        guard !inner.contains("'") else { return text }
+        return String(inner)
+    }
+}
+
 // MARK: - Private
 
 private extension Process {
@@ -139,7 +165,7 @@ private extension Process {
     ) async throws -> (out: String, err: String?) {
         let shell = "/bin/zsh"
         executableURL = URL(fileURLWithPath: shell)
-        arguments = ["-l", "-c", "\(script.escaped()) \(args.joined(separator: " "))"]
+        arguments = ShellCommandLine.arguments(for: script, args: args)
 
         guard let executableURL = executableURL, FileManager.default.fileExists(atPath: executableURL.path) else {
             logger.error("Shell executable not found: \(shell)")
@@ -208,7 +234,7 @@ private extension Process {
     ) throws -> (out: String, err: String?) {
         let shell = "/bin/zsh"
         executableURL = URL(fileURLWithPath: shell)
-        arguments = ["-l", "-c", "\(script.escaped()) \(args.joined(separator: " "))"]
+        arguments = ShellCommandLine.arguments(for: script, args: args)
 
         guard let executableURL = executableURL, FileManager.default.fileExists(atPath: executableURL.path) else {
             logger.error("Shell executable not found: \(shell)")
