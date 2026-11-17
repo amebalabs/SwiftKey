@@ -7,7 +7,6 @@ let sharedEnv = ProcessEnv.shared
 
 enum ScriptError: Error {
     case emptyCommand
-    case dangerousCommand(String)
     case executionFailed(Int32, String)
     case invalidShell
 
@@ -15,8 +14,6 @@ enum ScriptError: Error {
         switch self {
         case .emptyCommand:
             return "Empty command provided"
-        case let .dangerousCommand(cmd):
-            return "Potentially dangerous command rejected: \(cmd)"
         case let .executionFailed(status, message):
             return "Command failed with status \(status): \(message)"
         case .invalidShell:
@@ -55,15 +52,6 @@ func runScript(
         throw ScriptError.emptyCommand
     }
 
-    // Runtime security check - redundant with config-time check but provides defense in depth
-    let blacklistedPrefixes = ["rm -rf /", "sudo ", "> /", ">> /", "mkfs", "dd if="]
-    for prefix in blacklistedPrefixes {
-        if trimmedCommand.hasPrefix(prefix) || trimmedCommand.contains(" " + prefix) {
-            logger.error("Potentially dangerous command rejected: \(trimmedCommand)")
-            throw ScriptError.dangerousCommand(trimmedCommand)
-        }
-    }
-
     // Set up execution environment
     let swiftbarEnv = sharedEnv.systemEnvStr.merging(env) { current, _ in current }
     process.environment = swiftbarEnv.merging(ProcessInfo.processInfo.environment) { current, _ in current }
@@ -96,15 +84,6 @@ func runScript(
     guard !trimmedCommand.isEmpty else {
         logger.error("Empty command provided")
         throw ScriptError.emptyCommand
-    }
-
-    // Runtime security check - redundant with config-time check but provides defense in depth
-    let blacklistedPrefixes = ["rm -rf /", "sudo ", "> /", ">> /", "mkfs", "dd if="]
-    for prefix in blacklistedPrefixes {
-        if trimmedCommand.hasPrefix(prefix) || trimmedCommand.contains(" " + prefix) {
-            logger.error("Potentially dangerous command rejected: \(trimmedCommand)")
-            throw ScriptError.dangerousCommand(trimmedCommand)
-        }
     }
 
     // Set up execution environment

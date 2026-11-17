@@ -87,7 +87,7 @@ enum ConfigError: LocalizedError, Equatable {
         case .validationFailed:
             return "Fix the validation errors shown in the configuration editor."
         case .invalidShellCommand:
-            return "Review the command for potentially dangerous operations."
+            return "Make sure the shell command is not empty and is at most 1000 characters long."
         case .saveFailed:
             return "Check if you have write permissions and the disk is not full."
         case .backupFailed:

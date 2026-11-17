@@ -2,6 +2,7 @@ import AppKit
 import Combine
 import Foundation
 import os
+import SwiftKeyCore
 import Yams
 
 /// Manages loading, parsing, and updating configuration files
@@ -677,11 +678,11 @@ class ConfigManager: DependencyInjectable, ObservableObject {
     /// Validates menu items recursively using Result
     private func validateMenuItems(_ items: [MenuItem]) -> Result<Void, ConfigError> {
         for item in items {
-            // Validate key format (should be a single character)
-            if item.key.count != 1 {
+            // Validate key format: one character or a named key
+            if SequenceKey.normalize(item.key) == nil {
                 logger.error("Invalid key format: \(item.key)")
                 return .failure(ConfigError.invalidYamlFormat(
-                    message: "Key must be a single character, found '\(item.key)'",
+                    message: "\(ConfigValidator.invalidKeyMessage), found '\(item.key)'",
                     line: 0,
                     column: 0
                 ))
@@ -756,7 +757,8 @@ class ConfigManager: DependencyInjectable, ObservableObject {
         return validPrefixes.contains { action.hasPrefix($0) }
     }
 
-    /// Validates shell commands for security and proper format
+    /// Validates the format of shell commands. Safety comes from approval: no command runs before
+    /// the person approved its exact text.
     private func validateShellCommand(_ command: String) -> Result<Void, ConfigError> {
         // Strip the "shell://" prefix
         let shellCmd = String(command.dropFirst("shell://".count)).trimmingCharacters(in: .whitespacesAndNewlines)
@@ -769,30 +771,10 @@ class ConfigManager: DependencyInjectable, ObservableObject {
             ))
         }
 
-        // Check for blacklisted commands
-        let blacklistedPrefixes = ["rm -rf /", "sudo ", "> /", ">> /", "mkfs", "dd if=", ":(){ :|:& };:"]
-        for prefix in blacklistedPrefixes {
-            if shellCmd.hasPrefix(prefix) || shellCmd.contains(" " + prefix) {
-                return .failure(ConfigError.invalidShellCommand(
-                    message: "Shell command contains potentially dangerous operation",
-                    command: command
-                ))
-            }
-        }
-
         // Check command length to prevent very long commands
         if shellCmd.count > 1000 {
             return .failure(ConfigError.invalidShellCommand(
                 message: "Shell command exceeds maximum allowed length (1000 characters)",
-                command: command
-            ))
-        }
-
-        // Check for proper quoting
-        let quoteCount = shellCmd.filter { $0 == "\"" || $0 == "'" }.count
-        if quoteCount % 2 != 0 {
-            return .failure(ConfigError.invalidShellCommand(
-                message: "Shell command has unbalanced quotes",
                 command: command
             ))
         }

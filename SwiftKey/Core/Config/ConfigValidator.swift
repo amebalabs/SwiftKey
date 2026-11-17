@@ -4,16 +4,8 @@ import SwiftKeyCore
 /// Validates menu configuration for errors and warnings
 final class ConfigValidator {
 
-    private let dangerousPatterns = [
-        "rm -rf /",
-        "rm -rf ~",
-        "sudo ",
-        "> /dev/",
-        ">> /",
-        "mkfs",
-        "dd if=",
-        ":(){ :|:& };:"
-    ]
+    /// The message for a key that is neither one character nor a named key.
+    static let invalidKeyMessage = "Key must be one character, space, return or f1…f20"
 
     init() {}
 
@@ -31,11 +23,11 @@ final class ConfigValidator {
                 itemId: item.id,
                 path: currentPath
             ))
-        } else if item.key.count > 1 {
+        } else if SequenceKey.normalize(item.key) == nil {
             issues.append(ValidationIssue(
                 type: .invalidKey,
                 severity: .error,
-                message: "Key must be a single character, found '\(item.key)'",
+                message: "\(Self.invalidKeyMessage), found '\(item.key)'",
                 itemId: item.id,
                 path: currentPath
             ))
@@ -204,18 +196,8 @@ final class ConfigValidator {
                     path: path
                 ))
             } else {
-                for pattern in dangerousPatterns {
-                    if command.contains(pattern) {
-                        issues.append(ValidationIssue(
-                            type: .dangerousCommand,
-                            severity: .warning,
-                            message: "Potentially dangerous command pattern: \(pattern)",
-                            itemId: itemId,
-                            path: path
-                        ))
-                        break
-                    }
-                }
+                // Every command needs approval of its exact text before it runs, so no list of
+                // dangerous patterns is checked here.
 
                 // Check for unbalanced quotes
                 let quoteCount = command.filter { $0 == "\"" || $0 == "'" }.count

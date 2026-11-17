@@ -187,35 +187,40 @@ struct ConfigValidatorTests {
         #expect(issues.contains { $0.type == .dangerousCommand && $0.severity == .error })
     }
 
-    @Test("Dangerous shell commands produce warnings")
-    func dangerousShellWarnings() {
-        let dangerousCommands = [
-            "shell://rm -rf /",
+    @Test("Shell commands are not judged by patterns: approval guards them")
+    func shellCommandsHaveNoPatternWarnings() {
+        let commands = [
+            "shell://rm -rf ~/Downloads/old",
             "shell://sudo reboot",
-            "shell://dd if=/dev/zero of=/dev/sda"
+            "shell://dd if=/dev/zero of=/tmp/zeros bs=1k count=1"
         ]
 
-        for command in dangerousCommands {
-            let item = MenuItem(
-                id: UUID(),
-                key: "a",
-                icon: nil,
-                title: "Test",
-                action: command,
-                sticky: false,
-                notify: false,
-                batch: false,
-                hidden: false,
-                submenu: nil,
-                hotkey: nil
-            )
-            let issues = validator.validate(item)
-
-            #expect(
-                issues.contains { $0.type == .dangerousCommand && $0.severity == .warning },
-                "Expected warning for: \(command)"
-            )
+        for command in commands {
+            let issues = validator.validate(MenuItem(key: "a", title: "Test", action: command))
+            #expect(!issues.contains { $0.type == .dangerousCommand }, "Unexpected issue for: \(command)")
         }
+    }
+
+    @Test("Unbalanced quotes in a shell command produce a warning")
+    func unbalancedQuotesWarning() {
+        let issues = validator.validate(MenuItem(key: "a", title: "Test", action: "shell://echo 'hi"))
+
+        #expect(issues.contains { $0.type == .dangerousCommand && $0.severity == .warning })
+        #expect(!issues.contains { $0.severity == .error })
+    }
+
+    @Test("Named keys are valid", arguments: ["space", "return", "f1", "f13", "f20", "Space", "F5"])
+    func namedKeysAreValid(_ key: String) {
+        let issues = validator.validate(MenuItem(key: key, title: "Test", action: "open://https://example.com"))
+
+        #expect(!issues.contains { $0.type == .invalidKey })
+    }
+
+    @Test("Unknown multi-character keys are invalid", arguments: ["ab", "f21", "tab", "ф"])
+    func unknownKeysAreInvalid(_ key: String) {
+        let issues = validator.validate(MenuItem(key: key, title: "Test", action: "open://https://example.com"))
+
+        #expect(issues.contains { $0.type == .invalidKey })
     }
 
     // MARK: - Hierarchy Validation
