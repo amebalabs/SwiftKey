@@ -1,3 +1,28 @@
+# Unreleased
+
+## New Features
+
+- launcha: search the menu, apps and files by name, with a built-in calculator; open it by pressing the main hotkey twice, with its own hotkey or with `swiftkey://launcha`
+- Micro-apps: small YAML tools of shell, Python, HTTP and AI steps, bound with `micro://`, plus the `swiftkey-micro` console tool
+- Any key can be the main hotkey, alone or with modifiers, such as `Home` or `F13`
+- Show menu after: keys typed faster than the delay run without the menu appearing
+- Keys work with any keyboard layout, with the local letter shown as a hint
+- Named keys `space`, `return` and `f1`–`f20`; `Delete` goes back one level
+- `launch://` accepts a bundle identifier
+- Copy Prompt for Agent in Settings, and a guide for coding agents inside the app
+- `SWIFTKEY_CONFIG` starts SwiftKey with a separate config, data and settings
+
+## Security
+
+- `shell://` commands, `dynamic://` scripts and micro-apps run only after you approve their exact text
+- Deep links to commands only open the menu at them; running still needs a key press
+- The command blocklist is replaced by approvals
+
+## Bug Fixes
+
+- Shell commands no longer hang when their process exits before SwiftKey waits for it
+- `Esc`, `Space` and function keys now work in the menu bar style
+
 # v1.4.0 (2025-06-30)
 
 # Eccentric Eggplant

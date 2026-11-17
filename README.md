@@ -32,7 +32,13 @@ SwiftKey is a powerful macOS productivity tool that provides quick access to app
   - HUD mode for a compact interface
   - Menu bar mode for minimal interference
   - Corner Toast for unobtrusive notifications
-- ⌨️ Fully keyboard-driven interface
+- ⌨️ Fully keyboard-driven interface:
+  - Any key can be the main hotkey, alone or with modifiers (for example `Home` or `F13`)
+  - Keys work with any keyboard layout, with the local letter shown as a hint
+  - Type a sequence quickly and the menu never appears
+- 🔎 launcha: search your menu, apps and files by name, with a built-in calculator
+- 🧩 Micro-apps: small YAML tools of shell, Python, HTTP and AI steps
+- 🛡️ Commands run only after you approve their exact text
 - 🔧 YAML-based configuration
 - 🔄 Dynamic menu generation
 - 🚀 Support for various action types:
@@ -40,6 +46,7 @@ SwiftKey is a powerful macOS productivity tool that provides quick access to app
   - Open URLs
   - Run shell commands
   - Execute Apple Shortcuts
+  - Run micro-apps
 - 🎨 SF Symbols integration for menu icons
 - 🔍 Deep linking support
 - 📦 Automatic updates with beta channel support
@@ -300,15 +307,26 @@ SwiftKey uses YAML for configuration. Here's a comprehensive set of examples dem
       notify: true
 ```
 
+### Micro-apps
+
+```yaml
+# Run a micro-app from micro/greet.yaml next to the config file
+- key: "m"
+  icon: "sparkles"
+  title: "Greet"
+  action: "micro://greet"
+```
+
 ## Action Types
-- `launch://` — Launch applications
+- `launch://` — Launch applications, by path or bundle identifier (`launch://com.apple.Safari`); a running app comes to the front
 - `open://` — Open URLs
 - `shell://` — Execute shell commands
 - `shortcut://` — Run Apple Shortcuts
 - `dynamic://` — Generate dynamic menus
+- `micro://` — Run a micro-app by its id
 
 ## Menu Item Properties
-- `key` — Single character trigger key
+- `key` — Trigger key: one character (`a` and `A` are different keys; `A` is typed with Shift), or `space`, `return`, `f1`…`f20`
 - `icon` — SF Symbol name or omit for automatic icons
 - `title` — Display title
 - `action` — Action to execute
@@ -323,23 +341,98 @@ SwiftKey uses YAML for configuration. Here's a comprehensive set of examples dem
 SwiftKey allows you to assign global hotkeys to menu items. Hotkeys work even when the overlay is not visible.
 
 Supported hotkey formats:
-- Modifiers: `cmd`, `ctrl`, `alt`, `shift`
-- Keys: letters, numbers, function keys (f1-f12), arrows, and special keys
+- Modifiers: `cmd`, `ctrl`, `alt` (or `option`), `shift`
+- Keys: letters, numbers, function keys (`f1`–`f20`), arrows, `home`, `end`, `pageup`, `pagedown` and other special keys
+- A key without modifiers works too, but a modifier on its own cannot be a hotkey
 - Examples:
   - `cmd+shift+a`
   - `ctrl+alt+p`
   - `cmd+f12`
   - `shift+space`
+  - `f13`
 
 Hotkeys can:
 1. Execute actions directly — work globally without showing the overlay
 2. Open specific submenus
 
+## Main Hotkey
+
+Record the main hotkey in Settings › General. Any key that is not a modifier works, alone or with modifiers: `Home`, `F13` or `⌥⇧⌘F`.
+
+- **Hold mode:** the menu stays open while you hold the key and closes when you release it.
+- **Double press:** pressing the main key twice quickly at the top level opens launcha (not in hold mode).
+- **Show menu after:** keys typed faster than this delay (0.25 s by default) run their item without the menu ever appearing. Set it to 0 to show the menu at once.
+- **Any keyboard layout:** keys are matched by the Latin letter of the physical key, so menus keep working with Russian, Ukrainian or any other layout. The menu shows the current layout's letter as a hint.
+- `Delete` goes back one level; at the top level it closes the menu.
+
+## launcha
+
+launcha is a search panel for your menu, your apps and your files. Open it by pressing the main hotkey twice, with its own hotkey (Settings › launcha), or with `swiftkey://launcha`.
+
+- Type part of a name and press `Return`. Matching ignores case and accents, understands word starts and initials (`vsc` → Visual Studio Code) and text typed with the wrong layout.
+- Menu items are listed with their path, such as `Developer › Git › Pull`, and run exactly as if you had typed their keys. Choosing a submenu opens the menu there.
+- Apps come from `/Applications`, `/System/Applications` and `~/Applications`; a running app comes to the front.
+- Files are searched with Spotlight only when nothing else matches. Desktop, Documents and Downloads are searched only after you allow it.
+- A query such as `2*(3+4)` or `200 + 15%` shows its value first; `Return` copies it. Turn this off in Settings › launcha.
+- `↑` `↓` choose, `⌘Return` shows the item in Finder, `Esc` closes.
+- Results rank by how often you opened them in the last seven days.
+
+## Micro-apps
+
+A micro-app is a small tool in one YAML file: it can ask for parameters, read the clipboard and what you were working on (the active app, the Finder selection, the browser tab, the selected text), and show, copy or paste its result. Its work is one shell command or a list of steps: shell or Python code, HTTP requests, questions to OpenAI, Anthropic or a compatible server (Ollama, LM Studio, Apple's on-device model through `fm serve`), text templates, notifications and key presses.
+
+```yaml
+format: ting.microapp/2
+id: greet
+name: Greet
+description: Greet someone.
+params:
+  - name: who
+    type: text
+    required: true
+input: none
+command: echo "Hello, $TING_WHO"
+output:
+  to: [panel]
+```
+
+- Micro-apps live in the `micro/` folder next to the config file, shared steps in `micro/libs/`. Problems are logged in `micro-errors.log` next to the config.
+- Bind one with `action: "micro://<id>"`, or pick it in the Config Editor. Every micro-app is also listed in launcha.
+- The format is described in full, with fifteen working examples, in [FORMAT.md](Packages/SwiftKeyCore/docs/micro-apps/FORMAT.md). It is compatible with [Ting](https://github.com/bobuk-io/ting) micro-apps.
+- The console tool `/Applications/SwiftKey.app/Contents/MacOS/swiftkey-micro` checks and runs micro-app files without the app:
+
+  ```sh
+  swiftkey-micro check --libs ~/Documents/micro/libs greet.yaml
+  swiftkey-micro run greet.yaml --param who=World
+  ```
+
+- **Coding agents:** Settings › General › Copy Prompt for Agent copies a ready text that tells Claude Code, Codex or another agent how to change your menu and write micro-apps. The guide it points to, [CONFIGURING.md](Packages/SwiftKeyCore/docs/CONFIGURING.md), ships inside the app.
+
+## Command Approval
+
+`shell://` commands, `dynamic://` scripts and micro-apps run only after you approve their exact text. The first run, and every run after the text changes, shows an approval window with the command, its menu path and where it came from (your config, a snippet, or an edit made outside SwiftKey). `Cancel` is the default button, so a stray `Return` never approves anything.
+
+- Commands you type in the Config Editor are approved when you save.
+- Commands from snippets or from edits made outside SwiftKey wait for your approval.
+- Approvals are stored in `~/Library/Application Support/SwiftKey/`, apart from the config, so a copied config never approves a command.
+
+See [SECURITY.md](SECURITY.md) for details.
+
 ## Deep Linking
 SwiftKey supports deep linking through the swiftkey:// URL scheme:
 ```swiftkey://open?path=a,b,c```
 
-This opens the menu and navigates through the specified path.
+This opens the menu and navigates through the specified path. When the target launches an app, opens a URL or runs a Shortcut, it runs at once. When it is a `shell://`, `dynamic://` or `micro://` item, the link only opens the menu at that item: you still press its key, so no web page can run your commands.
+
+`swiftkey://launcha` opens launcha.
+
+## A Separate Config for Testing
+
+Set `SWIFTKEY_CONFIG` to a config file path to start SwiftKey with that file. Micro-apps are then read from `<config>.micro/`, data files (approvals, launcha history) are kept next to it with the config file name in front, and settings are kept in their own preferences domain, so your own config, data and settings are never touched:
+
+```sh
+SWIFTKEY_CONFIG=/tmp/swiftkey-test/config.yaml /Applications/SwiftKey.app/Contents/MacOS/SwiftKey
+```
 
 ## License
 
