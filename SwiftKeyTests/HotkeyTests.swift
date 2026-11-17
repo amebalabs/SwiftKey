@@ -4,18 +4,22 @@ import XCTest
 @testable import SwiftKey
 
 final class LegacyHotkeyMigrationTests: XCTestCase {
-    private var suiteName = ""
+    private var folder: URL!
     private var defaults: UserDefaults!
 
-    override func setUp() {
-        super.setUp()
-        suiteName = "com.ameba.SwiftKey.tests.migration-" + UUID().uuidString
-        defaults = UserDefaults(suiteName: suiteName)
+    /// An absolute-path suite keeps the settings in a temporary folder, so nothing is left in
+    /// ~/Library/Preferences.
+    override func setUpWithError() throws {
+        try super.setUpWithError()
+        folder = FileManager.default.temporaryDirectory.appendingPathComponent("swiftkey-migration-" + UUID().uuidString)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defaults = UserDefaults(suiteName: folder.appendingPathComponent("settings").path)
     }
 
-    override func tearDown() {
-        defaults.removePersistentDomain(forName: suiteName)
-        super.tearDown()
+    override func tearDownWithError() throws {
+        defaults = nil
+        try? FileManager.default.removeItem(at: folder)
+        try super.tearDownWithError()
     }
 
     /// The JSON the KeyboardShortcuts library wrote: ⇧⌘F is key code 3 with cmdKey | shiftKey.
