@@ -99,15 +99,15 @@ Add `test` and `test-core` tasks to `mise.toml` next to the existing `build` tas
 
 ## Phase 4: launcha and calculator
 
-- [ ] Copy `Launcha.swift` (NameMatcher, KeyboardLayoutSwap, LaunchHistory, LaunchaSearch, LeaderDoubleTap) and `Calculator.swift` with tests
-- [ ] `LaunchaCandidate.from([MenuItem])`: leaves with actions, groups, batch groups; breadcrumbs; excludes `hidden`; `dynamic://` item listed but not expanded; tests
-- [ ] App index (`/Applications`, `/System/Applications`, `~/Applications`), refresh at most once a minute; Spotlight files fallback with Desktop/Documents/Downloads consent
-- [ ] History and consent stores in `Application Support/SwiftKey/`; tests
-- [ ] `LaunchaPanel` with native search field, in SwiftKey's style; ↑ ↓, Return, ⌘Return, Esc; closes on outside click and Space change
-- [ ] Choosing a menu item uses the same run path as a key press (approvals, notify); a group opens the overlay at that path
-- [ ] Open via double tap, launcha hotkey, menu bar menu, `swiftkey://launcha`
-- [ ] Port `LeaderDoubleTap` for the main key, enabled only outside hold mode; tests
-- [ ] Settings: launcha hotkey, double-tap window, calculator on/off, folder consent
+- [x] Copy `Launcha.swift` (NameMatcher, KeyboardLayoutSwap, LaunchHistory, LaunchaSearch, LeaderDoubleTap) and `Calculator.swift` with tests
+- [x] `LaunchaCandidate.from([MenuItem])`: leaves with actions, groups, batch groups; breadcrumbs; excludes `hidden`; `dynamic://` item listed but not expanded; tests
+- [x] App index (`/Applications`, `/System/Applications`, `~/Applications`), refresh at most once a minute; Spotlight files fallback with Desktop/Documents/Downloads consent
+- [x] History and consent stores in `Application Support/SwiftKey/`; tests
+- [x] `LaunchaPanel` with native search field, in SwiftKey's style; ↑ ↓, Return, ⌘Return, Esc; closes on outside click and Space change
+- [x] Choosing a menu item uses the same run path as a key press (approvals, notify); a group opens the overlay at that path
+- [x] Open via double tap, launcha hotkey, `swiftkey://launcha` (SwiftKey has no menu-bar menu to add an item to; the faceless status item opens the menu session)
+- [x] Port `LeaderDoubleTap` for the main key, enabled only outside hold mode; tests
+- [x] Settings: launcha hotkey, double-tap window, calculator on/off, folder consent
 
 ## Phase 5: Micro-apps
 
