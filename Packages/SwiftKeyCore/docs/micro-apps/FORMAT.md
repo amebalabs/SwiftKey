@@ -1,6 +1,6 @@
 # Micro-app format (`ting.microapp/2`)
 
-A micro-app is a small tool that Ting runs from a key. It can ask for
+A micro-app is a small tool that SwiftKey runs from a menu item. It can ask for
 parameters, read the clipboard and the **context** of the start (the active app,
 the Finder selection, the browser tab, the selected text), show or copy its
 result, paste it into the app or press keys there. Its work is one shell command
@@ -11,39 +11,44 @@ Steps that several micro-apps share live once in a **library**.
 
 This document is for whoever writes micro-apps, a person or a coding agent such
 as Claude Code, Codex or pi. It is complete on its own and ships inside the app
-as `Ting.app/Contents/Resources/FORMAT.md`. To change Ting itself (key bindings,
-settings), read `CONFIGURING.md` next to it.
+as `SwiftKey.app/Contents/Resources/FORMAT.md`. To change SwiftKey itself (menu
+items, settings), read `CONFIGURING.md` next to it.
 
 ## Workflow
 
+The micro-apps folder is `micro/` next to SwiftKey's config file, with libraries in
+`micro/libs/` and problems logged in `micro-errors.log` next to the config. The
+paths below are for the default config `~/Documents/menu.yaml`; SwiftKey
+Settings › Config Editor shows the config file in use.
+
 1. Read this document, including the [examples](#examples).
-2. Look in `~/.config/ting/micro/libs/` for a library that already does the work.
+2. Look in `~/Documents/micro/libs/` for a library that already does the work.
    Reuse it with `call` or `inherit` instead of copying its steps; put steps that
    two micro-apps would share into a new library.
 3. Write `<id>.yaml` (kebab-case id, such as `sort-lines`) in a new temporary
-   folder, not in the micro-apps folder: Ting loads that folder at once.
+   folder, not in the micro-apps folder: SwiftKey loads that folder at once.
 4. Check and try it with the console tool (see [Checking and running](#checking-and-running)):
 
    ```sh
-   MICRO=/Applications/Ting.app/Contents/MacOS/ting-micro
-   "$MICRO" check --libs ~/.config/ting/micro/libs "$dir/sort-lines.yaml"
+   MICRO=/Applications/SwiftKey.app/Contents/MacOS/swiftkey-micro
+   "$MICRO" check --libs ~/Documents/micro/libs "$dir/sort-lines.yaml"
    printf 'b\na\n' | "$MICRO" run "$dir/sort-lines.yaml"
    ```
 
    Fix every problem until `check` prints `<file>: ok`. Ask the person before you
    run steps that reach the network, cost money or change files.
-5. Move the file into `~/.config/ting/micro/` (a library into
-   `~/.config/ting/micro/libs/`). Do not replace an existing file unless the
-   person asked for that change. Then read `~/.config/ting/micro-errors.log`: a
+5. Move the file into `~/Documents/micro/` (a library into
+   `~/Documents/micro/libs/`). Do not replace an existing file unless the
+   person asked for that change. Then read `~/Documents/micro-errors.log`: a
    line that names your file is a problem the check could not see.
 6. **Never put an API key or another secret into a file.** Read it from the
    environment (`${OPENAI_API_KEY}`) or the keychain (`${keychain.openai}`).
-7. Never write the approvals and values in `~/Library/Application Support/Ting/`.
+7. Never write the approvals and values in `~/Library/Application Support/SwiftKey/`.
    The person approves the file at its first start. Tell them the id, the file
    and any environment variable or keychain item it needs.
 
-With `TING_CONFIG=/tmp/x.json` set, the folder is `/tmp/x.json.micro/` and the
-log `/tmp/x.json.micro-errors.log`.
+With `SWIFTKEY_CONFIG=/tmp/x.yaml` set, the folder is `/tmp/x.yaml.micro/` and the
+log `/tmp/x.yaml.micro-errors.log`.
 
 ## File
 
@@ -91,7 +96,7 @@ output:                          # optional; without it nothing is shown or copi
 - `output.to: [app]` pastes the result into the app that was in front at the
   start, as a [`paste` step](#keys-and-paste) does, and puts the clipboard back;
   `[clipboard, app]` leaves the result on the clipboard. `app` cannot go with
-  `panel`. When Ting cannot paste, the result goes to the clipboard and the panel
+  `panel`. When SwiftKey cannot paste, the result goes to the clipboard and the panel
   says why.
 
 ## How a micro-app runs
@@ -101,7 +106,7 @@ output:                          # optional; without it nothing is shown or copi
   The output of the last step, without its final line breaks, is the result.
 - Every step runs as the user, with full rights, no sandbox, in the home folder,
   with the environment of the user's login shell (`PATH`, `OPENAI_API_KEY` and
-  every other exported variable). Ting reads that environment at start and on
+  every other exported variable). SwiftKey reads that environment at start and on
   each change in the micro-apps folder. `LANG` and `LC_*` are not passed on:
   shell code that handles non-ASCII text sets `LC_ALL=en_US.UTF-8` itself.
 - Programs of `tools`, and `python3` for a `python` step, must be on that PATH,
@@ -118,9 +123,9 @@ output:                          # optional; without it nothing is shown or copi
 
 ## Context
 
-`context` lists what Ting reads at the moment the micro-app starts, before its
+`context` lists what SwiftKey reads at the moment the micro-app starts, before its
 parameter panel: the app the person worked in and what was selected there.
-Ting reads nothing else.
+SwiftKey reads nothing else.
 
 ```yaml
 context: [app, finder]
@@ -141,17 +146,17 @@ context: [app, finder]
 - The Finder selection comes from the front Finder window also when another app
   is active. Paths have no `/` at the end. The browsers are Safari, Chrome, Arc,
   Brave, Edge, Vivaldi and Chromium; Firefox cannot tell its tab.
-- Ting reads the selected text with Accessibility. When the app does not give it
-  (many terminals, Electron apps, web pages), Ting presses ⌘C in the app and puts
+- SwiftKey reads the selected text with Accessibility. When the app does not give it
+  (many terminals, Electron apps, web pages), SwiftKey presses ⌘C in the app and puts
   the clipboard back. In an editor that copies the whole line when nothing is
   selected, the text is then that line.
-- A value that Ting cannot read is empty: no Finder or browser window, nothing
-  selected. macOS asks the person once to allow Ting to control Finder or the
+- A value that SwiftKey cannot read is empty: no Finder or browser window, nothing
+  selected. macOS asks the person once to allow SwiftKey to control Finder or the
   browser; without that, the micro-app does not start and the panel says what to
   allow. Without the Accessibility permission, the micro-app does not start and
-  Ting opens a window that shows how to turn it on: drag Ting into System
-  Settings › Privacy & Security › Accessibility. Settings › Advanced shows
-  whether Ting has it.
+  SwiftKey opens a window that shows how to turn it on: drag SwiftKey into System
+  Settings › Privacy & Security › Accessibility. SwiftKey Settings › General
+  shows whether SwiftKey has it.
 - The approval panel shows what the micro-app reads. A library lists its own
   `context`; a micro-app that calls it needs no `context` for it.
 
@@ -182,7 +187,7 @@ value: `command`, `python`, `url`, `ai`, `text`, `json`, `open`, `notify`, `keys
 
 `command` is shell code for `/bin/sh -c`; `python` is Python code for
 `python3 -I -c` (standard library only). Input on stdin, output on stdout; a
-non-zero exit code fails the step. **Ting puts nothing into the code.** The code
+non-zero exit code fails the step. **SwiftKey puts nothing into the code.** The code
 reads params as `$TING_NAME` (`os.environ["TING_NAME"]`), outputs of earlier steps
 with an `id` as `$TING_STEP_ID`, the login-shell variables, and the variables of
 `env` (a map of `NAME: value`, values with variables; names cannot start with
@@ -203,7 +208,7 @@ with an `id` as `$TING_STEP_ID`, the login-shell variables, and the variables of
 |---|---|
 | `url` | `http` or `https` URL with variables. Use `${input\|url}` for data in the path. |
 | `method` | `GET` (default), `POST` (default with a body), `PUT`, `PATCH`, `DELETE`, `HEAD`. |
-| `query` | Map added to the query; Ting encodes names and values. |
+| `query` | Map added to the query; SwiftKey encodes names and values. |
 | `headers` | Map of headers. |
 | `body` | Text sent as is, or a map or list sent as JSON: plain `true`, `false`, numbers and `null` keep their type, everything else is a string. |
 | `form` | Map sent as `application/x-www-form-urlencoded`. Not with `body`. |
@@ -250,7 +255,7 @@ The answer streams into the panel word by word.
   - keys: [cmd+a, return]        # several, one after another
 ```
 
-They go to the app that was in front at the start; Ting's panel closes first.
+They go to the app that was in front at the start; SwiftKey's panel closes first.
 Both pass their input on.
 
 - `keys` writes modifiers (`ctrl`, `option`, `shift`, `cmd`) and one key joined by
@@ -281,7 +286,7 @@ for inside a JSON string), `trim`, `base64`. `$${` is a literal `${`.
 
 ## Libraries
 
-A library is a file `~/.config/ting/micro/libs/NAME.yaml` (kebab-case name) with
+A library is a file `~/Documents/micro/libs/NAME.yaml` (kebab-case name) with
 steps that micro-apps share. It is not listed in launcha and has no key binding.
 
 ```yaml
@@ -347,7 +352,7 @@ per language; use `call` to reuse steps inside other steps.
 ## Checking and running
 
 ```sh
-MICRO=/Applications/Ting.app/Contents/MacOS/ting-micro
+MICRO=/Applications/SwiftKey.app/Contents/MacOS/swiftkey-micro
 "$MICRO" check [--libs DIR] FILE.yaml [more files]
 "$MICRO" run FILE.yaml [--param NAME=VALUE ...] [--context SOURCE.FIELD=VALUE ...] [--input TEXT] [--timeout S] [--libs DIR] [--verbose] [--allow-effects]
 ```
@@ -356,8 +361,6 @@ MICRO=/Applications/Ting.app/Contents/MacOS/ting-micro
 good files, 1 for problems, 2 for a wrong call. A file in a folder named `libs`
 is checked as a library; other files use the libraries in `libs/` next to them,
 or in `--libs DIR`.
-`/Applications/Ting.app/Contents/MacOS/Ting --check FILE.yaml` gives the same
-result.
 
 `run` runs the file without the panels: input from stdin or `--input`, the result
 on stdout, errors and `--verbose` progress on stderr. It never touches the
@@ -382,8 +385,9 @@ with `@`, `` ` `` or `%`.
 ## Examples
 
 Each example passes `check` as it is. They are also in
-`docs/micro-apps/examples/` of the Ting repository. The Python examples need the
-Command Line Tools; the translate and Claude examples need an API key; the
+`Packages/SwiftKeyCore/docs/micro-apps/examples/` of the SwiftKey repository and
+in `SwiftKey.app/Contents/Resources/micro-apps/examples/`. The Python examples
+need the Command Line Tools; the translate and Claude examples need an API key; the
 context examples need the permissions of their sources.
 
 ### Format JSON: `format-json.yaml`
@@ -483,7 +487,7 @@ description: Count the words, characters and lines of the clipboard text.
 tools: [wc, awk]
 
 input: clipboard
-# Ting starts commands without a locale; wc counts characters, not bytes, only with UTF-8 set.
+# SwiftKey starts commands without a locale; wc counts characters, not bytes, only with UTF-8 set.
 command: |
   LC_ALL=en_US.UTF-8 wc -lwm | awk '{ printf "| | |\n|---|---:|\n| Words | %d |\n| Characters | %d |\n| Lines | %d |\n", $2, $3, $1 }'
 output:
