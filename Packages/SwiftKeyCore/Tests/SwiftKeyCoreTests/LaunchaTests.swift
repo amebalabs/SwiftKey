@@ -158,11 +158,8 @@ import Testing
         #expect(LaunchaCandidate.app(bundleID: "COM.APPLE.SAFARI", name: "x").id == safari.id)
         #expect(github.id == "url:https://github.com")
         #expect(safari.target == .app("com.apple.Safari"))
-        let items: [Item] = [.group("a", "Apps", [.app("s", "Safari", "com.apple.Safari"), .app("x", "", "com.example.X")]),
-                             .app("t", "Safari again", "com.apple.safari"), .url("g", "GitHub", "https://github.com")]
-        let candidates = LaunchaCandidate.from(items)
-        #expect(candidates.map(\.id) == ["app:com.apple.safari", "app:com.example.x", "url:https://github.com"])
-        #expect(candidates.map(\.name) == ["Safari", "com.example.X", "GitHub"])
+        #expect(LaunchaCandidate.menu(path: ["d", "g", "s"], name: "Git Status").id == "menu:d g s")
+        #expect(LaunchaCandidate.menu(path: ["d"], name: "x").target == .menu(["d"]))
     }
     @Test func usageBeatsMatchQuality() {
         var h = LaunchHistory()

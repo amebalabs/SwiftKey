@@ -19,9 +19,10 @@ private func app(to targets: [MicroApp.OutputTarget], style: MicroApp.OutputStyl
 }
 
 @Suite struct MicroAppBindingTests {
-    @Test func launchaSkipsMicroBindings() {
-        #expect(LaunchaCandidate.from([.micro("j", "JSON", "format-json"), .url("g", "GitHub", "https://github.com")]).map(\.id)
-                == ["url:https://github.com"])
+    @Test func launchaListsMicroBindingsAsMenuItems() {
+        let candidates = LaunchaMenuCandidate.from([.micro("j", "JSON", "format-json"), .url("g", "GitHub", "https://github.com")])
+        #expect(candidates.map(\.id) == ["menu:j", "menu:g"])
+        #expect(candidates.map(\.kind) == [.action, .action])
     }
 
     @Test func leaderRunsAMicroBinding() {

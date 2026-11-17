@@ -2,7 +2,7 @@ import Foundation
 
 // MARK: - Candidates
 
-/// One thing launcha can open: an app, a URL or a micro-app.
+/// One thing launcha can open: an app, a URL, a micro-app or an item of the menu.
 public struct LaunchaCandidate: Hashable, Sendable, Identifiable {
     public enum Target: Hashable, Sendable {
         /// Bundle identifier, e.g. "com.apple.Safari".
@@ -11,6 +11,8 @@ public struct LaunchaCandidate: Hashable, Sendable, Identifiable {
         case url(String)
         /// Micro-app id: what a `micro` binding to it would hold.
         case micro(String)
+        /// The key path of a menu item, from the top level.
+        case menu([String])
     }
 
     /// Stable identity. Launch history is stored under this value, so it must not change
@@ -42,22 +44,76 @@ public struct LaunchaCandidate: Hashable, Sendable, Identifiable {
         LaunchaCandidate(id: "micro:" + id, name: name, target: .micro(id))
     }
 
-    /// Candidates for every app and URL binding in `items`, depth-first, without duplicate ids.
-    /// The name is the label, or the bundle identifier / URL when the label is empty.
-    public static func from(_ items: [Item]) -> [LaunchaCandidate] {
+    /// Menu item candidate. Identity is "menu:" + the key path joined by spaces. Keys never
+    /// contain a space (Space is the named key "space"), so the identity is unambiguous and stays
+    /// the same across reloads while the item keeps its keys.
+    public static func menu(path: [String], name: String) -> LaunchaCandidate {
+        LaunchaCandidate(id: "menu:" + path.joined(separator: " "), name: name, target: .menu(path))
+    }
+}
+
+// MARK: - Menu candidates
+
+/// An item of the menu as launcha lists it.
+public struct LaunchaMenuCandidate: Equatable, Sendable, Identifiable {
+    public enum Kind: Equatable, Sendable {
+        /// An action: choosing it runs it like its key in the menu.
+        case action
+        /// A group: choosing it opens the menu there.
+        case group
+        /// A group with `batch`: choosing it runs its actions.
+        case batch
+        /// A `dynamic://` item: choosing it loads its menu and opens it. Its items are not listed.
+        case dynamic
+    }
+
+    public var candidate: LaunchaCandidate
+    /// Keys from the top level to the item.
+    public var path: [String]
+    /// Titles of the groups above the item, from the top level.
+    public var breadcrumb: [String]
+    /// The app's identifier of the item, from `Item.id`.
+    public var itemID: String?
+    public var kind: Kind
+
+    public init(candidate: LaunchaCandidate, path: [String], breadcrumb: [String], itemID: String?, kind: Kind) {
+        self.candidate = candidate
+        self.path = path
+        self.breadcrumb = breadcrumb
+        self.itemID = itemID
+        self.kind = kind
+    }
+
+    public var id: String { candidate.id }
+
+    /// Every item of `items` that launcha lists, depth-first: actions, groups (and their items),
+    /// batch groups and dynamic items. A hidden item and everything under it is left out. The
+    /// name is the label, or the keys of the path when the label is empty. A second item with the
+    /// same keys (a config error) is left out.
+    public static func from(_ items: [Item]) -> [LaunchaMenuCandidate] {
+        var result: [LaunchaMenuCandidate] = []
         var seen: Set<String> = []
-        var result: [LaunchaCandidate] = []
-        for binding in BindingTree.flatten(items) {
-            let candidate: LaunchaCandidate
-            switch binding.item.action {
-            case .group, .micro, .shell, .shortcut, .dynamic: continue
-            case .app(let bundleID):
-                candidate = .app(bundleID: bundleID, name: binding.item.label.isEmpty ? bundleID : binding.item.label)
-            case .url(let url):
-                candidate = .url(url, name: binding.item.label.isEmpty ? url : binding.item.label)
+        func visit(_ items: [Item], path: [String], breadcrumb: [String]) {
+            for item in items where !item.flags.hidden {
+                let itemPath = path + [item.key]
+                let name = item.label.isEmpty ? itemPath.map(SequenceKey.display).joined(separator: " ") : item.label
+                let kind: Kind
+                switch item.action {
+                case .group: kind = item.flags.batch ? .batch : .group
+                case .dynamic: kind = .dynamic
+                case .app, .url, .micro, .shell, .shortcut: kind = .action
+                }
+                let candidate = LaunchaCandidate.menu(path: itemPath, name: name)
+                if seen.insert(candidate.id).inserted {
+                    result.append(LaunchaMenuCandidate(candidate: candidate, path: itemPath, breadcrumb: breadcrumb,
+                                                       itemID: item.id, kind: kind))
+                }
+                if case .group(let children) = item.action {
+                    visit(children, path: itemPath, breadcrumb: breadcrumb + [name])
+                }
             }
-            if seen.insert(candidate.id).inserted { result.append(candidate) }
         }
+        visit(items, path: [], breadcrumb: [])
         return result
     }
 }
