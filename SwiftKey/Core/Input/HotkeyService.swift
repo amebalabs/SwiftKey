@@ -208,6 +208,7 @@ final class HotkeyService {
             MainActor.assumeIsolated {
                 guard let service = HotkeyService.shared, let slot = service.slot(forID: hotKeyID) else { return }
                 if kind == UInt32(kEventHotKeyPressed) {
+                    service.logger.debug("Hotkey \(String(describing: slot), privacy: .public) pressed")
                     service.onPress?(slot)
                 } else if kind == UInt32(kEventHotKeyReleased) {
                     service.onRelease?(slot)
