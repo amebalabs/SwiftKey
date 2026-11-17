@@ -210,14 +210,14 @@ struct ConfigValidatorTests {
         #expect(!issues.contains { $0.severity == .error })
     }
 
-    @Test("Named keys are valid", arguments: ["space", "return", "f1", "f13", "f20", "Space", "F5"])
+    @Test("Named keys and single characters are valid", arguments: ["space", "return", "f1", "f13", "f20", "Space", "F5", " ", "ф", "§"])
     func namedKeysAreValid(_ key: String) {
         let issues = validator.validate(MenuItem(key: key, title: "Test", action: "open://https://example.com"))
 
         #expect(!issues.contains { $0.type == .invalidKey })
     }
 
-    @Test("Unknown multi-character keys are invalid", arguments: ["ab", "f21", "tab", "ф"])
+    @Test("Unknown multi-character keys are invalid", arguments: ["ab", "f21", "tab"])
     func unknownKeysAreInvalid(_ key: String) {
         let issues = validator.validate(MenuItem(key: key, title: "Test", action: "open://https://example.com"))
 

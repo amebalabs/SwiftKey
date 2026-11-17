@@ -137,6 +137,9 @@ class ConfigManager: DependencyInjectable, ObservableObject {
                     return .failure(.emptyConfiguration)
                 }
 
+                // Items with a key or hotkey SwiftKey cannot use are left out, not the whole config.
+                let config = loadableMenuItems(config)
+
                 // Validate the menu items structure
                 let validationResult = validateMenuItems(config)
                 switch validationResult {
@@ -328,6 +331,7 @@ class ConfigManager: DependencyInjectable, ObservableObject {
     }
     
     func importSnippet(menuItems: [MenuItem], strategy: MergeStrategy) async throws {
+        let menuItems = loadableMenuItems(menuItems)
         // Validate the menu items
         let validationResult = await Task {
             validateMenuItems(menuItems)
@@ -682,19 +686,30 @@ class ConfigManager: DependencyInjectable, ObservableObject {
         return (line, column)
     }
 
+    /// The items SwiftKey can use: an item whose key is not a key is left out, and a hotkey that
+    /// is not a hotkey is ignored. Each one is logged; the config editor shows them as issues.
+    /// One bad item never stops the rest of the config from loading.
+    func loadableMenuItems(_ items: [MenuItem]) -> [MenuItem] {
+        items.compactMap { item in
+            guard SequenceKey.normalize(item.key) != nil else {
+                logger.error("Skipped menu item '\(item.title)': \(ConfigValidator.invalidKeyMessage), found '\(item.key)'")
+                return nil
+            }
+            var item = item
+            if let hotkey = item.hotkey, let problem = HotkeyRules.problem(hotkey) {
+                logger.error("Ignored the hotkey of '\(item.title)': \(problem)")
+                item.hotkey = nil
+            }
+            if let submenu = item.submenu {
+                item.submenu = loadableMenuItems(submenu)
+            }
+            return item
+        }
+    }
+
     /// Validates menu items recursively using Result
     private func validateMenuItems(_ items: [MenuItem]) -> Result<Void, ConfigError> {
         for item in items {
-            // Validate key format: one character or a named key
-            if SequenceKey.normalize(item.key) == nil {
-                logger.error("Invalid key format: \(item.key)")
-                return .failure(ConfigError.invalidYamlFormat(
-                    message: "\(ConfigValidator.invalidKeyMessage), found '\(item.key)'",
-                    line: 0,
-                    column: 0
-                ))
-            }
-
             // Validate title is not empty
             if item.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 logger.error("Empty title for key: \(item.key)")
@@ -725,16 +740,6 @@ class ConfigManager: DependencyInjectable, ObservableObject {
                         column: 0
                     ))
                 }
-            }
-
-            // Validate hotkey format if present
-            if let hotkey = item.hotkey, !isValidHotkeyFormat(hotkey) {
-                logger.error("Invalid hotkey format: \(hotkey)")
-                return .failure(ConfigError.invalidYamlFormat(
-                    message: "Invalid hotkey format: '\(hotkey)' for key '\(item.key)'",
-                    line: 0,
-                    column: 0
-                ))
             }
 
             // Recursively validate submenu if present
@@ -792,10 +797,5 @@ class ConfigManager: DependencyInjectable, ObservableObject {
         }
 
         return .success(())
-    }
-
-    /// Validates the hotkey format
-    private func isValidHotkeyFormat(_ hotkey: String) -> Bool {
-        HotkeyRules.problem(hotkey) == nil
     }
 }

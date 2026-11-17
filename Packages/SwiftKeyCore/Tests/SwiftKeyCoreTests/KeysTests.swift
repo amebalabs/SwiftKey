@@ -29,7 +29,7 @@ import Testing
         #expect(SequenceKey.normalize("F5") == "f5")
     }
 
-    @Test(arguments: ["", "ab", "f0", "f21", "ф", "tab", " ", " a", "a ", "\n", "é"])
+    @Test(arguments: ["", "ab", "f0", "f21", "tab", " a", "a ", "\n", "\t", "\u{7}"])
     func invalidNames(_ name: String) {
         #expect(!SequenceKey.isValid(name))
         #expect(SequenceKey.normalize(name) == nil)
@@ -48,8 +48,21 @@ import Testing
         #expect(SequenceKey.name(keyCode: 0, latin: latin) == latin)
     }
 
-    @Test(arguments: [nil, "", "ab", "é", "ф", "İ", " ", "\n"] as [String?])
+    @Test(arguments: [nil, "", "ab", " ", "\n", "\t"] as [String?])
     func rejectedLatin(_ latin: String?) { #expect(SequenceKey.name(keyCode: 0, latin: latin) == nil) }
+
+    /// Configs written before named keys used any single character, including these.
+    @Test(arguments: ["§", "£", "é", "ф", "ß", "±", "€"])
+    func singleNonASCIICharactersAreKeys(_ name: String) {
+        #expect(SequenceKey.isValid(name))
+        #expect(SequenceKey.normalize(name) == name)
+        #expect(SequenceKey.name(keyCode: 10, latin: name) == name)
+    }
+
+    @Test func aSingleSpaceIsTheSpaceKey() {
+        #expect(SequenceKey.normalize(" ") == "space")
+        #expect(!SequenceKey.isValid(" "))
+    }
 }
 
 @Suite struct ModifierKeyTests {
@@ -92,6 +105,16 @@ import Testing
 }
 
 @Suite struct HotkeyTests {
+    /// Spellings that configs written for other tools use.
+    @Test func aliasesAndGlyphs() {
+        #expect(Hotkey(string: "cmd+enter") == Hotkey(string: "cmd+return"))
+        #expect(Hotkey(string: "cmd+esc") == Hotkey(string: "cmd+escape"))
+        #expect(Hotkey(string: "ctrl+backspace") == Hotkey(string: "ctrl+delete"))
+        #expect(Hotkey(string: "⌘+k") == Hotkey(string: "cmd+k"))
+        #expect(Hotkey(string: "⌃+⌥+⇧+⌘+f19") == Hotkey(string: "ctrl+option+shift+cmd+f19"))
+        #expect(Hotkey(string: "cmd+enter")?.string == "cmd+return")
+    }
+
     @Test(arguments: ["option+shift+cmd+f", "Cmd+Shift+Option+F", "f+COMMAND+alt+SHIFT", "shift+opt+command+f"])
     func realLeader(_ text: String) throws {
         let h = try #require(Hotkey(string: text))

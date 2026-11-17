@@ -1,9 +1,9 @@
 import Foundation
 
 /// Names of keys that can appear in a binding sequence:
-/// the named keys "space", "return", "f1"..."f20" (always lower case), or one printable ASCII
-/// character such as "a", "B", "7" or "!". Single characters keep their case: "a" and "A" are
-/// different keys (A is typed with Shift).
+/// the named keys "space", "return", "f1"..."f20" (always lower case), or one printable
+/// character such as "a", "B", "7", "!" or "§". Single characters keep their case: "a" and "A"
+/// are different keys (A is typed with Shift).
 public enum SequenceKey {
     /// macOS virtual key codes of F1...F20 → "f1"..."f20".
     /// F1=122 F2=120 F3=99 F4=118 F5=96 F6=97 F7=98 F8=100 F9=101 F10=109
@@ -16,7 +16,7 @@ public enum SequenceKey {
 
     private static let functionKeyNames = Set(functionKeyCodes.values)
 
-    /// True for a named key in lower case, or one printable ASCII character other than a space.
+    /// True for a named key in lower case, or one printable character other than whitespace.
     public static func isValid(_ name: String) -> Bool {
         if isNamed(name) { return true }
         return isCharacter(name)
@@ -27,14 +27,15 @@ public enum SequenceKey {
     }
 
     private static func isCharacter(_ name: String) -> Bool {
-        guard name.unicodeScalars.count == 1, let scalar = name.unicodeScalars.first else { return false }
-        return scalar.value > 0x20 && scalar.value < 0x7F
+        guard name.count == 1, let character = name.first else { return false }
+        return !character.isWhitespace && !character.unicodeScalars.contains { CharacterSet.controlCharacters.contains($0) }
     }
 
     /// Validates a key from the config. A single character is kept as it is ("A" stays "A");
-    /// a longer name is a named key in any case ("Space" → "space", "F5" → "f5").
-    /// Returns nil for anything else ("", "ab", "f0", "f21", "ф", "tab", " ").
+    /// a single space is the space key; a longer name is a named key in any case
+    /// ("Space" → "space", "F5" → "f5"). Returns nil for anything else ("", "ab", "f0", "f21", "tab").
     public static func normalize(_ raw: String) -> String? {
+        if raw == " " { return "space" }
         if isCharacter(raw) { return raw }
         let lower = raw.lowercased()
         return isNamed(lower) ? lower : nil
@@ -61,7 +62,7 @@ public enum SequenceKey {
     /// Key name for a key press.
     /// keyCode 49 → "space"; 36 or 76 → "return"; F-key codes → "fN" (ignores `latin`).
     /// Otherwise `latin` (the character of the ASCII-capable layout with Shift applied, supplied
-    /// by the app) when it is one printable ASCII character; else nil.
+    /// by the app) when it is one printable character; else nil.
     public static func name(keyCode: UInt16, latin: String?) -> String? {
         switch keyCode {
         case 49: return "space"
@@ -204,7 +205,8 @@ public enum KeyCodes {
 /// Config string format:
 /// - combo: modifier tokens then the key name from `KeyCodes`, joined by "+".
 ///   Canonical order and tokens: "ctrl", "option", "shift", "cmd". Example: "option+shift+cmd+f".
-///   Parsing is case-insensitive, accepts any order and aliases "control", "alt", "opt", "command".
+///   Parsing is case-insensitive, accepts any order and aliases "control", "alt", "opt", "command",
+///   the glyphs "⌃", "⌥", "⇧", "⌘", and the key names "enter", "esc", "backspace".
 /// - modifierTap: the `ModifierKey` raw value, e.g. "right-option".
 public enum Hotkey: Equatable, Hashable, Sendable, Codable {
     case combo(keyCode: UInt16, modifiers: ModifierSet)
@@ -223,7 +225,7 @@ public enum Hotkey: Equatable, Hashable, Sendable, Codable {
         for token in text.split(separator: "+", omittingEmptySubsequences: false).map(String.init) {
             if let modifier = Hotkey.modifierTokens[token] {
                 modifiers.insert(modifier)
-            } else if let code = KeyCodes.code(for: token) {
+            } else if let code = KeyCodes.code(for: Hotkey.keyAliases[token] ?? token) {
                 guard keyCode == nil else { return nil }
                 keyCode = code
             } else {
@@ -235,10 +237,15 @@ public enum Hotkey: Equatable, Hashable, Sendable, Codable {
     }
 
     private static let modifierTokens: [String: ModifierSet] = [
-        "ctrl": .control, "control": .control,
-        "option": .option, "alt": .option, "opt": .option,
-        "shift": .shift,
-        "cmd": .command, "command": .command,
+        "ctrl": .control, "control": .control, "⌃": .control,
+        "option": .option, "alt": .option, "opt": .option, "⌥": .option,
+        "shift": .shift, "⇧": .shift,
+        "cmd": .command, "command": .command, "⌘": .command,
+    ]
+
+    /// Other names of keys, as configs written for other tools spell them.
+    private static let keyAliases: [String: String] = [
+        "enter": "return", "esc": "escape", "backspace": "delete",
     ]
 
     /// Canonical config string. `Hotkey(string: h.string) == h` for every valid hotkey.
