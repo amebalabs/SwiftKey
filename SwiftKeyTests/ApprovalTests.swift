@@ -4,6 +4,7 @@ import XCTest
 
 /// The approval store, what the gate asks about, deep links and editor approvals. No test here
 /// opens the approval window: every path that reaches the gate has its code approved first.
+@MainActor
 final class ApprovalTests: XCTestCase {
     private var folder: URL!
     private var storeURL: URL { folder.appendingPathComponent("approvals.json") }
@@ -226,6 +227,24 @@ final class ApprovalTests: XCTestCase {
         XCTAssertTrue(store.pending([CodeRequest(kind: .shell, content: "echo typed")]).isEmpty)
         XCTAssertFalse(store.pending([CodeRequest(kind: .shell, content: "echo outside")]).isEmpty)
         XCTAssertTrue(model.typedCommands.isEmpty)
+    }
+
+    /// Typing passes through every prefix of a command; a prefix that matches another item's
+    /// command never approves it.
+    func testADraftWhileTypingNeverApprovesAnotherItem() throws {
+        let store = ApprovalStore(url: storeURL)
+        let model = ConfigEditorViewModel(configManager: ConfigManager.create(), approvalGate: ApprovalGate(store: store))
+        let imported = MenuItem(key: "i", title: "Imported", action: "shell://rm -rf ~")
+        var typed = MenuItem(key: "t", title: "Typed", action: "launch://com.apple.Safari")
+        model.menuItems = [imported, typed]
+        for draft in ["shell://rm", "shell://rm -rf ~", "shell://rm -rf ~/tmp"] {
+            typed.action = draft
+            model.updateMenuItem(typed)
+        }
+        model.approveTypedCommands()
+
+        XCTAssertFalse(store.pending([CodeRequest(kind: .shell, content: "rm -rf ~")]).isEmpty, "the imported command still asks")
+        XCTAssertTrue(store.pending([CodeRequest(kind: .shell, content: "rm -rf ~/tmp")]).isEmpty)
     }
 
     func testTypedCommandRemovedBeforeSaveIsNotApproved() throws {

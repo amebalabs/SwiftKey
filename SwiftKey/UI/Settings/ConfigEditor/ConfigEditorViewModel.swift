@@ -16,10 +16,11 @@ class ConfigEditorViewModel: ObservableObject {
     let configManager: ConfigManager
     /// Approves the commands typed here once they are saved. Without it nothing is approved.
     private let approvalGate: ApprovalGate?
-    /// `shell://` and `dynamic://` actions typed or changed in the inspector since the last save.
-    /// Only these are approved on save: a command that came from an outside edit or an import
-    /// still asks before it runs, even when the config is saved here.
-    private(set) var typedCommands: [String] = []
+    /// The `shell://` and `dynamic://` action last typed in the inspector for each item since the
+    /// last save, by item id. Only these are approved on save, and only while the item still holds
+    /// them: a command that came from an outside edit or an import, or a draft passed through while
+    /// typing, still asks before it runs.
+    private(set) var typedCommands: [UUID: String] = [:]
     private let undoManager = UndoManager()
     private var cancellables = Set<AnyCancellable>()
     private var originalItems: [MenuItem] = []
@@ -88,7 +89,8 @@ class ConfigEditorViewModel: ObservableObject {
                     guard let self = self else { return }
                     self.originalItems = self.menuItems
                     self.hasUnsavedChanges = false
-                    self.approveTypedCommands()
+                    // Delivered on the main queue (`receive(on:)` above).
+                    MainActor.assumeIsolated { self.approveTypedCommands() }
                     AppLogger.config.info("Configuration saved successfully")
                     
                     // Restore selection
@@ -101,13 +103,13 @@ class ConfigEditorViewModel: ObservableObject {
             .store(in: &cancellables)
     }
     
-    /// Approves the typed commands that the saved config still holds.
+    /// Approves the typed commands that their items still hold in the saved config.
+    @MainActor
     func approveTypedCommands() {
-        let saved = Set(ApprovalGate.allRequests(in: menuItems))
-        let typed = typedCommands.filter { action in
-            CodeRequest(action: action).map(saved.contains) == true
+        let typed = typedCommands.compactMap { id, action in
+            findMenuItem(with: id, in: menuItems)?.action == action ? action : nil
         }
-        typedCommands = []
+        typedCommands = [:]
         guard let approvalGate, !typed.isEmpty else { return }
         do {
             try approvalGate.approveTyped(typed)
@@ -118,7 +120,7 @@ class ConfigEditorViewModel: ObservableObject {
     }
 
     func discardChanges() {
-        typedCommands = []
+        typedCommands = [:]
         menuItems = originalItems
         hasUnsavedChanges = false
         selectedItem = nil
@@ -174,7 +176,7 @@ class ConfigEditorViewModel: ObservableObject {
         if let indexPath = findIndexPath(for: item) {
             if let action = item.action, CodeRequest(action: action) != nil,
                action != findMenuItem(with: item.id, in: menuItems)?.action {
-                typedCommands.append(action)
+                typedCommands[item.id] = action
             }
             updateMenuItem(item, at: indexPath)
             hasUnsavedChanges = true
@@ -364,6 +366,7 @@ class ConfigEditorViewModel: ObservableObject {
     private var pendingImportItems: [MenuItem]?
     private var pendingImportName: String?
     
+    @MainActor
     func confirmImport() {
         guard let items = pendingImportItems else { return }
         do {
