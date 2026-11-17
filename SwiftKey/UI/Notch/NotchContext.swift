@@ -95,13 +95,9 @@ class NotchContext {
         window.window?.orderFront(nil)
         window.window?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
-        // The HUD body takes keys once the window is in place; it is drawn, with the open
-        // animation, only at the reveal.
-        let revealAtOpen = delay <= 0.1
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            window.window?.makeFirstResponder(window.window?.contentView)
-            viewModel.open(revealed: revealAtOpen)
-        }
+        // The HUD body takes keys from the start, so keys typed before the reveal are not lost; it
+        // is drawn, with the open animation, at the reveal, which `close()` cancels.
+        viewModel.open(revealed: false)
         reveal.start(after: max(delay, 0.1)) { [weak window] in
             window?.window?.alphaValue = 1
             viewModel.reveal()
@@ -115,6 +111,8 @@ class NotchContext {
     func close() {
         reveal.cancel()
         guard let vm = viewModel else { return }
+        // Closed at once, so a press right after counts as opening the HUD again, not hiding it.
+        vm.close()
         Task {
             await vm.destroy()
         }
