@@ -103,8 +103,10 @@ final class HotkeyRulesTests: XCTestCase {
 
 @MainActor
 final class HotkeyServiceTests: XCTestCase {
-    /// An unusual combination, so the test never takes a key the person uses.
-    private let unusual = Hotkey(string: "ctrl+option+shift+cmd+f19")!
+    /// Unusual combinations, held only for the moment of a test, so the tests never take a key the
+    /// person uses; not ⌃⌥⇧⌘F18 or F19, which the UI tests press.
+    private let unusual = Hotkey(string: "ctrl+option+shift+cmd+f17")!
+    private let otherUnusual = Hotkey(string: "ctrl+option+shift+cmd+f16")!
 
     func testRegistersRefusesDuplicatesPausesAndResumes() {
         let service = HotkeyService()
@@ -119,7 +121,7 @@ final class HotkeyServiceTests: XCTestCase {
         XCTAssertEqual(service.status(.main), .active)
 
         service.activate(unusual, for: .launcha)
-        XCTAssertEqual(service.status(.launcha), .failed("⌃⌥⇧⌘F19 is already used for the SwiftKey hotkey."))
+        XCTAssertEqual(service.status(.launcha), .failed("⌃⌥⇧⌘F17 is already used for the SwiftKey hotkey."))
 
         service.pause()
         XCTAssertEqual(service.status(.main), .inactive)
@@ -134,17 +136,18 @@ final class HotkeyServiceTests: XCTestCase {
 
     func testAModifierAloneFails() {
         let service = HotkeyService()
+        defer { service.activate(nil, for: .main) }
         service.activate(.modifierTap(.rightOption), for: .main)
         guard case .failed(let reason) = service.status(.main) else { return XCTFail("expected a failure") }
         XCTAssertTrue(reason.contains("not a modifier"))
-        service.activate(nil, for: .main)
     }
 
     func testItemSlotsAreRemovedWhenTheirItemIsGone() {
         let service = HotkeyService()
+        defer { service.deactivateItems(except: []) }
         let kept = UUID(), gone = UUID()
         service.activate(unusual, for: .item(kept))
-        service.activate(Hotkey(string: "ctrl+option+shift+cmd+f18")!, for: .item(gone))
+        service.activate(otherUnusual, for: .item(gone))
         service.deactivateItems(except: [kept])
         XCTAssertEqual(service.status(.item(kept)), .active)
         XCTAssertNil(service.hotkey(.item(gone)))

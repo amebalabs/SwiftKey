@@ -152,7 +152,7 @@ final class LaunchaWiringTests: XCTestCase {
             settings.launchaDoubleTap = saved.2
             settings.launchaDoubleTapWindow = saved.3
         }
-        settings.mainHotkey = "ctrl+option+shift+cmd+f19"
+        settings.mainHotkey = "ctrl+option+shift+cmd+f15"
         settings.triggerKeyHoldMode = false
         settings.launchaDoubleTap = true
         XCTAssertTrue(settings.launchaSettings.doubleTap)
