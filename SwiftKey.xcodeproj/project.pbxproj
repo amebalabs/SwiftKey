@@ -118,6 +118,7 @@
 				FA3044AD2D43F59400BA98E2 /* Sources */,
 				FA3044AE2D43F59400BA98E2 /* Frameworks */,
 				FA3044AF2D43F59400BA98E2 /* Resources */,
+				5A1C0D0100000000000000B1 /* Embed swiftkey-micro */,
 			);
 			buildRules = (
 			);
@@ -219,6 +220,29 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		5A1C0D0100000000000000B1 /* Embed swiftkey-micro */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Embed swiftkey-micro";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(EXECUTABLE_FOLDER_PATH)/swiftkey-micro",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/bash;
+			shellScript = "# Builds the swiftkey-micro console tool from Packages/SwiftKeyCore and puts it next to the app's\n# executable, signed like the app. swift build is incremental, so an unchanged tool costs little;\n# the copy and the signature happen only when the tool changed.\nset -euo pipefail\nPACKAGE=\"$SRCROOT/Packages/SwiftKeyCore\"\nSCRATCH=\"$OBJROOT/swiftkey-micro\"\nDEST=\"$TARGET_BUILD_DIR/$EXECUTABLE_FOLDER_PATH/swiftkey-micro\"\nif [ \"$CONFIGURATION\" = \"Release\" ]; then\n  ARGS=(-c release --arch arm64 --arch x86_64)\nelse\n  ARGS=(-c debug)\nfi\n# Xcode's build variables point SwiftPM at the wrong SDK and toolchain settings; build in a clean environment.\nbuild() {\n  env -i PATH=\"/usr/bin:/bin:/usr/sbin:/sbin\" HOME=\"$HOME\" DEVELOPER_DIR=\"$DEVELOPER_DIR\" TMPDIR=\"${TMPDIR:-/tmp}\" \\\n    xcrun swift build --package-path \"$PACKAGE\" --scratch-path \"$SCRATCH\" \"${ARGS[@]}\" --product swiftkey-micro \"$@\"\n}\nbuild\nBIN=\"$(build --show-bin-path)/swiftkey-micro\"\nmkdir -p \"$(dirname \"$DEST\")\"\nif [ -f \"$DEST\" ] && [ \"$DEST\" -nt \"$BIN\" ]; then\n  exit 0\nfi\ncp -f \"$BIN\" \"$DEST\"\nIDENTITY=\"${EXPANDED_CODE_SIGN_IDENTITY:-}\"\nif [ -n \"$IDENTITY\" ]; then\n  TIMESTAMP=\"--timestamp=none\"\n  if [ \"$CONFIGURATION\" = \"Release\" ] && [ \"$IDENTITY\" != \"-\" ]; then TIMESTAMP=\"--timestamp\"; fi\n  codesign --force --options runtime \"$TIMESTAMP\" --identifier \"$PRODUCT_BUNDLE_IDENTIFIER.swiftkey-micro\" --sign \"$IDENTITY\" \"$DEST\"\nfi\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		FA3044AD2D43F59400BA98E2 /* Sources */ = {
@@ -371,6 +395,7 @@
 		FA3044C12D43F59600BA98E2 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = SwiftKey/Resources/SwiftKey.entitlements;
@@ -407,6 +432,7 @@
 		FA3044C22D43F59600BA98E2 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = SwiftKey/Resources/SwiftKey.entitlements;
