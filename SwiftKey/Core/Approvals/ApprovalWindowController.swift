@@ -5,10 +5,16 @@ import SwiftUI
 /// Shows the approval window and waits for the person's answer. The menu panels never become the
 /// active app's main window, so this is a standalone window that takes focus and gives it back
 /// to the app that had it.
+@MainActor
 final class ApprovalWindowController: NSObject, ApprovalPrompt, NSWindowDelegate {
     private var window: NSWindow?
     private var continuation: CheckedContinuation<Bool, Never>?
     private var previousApp: NSRunningApplication?
+
+    /// Makes no window; the window opens on the main actor when there is something to ask.
+    nonisolated override init() {
+        super.init()
+    }
 
     @MainActor
     func ask(_ pending: [PendingCode]) async -> Bool {

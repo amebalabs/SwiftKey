@@ -1,4 +1,5 @@
 import AppKit
+import SwiftKeyCore
 import XCTest
 @testable import SwiftKey
 
@@ -39,9 +40,11 @@ final class KeyboardNavigationTests: XCTestCase {
     /// A manager whose approval store lives in the test folder with every command of `menu`
     /// approved, so no approval window opens during the tests.
     private func manager(_ menu: [MenuItem]) -> KeyboardManager {
-        let store = ApprovalStore(url: folder.appendingPathComponent("approvals.json"))
-        XCTAssertNoThrow(try store.approve(ApprovalGate.allRequests(in: menu)))
-        let manager = KeyboardManager(approvalGate: ApprovalGate(store: store))
+        let url = folder.appendingPathComponent("approvals.json")
+        var approvals = Approvals()
+        ApprovalGate.allRequests(in: menu).forEach { approvals.approve($0) }
+        XCTAssertNoThrow(try approvals.encoded().write(to: url))
+        let manager = KeyboardManager(approvalGate: ApprovalGate(store: ApprovalStore(url: url)))
         manager.settingsStore.overlayStyle = .panel
         manager.menuState.rootMenu = menu
         return manager

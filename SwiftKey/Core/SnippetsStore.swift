@@ -160,7 +160,7 @@ class SnippetsStore: ObservableObject, DependencyInjectable {
 
         // The approval window names the snippet a command came with. Recording comes first, so
         // a command never shows up without its origin.
-        try approvalGate?.recordSnippet(named: snippet.name, items: menuItems)
+        try await approvalGate?.recordSnippet(named: snippet.name, items: menuItems)
         try await configManager.importSnippet(menuItems: menuItems, strategy: mergeStrategy)
     }
 

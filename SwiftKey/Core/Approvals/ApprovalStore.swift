@@ -5,19 +5,25 @@ import SwiftKeyCore
 /// The approved commands on disk: `approvals.json` in Application Support (or next to
 /// `SWIFTKEY_CONFIG`). Kept apart from the config file, so a copied config, a snippet or an
 /// outside edit never approves anything.
+@MainActor
 final class ApprovalStore {
     let url: URL
     private(set) var approvals = Approvals()
     private let logger = AppLogger.core
 
-    init(url: URL = AppPaths.current.url(for: "approvals.json")) {
+    /// Only stores its values, so any code can make a store; everything after runs on the main actor.
+    nonisolated init(url: URL = AppPaths.current.url(for: "approvals.json")) {
         self.url = url
-        load()
+        self.approvals = Self.read(url)
     }
 
     /// Reads the file again. A missing or unreadable file approves nothing.
     func load() {
-        approvals = (try? Data(contentsOf: url)).map(Approvals.decode) ?? Approvals()
+        approvals = Self.read(url)
+    }
+
+    private nonisolated static func read(_ url: URL) -> Approvals {
+        (try? Data(contentsOf: url)).map(Approvals.decode) ?? Approvals()
     }
 
     func pending(_ requests: [CodeRequest]) -> [CodeRequest] {
