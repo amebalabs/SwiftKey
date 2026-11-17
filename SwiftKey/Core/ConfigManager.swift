@@ -24,10 +24,14 @@ class ConfigManager: DependencyInjectable, ObservableObject {
     // Dependencies - using non-optional since this is a required dependency
     private(set) var settingsStore: SettingsStore
 
+    /// A config file that wins over every other source; nil uses SWIFTKEY_CONFIG or the stored path.
+    private let configURL: URL?
+
     // Default initializer for container creation
-    init() {
+    init(configURL: URL? = nil) {
         // Default empty initialization, proper values will be set by injectDependencies
         self.settingsStore = SettingsStore()
+        self.configURL = configURL
     }
 
     func injectDependencies(_ container: DependencyContainer) {
@@ -567,6 +571,9 @@ class ConfigManager: DependencyInjectable, ObservableObject {
     }
 
     func resolveConfigFileURL() -> URL? {
+        if let configURL {
+            return configURL
+        }
         // SWIFTKEY_CONFIG names the config file and wins over the stored path
         if let override = AppPaths.current.configOverride {
             return createConfigIfNeeded(at: override)
