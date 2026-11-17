@@ -125,8 +125,9 @@ Add `test` and `test-core` tasks to `mise.toml` next to the existing `build` tas
 
 ## Phase 6: Editor, docs, end-to-end
 
-- [ ] Property inspector: Micro-app action type with id picker (status of each file) and Reveal file
-- [ ] `CONFIGURING.md` (SwiftKey YAML + micro-apps) and `FORMAT.md` with examples in `Resources/`; "Copy prompt for agent" in Settings (port `AgentPrompt`)
-- [ ] XCUITest end-to-end with `SWIFTKEY_CONFIG`: menu sequence, fast typing, back, launcha search and open, approval sheet, a micro-app with params and panel output
-- [ ] README: new features, hotkeys, launcha, micro-apps, approvals, deep-link rule
-- [ ] CHANGELOG entry; `THIRD_PARTY_NOTICES.md` credit to Ting
+- [x] Property inspector: Micro-app action type with id picker (status of each file) and Reveal file
+- [x] `CONFIGURING.md` (SwiftKey YAML + micro-apps) and `FORMAT.md` with examples in `Resources/`; "Copy prompt for agent" in Settings (port `AgentPrompt`)
+- [x] XCUITest end-to-end with `SWIFTKEY_CONFIG`: menu sequence, fast typing, back, launcha search and open, approval sheet, a micro-app with params and panel output (written and compiling; `SwiftKeyUITests` scheme, `mise run test-ui`)
+- [ ] Run the UI tests (pending Sasha: they press keys and take focus)
+- [x] README: new features, hotkeys, launcha, micro-apps, approvals, deep-link rule
+- [x] CHANGELOG entry; `THIRD_PARTY_NOTICES.md` credit to Ting
