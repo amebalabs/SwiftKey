@@ -24,6 +24,7 @@ sticky/batch/dynamic items and deep links.
 | Task runner | `mise` (project convention). |
 | Test override | `SWIFTKEY_CONFIG=/tmp/x.yaml` puts config, `micro/`, approvals, values and launcha files next to that file. Tests never touch the user's files. |
 | AI/HTTP tests | Real on-device model through `fm serve` (OpenAI-compatible, `model: system`). One server per test process on a free port, health-checked. Missing `fm` or model fails the suite with an instruction; nothing is skipped. No extra Anthropic tests (only the live `fm` test is added). |
+| Test fakes | Keychain, notification and `open` step tests use fakes (approved by Sasha); HTTP and AI steps use the live `fm serve`. |
 | License | Ting code is 0BSD: no attribution required; credit Ting in `THIRD_PARTY_NOTICES.md` as a courtesy. Do not copy Ting's MIT-licensed `package_app.sh` / `release.sh`. |
 
 ## Source map (Ting → SwiftKey)

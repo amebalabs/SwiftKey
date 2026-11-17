@@ -4,7 +4,9 @@ import XCTest
 import SwiftKeyCore
 
 /// The steps of a micro-app run by the real runner: real programs for command and python steps,
-/// and fakes for HTTP, the keychain, notifications and `open`, so nothing leaves the Mac.
+/// and stand-ins for the keychain, notifications and `open`, so the user's keychain, screen and
+/// browser are not touched. HTTP and AI steps run against a live local server in
+/// `MicroAppLiveServerTests`.
 final class MicroAppStepsRunnerTests: XCTestCase {
     /// Collects what the fakes saw.
     final class Recorder: @unchecked Sendable {
@@ -21,11 +23,13 @@ final class MicroAppStepsRunnerTests: XCTestCase {
         let text = "format: ting.microapp/2\ndescription: d\n" + top + (params.isEmpty ? "" : "params:\n" + params) + "input: clipboard\nsteps:\n" + steps + output
         switch MicroAppChecker.check(text, fileName: "test.yaml") {
         case .success(let app): return app
-        case .failure(let failure): throw XCTSkip("bad test file: \(failure)")
+        case .failure(let failure):
+            XCTFail("bad test file: \(failure)")
+            throw failure
         }
     }
 
-    private func runner(_ http: (@Sendable (MicroAppHTTPRequest) async throws -> MicroAppHTTPResponse)? = nil) throws -> MicroAppRunner {
+    private func runner() throws -> MicroAppRunner {
         var runner = MicroAppRunner()
         runner.path = { "/usr/bin:/bin:/usr/sbin:/sbin" }
         runner.environment = ["HOME": NSHomeDirectory(), "API_TOKEN": "tok-1", "LANG": "en_US.UTF-8"]
@@ -38,22 +42,9 @@ final class MicroAppStepsRunnerTests: XCTestCase {
             guard service == "example" else { throw MicroAppServiceError("no keychain item `\(service)`") }
             return "secret-1"
         }
-        runner.http = http ?? { _ in throw URLError(.notConnectedToInternet) }
         runner.notify = { _, _ in throw MicroAppServiceError("no notifications in tests") }
         runner.open = { _, _ in throw MicroAppServiceError("nothing opens in tests") }
         return runner
-    }
-
-    private static func body(_ chunks: [String], delay: UInt64 = 0) -> AsyncThrowingStream<Data, Error> {
-        AsyncThrowingStream { continuation in
-            Task {
-                for chunk in chunks {
-                    if delay > 0 { try? await Task.sleep(nanoseconds: delay) }
-                    continuation.yield(Data(chunk.utf8))
-                }
-                continuation.finish()
-            }
-        }
     }
 
     private func stdout(_ result: MicroAppRunResult, file: StaticString = #filePath, line: UInt = #line) -> String? {
@@ -199,18 +190,6 @@ final class MicroAppStepsRunnerTests: XCTestCase {
                        .panel(MicroAppPanelContent(title: "test", text: "partial", style: .console, isError: true, notes: ["stopped after 1 s"])))
     }
 
-    func testTimeoutOfAHangingRequest() async throws {
-        let r = try runner { _ in
-            try await Task.sleep(nanoseconds: 30_000_000_000)
-            throw URLError(.timedOut)
-        }
-        let start = Date()
-        let result = await r.run(try app("  - url: https://example.com\n    timeout: 1\n"))
-        XCTAssertLessThan(Date().timeIntervalSince(start), 5)
-        guard case .stepFailed(let f) = result else { return XCTFail("\(result)") }
-        XCTAssertEqual(f.note, "stopped after 1 s")
-    }
-
     func testCancelStopsTheRun() async throws {
         let r = try runner()
         let app = try app("  - command: sleep 20\n")
@@ -230,84 +209,10 @@ final class MicroAppStepsRunnerTests: XCTestCase {
         XCTAssertEqual(f.index, 0)
     }
 
-    // MARK: HTTP and AI
+    // MARK: AI
 
-    func testURLStepSendsTheRequestAndStreamsTheBody() async throws {
-        let recorder = Recorder()
-        let r = try runner { request in
-            recorder.add("\(request.method) \(request.url) \(request.header("Authorization") ?? "-") \(String(decoding: request.body ?? Data(), as: UTF8.self))")
-            return MicroAppHTTPResponse(status: 200, body: Self.body([#"{"answer":"#, #""ok"}"#]))
-        }
-        let app = try app("""
-          - url: https://api.example.com/v1/${input|trim|url}
-            method: POST
-            query:
-              lang: uk
-            headers:
-              Authorization: Bearer ${API_TOKEN}
-            body:
-              text: ${input}
-          - json: answer
-
-        """)
-        let result = await r.run(app, stdin: "a b\n")
-        XCTAssertEqual(stdout(result), "ok")
-        XCTAssertEqual(recorder.all, [#"POST https://api.example.com/v1/a%20b?lang=uk Bearer tok-1 {"text":"a b"}"#])
-    }
-
-    func testURLStepFailsOnAnErrorStatusWithoutShowingTheQuery() async throws {
-        let r = try runner { _ in MicroAppHTTPResponse(status: 404, body: Self.body(["no such page"])) }
-        let result = await r.run(try app("  - url: https://api.example.com/x\n    query:\n      key: ${API_TOKEN}\n"))
-        guard case .stepFailed(let f) = result else { return XCTFail("\(result)") }
-        XCTAssertEqual(f.note, "HTTP 404")
-        XCTAssertEqual(f.output.stdout, "no such page")
-        XCTAssertEqual(f.output.stderr, "GET https://api.example.com/x?… answered HTTP 404 not found")
-        XCTAssertFalse(f.output.stderr.contains("tok-1"))
-    }
-
-    func testAIStepStreamsTheAnswerToTheLiveOutput() async throws {
-        let recorder = Recorder()
-        let r = try runner { request in
-            recorder.add(request.url + " " + (request.header("x-api-key") ?? "-"))
-            return MicroAppHTTPResponse(status: 200, body: Self.body([
-                "event: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"delta\":{\"type\":\"text_delta\",\"text\":\"Hel\"}}\n\n",
-                "event: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"delta\":{\"type\":\"text_delta\",\"text\":\"lo\"}}\n\n",
-                "event: message_stop\ndata: {\"type\":\"message_stop\"}\n\n",
-            ], delay: 150_000_000))
-        }
-        let app = try app("""
-          - ai: ${input}
-            provider: anthropic
-            model: claude-haiku-5-5
-            key: ${keychain.example}
-
-        """)
-        let result = await r.run(app, stdin: "Hi", progress: { recorder.add($0) })
-        XCTAssertEqual(stdout(result), "Hello")
-        XCTAssertEqual(recorder.all, ["https://api.anthropic.com/v1/messages secret-1"])
-        let live = recorder.progress.compactMap(\.1.liveOutput)
-        XCTAssertTrue(live.contains("Hel"), "\(live)")
-    }
-
-    func testAIStepErrors() async throws {
-        let unauthorized = try runner { _ in
-            MicroAppHTTPResponse(status: 401, body: Self.body([#"{"error":{"message":"Incorrect API key","type":"invalid_request_error"}}"#]))
-        }
-        let app = try app("  - ai: ${input}\n    provider: openai\n    model: gpt-4.1-mini\n    key: ${API_TOKEN}\n")
-        let result = await unauthorized.run(app, stdin: "x")
-        guard case .stepFailed(let f) = result else { return XCTFail("\(result)") }
-        XCTAssertEqual(f.note, "HTTP 401")
-        XCTAssertEqual(f.output.stderr, "openai at https://api.openai.com/v1/chat/completions: invalid_request_error: Incorrect API key")
-
-        let cut = try runner { _ in
-            MicroAppHTTPResponse(status: 200, body: Self.body(["data: {\"choices\":[{\"delta\":{\"content\":\"part\"},\"finish_reason\":\"length\"}]}\n\n"]))
-        }
-        let cutResult = await cut.run(app, stdin: "x")
-        guard case .stepFailed(let c) = cutResult else { return XCTFail("\(cutResult)") }
-        XCTAssertTrue(c.output.stderr.contains("cut at the token limit"), c.output.stderr)
-
-        let noKey = try runner()
-        let missing = await noKey.run(try self.app("  - ai: x\n    provider: openai\n    model: m\n"))
+    func testAIStepWithoutAKeyNamesTheVariable() async throws {
+        let missing = try await runner().run(try app("  - ai: x\n    provider: openai\n    model: m\n"))
         guard case .stepFailed(let m) = missing else { return XCTFail("\(missing)") }
         XCTAssertEqual(m.output.stderr, "no API key: set `key:` in the step or the environment variable OPENAI_API_KEY")
     }
