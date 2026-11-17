@@ -173,35 +173,47 @@ private extension Process {
         let errorPipe = Pipe()
         standardError = errorPipe
 
-        // Create a Task to handle the process asynchronously
+        // Both pipes are drained while the command runs, so a command with a lot of output never
+        // blocks on a full pipe; the termination handler then resumes exactly once.
         return try await withCheckedThrowingContinuation { continuation in
-            do {
-                try run()
+            let drained = DispatchGroup()
+            let output = PipeDrain(), errors = PipeDrain()
+            for (pipe, drain) in [(outputPipe, output), (errorPipe, errors)] {
+                drained.enter()
+                DispatchQueue.global(qos: .userInitiated).async {
+                    drain.data = pipe.fileHandleForReading.readDataToEndOfFile()
+                    drained.leave()
+                }
+            }
 
-                // Create a Task to wait for the process to complete
-                Task {
-                    // Wait for process to exit asynchronously
-                    waitUntilExit()
-
-                    // Read output and error data
-                    let outputData = outputPipe.fileHandleForReading.readDataToEndOfFile()
-                    let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
-
-                    if terminationStatus != 0 {
+            terminationHandler = { process in
+                drained.notify(queue: .global(qos: .userInitiated)) {
+                    let outputData = output.data
+                    let errorData = errors.data
+                    if process.terminationStatus != 0 {
                         let errorMessage = String(data: errorData, encoding: .utf8) ?? "Unknown error"
-                        logger.error("Command failed with status \(self.terminationStatus): \(errorMessage)")
+                        logger.error("Command failed with status \(process.terminationStatus): \(errorMessage)")
                         continuation.resume(throwing: ShellOutError(
-                            terminationStatus: terminationStatus,
+                            terminationStatus: process.terminationStatus,
                             errorData: errorData,
                             outputData: outputData
                         ))
                     } else {
-                        let output = String(data: outputData, encoding: .utf8) ?? ""
+                        let out = String(data: outputData, encoding: .utf8) ?? ""
                         let err = String(data: errorData, encoding: .utf8)
-                        continuation.resume(returning: (out: output, err: err))
+                        continuation.resume(returning: (out: out, err: err))
                     }
                 }
+            }
+
+            do {
+                try run()
             } catch {
+                // The command never started: no termination handler will run. Close the pipes so
+                // the drains end.
+                terminationHandler = nil
+                try? outputPipe.fileHandleForWriting.close()
+                try? errorPipe.fileHandleForWriting.close()
                 logger.error("Failed to run command: \(error.localizedDescription)")
                 continuation.resume(throwing: error)
             }
@@ -341,5 +353,15 @@ private extension Data {
 
         // Remove trailing newline characters
         return output.trimmingCharacters(in: .newlines)
+    }
+}
+
+/// The bytes one pipe gave, written by its reading thread and read after it finished.
+private final class PipeDrain: @unchecked Sendable {
+    private let lock = NSLock()
+    private var bytes = Data()
+    var data: Data {
+        get { lock.withLock { bytes } }
+        set { lock.withLock { bytes = newValue } }
     }
 }

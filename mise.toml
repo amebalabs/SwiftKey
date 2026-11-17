@@ -9,7 +9,7 @@ run = "swift test --package-path Packages/SwiftKeyCore"
 
 [tasks.test]
 description = "Test tasks"
-run = "swift test --package-path Packages/SwiftKeyCore && xcodebuild -scheme 'SwiftKey' -configuration Debug -destination 'platform=macOS' test"
+run = "swift test --package-path Packages/SwiftKeyCore && xcodebuild -scheme 'SwiftKey' -configuration Debug -destination 'platform=macOS' -test-timeouts-enabled YES -default-test-execution-time-allowance 60 test"
 
 [tasks.format]
 description = "Code quality"
