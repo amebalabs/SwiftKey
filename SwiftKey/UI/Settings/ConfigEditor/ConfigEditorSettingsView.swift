@@ -98,104 +98,87 @@ private struct ConfigEditorSettingsContent: View {
             
             Divider()
             
-            // Bottom toolbar with config path and buttons
-            VStack(spacing: 8) {
-                // Config file path section
-                HStack(spacing: 8) {
-                    Text("Configuration file:")
-                        .font(.system(size: 11))
-                        .foregroundColor(.secondary)
-                    
-                    if !settings.configFilePath.isEmpty {
-                        if let url = configManager.resolveConfigFileURL() {
-                            Text(url.path)
-                                .font(.system(size: 11))
-                                .foregroundColor(.secondary)
-                                .textSelection(.enabled)
-                                .lineLimit(1)
-                                .truncationMode(.middle)
-                        }
-                    } else {
-                        Text("No config file selected")
-                            .font(.system(size: 11))
-                            .foregroundColor(.secondary)
-                    }
-                    
-                    Button(action: {
+            // Bottom bar: the config file on the left, editing actions on the right
+            HStack(spacing: 8) {
+                Image(systemName: "doc.text")
+                    .foregroundStyle(.secondary)
+                    .accessibilityHidden(true)
+
+                if let url = configManager.resolveConfigFileURL() {
+                    Text((url.path as NSString).abbreviatingWithTildeInPath)
+                        .foregroundStyle(.secondary)
+                        .textSelection(.enabled)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                        .help(url.path)
+                } else {
+                    Text("No config file selected")
+                        .foregroundStyle(.secondary)
+                }
+
+                Menu {
+                    Button("Show in Finder") {
                         configManager.openConfigFile()
-                    }) {
-                        Image(systemName: "doc.text")
-                            .foregroundColor(.accentColor)
                     }
-                    .buttonStyle(BorderlessButtonStyle())
-                    .help("Reveal configuration file in Finder")
-                    
-                    Button("Change...") {
+                    Button("Open in Editor") {
+                        openInExternalEditor()
+                    }
+                    Divider()
+                    Button("Choose Another File…") {
                         configManager.changeConfigFile()
                     }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                    
-                    Spacer()
-                }
-                
-                // Action buttons
-                HStack {
-                    Spacer()
-                    
-                    // Buttons aligned to the right
-                    HStack(spacing: 8) {
-                        if viewModel.hasUnsavedChanges {
-                            Button(action: viewModel.undo) {
-                                Image(systemName: "arrow.uturn.backward")
-                            }
-                            .buttonStyle(BorderlessButtonStyle())
-                            .disabled(!viewModel.canUndo)
-                            .help("Undo")
-                            
-                            Button(action: viewModel.redo) {
-                                Image(systemName: "arrow.uturn.forward")
-                            }
-                            .buttonStyle(BorderlessButtonStyle())
-                            .disabled(!viewModel.canRedo)
-                            .help("Redo")
-                            
-                            Divider()
-                                .frame(height: 16)
-                        }
-                        
-                        Button("Open in Editor") {
-                            openInExternalEditor()
-                        }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
-                        .help("Open the YAML file in your default text editor")
-                        
-                        Button("Import...") {
-                            showingImportDialog = true
-                        }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
-                        .help("Import configuration from file")
-                        
-                        if viewModel.hasUnsavedChanges {
-                            Button("Discard") {
-                                viewModel.discardChanges()
-                            }
-                            .buttonStyle(.bordered)
-                            .controlSize(.small)
-                            
-                            Button("Save") {
-                                viewModel.saveConfiguration()
-                            }
-                            .buttonStyle(.borderedProminent)
-                            .controlSize(.small)
-                            .disabled(hasValidationErrors)
-                            .help(hasValidationErrors ? "Fix validation errors before saving" : "Save changes")
-                        }
+                    Button("Import…") {
+                        showingImportDialog = true
                     }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                }
+                .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)
+                .fixedSize()
+                .help("Configuration file actions")
+                .accessibilityLabel("Configuration file actions")
+
+                Spacer(minLength: 16)
+
+                if viewModel.hasUnsavedChanges {
+                    ControlGroup {
+                        Button(action: viewModel.undo) {
+                            Image(systemName: "arrow.uturn.backward")
+                        }
+                        .disabled(!viewModel.canUndo)
+                        .help("Undo")
+                        .accessibilityLabel("Undo")
+
+                        Button(action: viewModel.redo) {
+                            Image(systemName: "arrow.uturn.forward")
+                        }
+                        .disabled(!viewModel.canRedo)
+                        .help("Redo")
+                        .accessibilityLabel("Redo")
+                    }
+                    .fixedSize()
+
+                    Button("Discard") {
+                        viewModel.discardChanges()
+                    }
+
+                    Button("Save") {
+                        viewModel.saveConfiguration()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .keyboardShortcut("s", modifiers: .command)
+                    .disabled(hasValidationErrors)
+                    .help(hasValidationErrors ? "Fix validation errors before saving" : "Save changes")
+                } else {
+                    Button("Open in Editor") {
+                        openInExternalEditor()
+                    }
+                    .help("Open the YAML file in your default text editor")
                 }
             }
+            .font(.callout)
+            .controlSize(.regular)
             .padding(.horizontal)
             .padding(.vertical, 10)
         }

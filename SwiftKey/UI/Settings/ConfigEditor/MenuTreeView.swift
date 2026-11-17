@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import SwiftKeyCore
 
 extension NSPasteboard.PasteboardType {
     static let menuItem = NSPasteboard.PasteboardType("com.swiftkey.menuitem")
@@ -19,7 +20,8 @@ struct MenuTreeView: NSViewRepresentable {
         outlineView.delegate = context.coordinator
         outlineView.dataSource = context.coordinator
         outlineView.columnAutoresizingStyle = .uniformColumnAutoresizingStyle
-        outlineView.usesAlternatingRowBackgroundColors = true
+        outlineView.style = .inset
+        outlineView.usesAlternatingRowBackgroundColors = false
         outlineView.rowSizeStyle = .default
         outlineView.floatsGroupRows = false
         outlineView.indentationPerLevel = 16
@@ -346,95 +348,119 @@ struct MenuTreeView: NSViewRepresentable {
 
 class MenuItemCellView: NSView {
     private let iconView = NSImageView()
-    private let keyLabel = NSTextField()
-    private let titleLabel = NSTextField()
+    private let keyLabel = NSTextField(labelWithString: "")
+    private let titleLabel = NSTextField(labelWithString: "")
+    private let flagsView = NSStackView()
     private let stackView = NSStackView()
-    
+
+    /// Width of the key column, so titles line up whatever the key ("a", "space", "f12").
+    private static let keyWidth: CGFloat = 40
+
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         setupViews()
     }
-    
+
     required init?(coder: NSCoder) {
         super.init(coder: coder)
         setupViews()
     }
-    
+
     private func setupViews() {
-        // Icon
+        // Icon: always takes its slot, so items with and without an icon line up.
         iconView.imageScaling = .scaleProportionallyDown
-        iconView.setContentHuggingPriority(.defaultHigh, for: .horizontal)
-        
-        // Key label
-        keyLabel.isEditable = false
-        keyLabel.isBordered = false
-        keyLabel.backgroundColor = .clear
+        iconView.symbolConfiguration = NSImage.SymbolConfiguration(pointSize: 13, weight: .regular)
+        iconView.translatesAutoresizingMaskIntoConstraints = false
+
+        // Key, drawn as a small keycap.
         keyLabel.font = .monospacedSystemFont(ofSize: 11, weight: .medium)
         keyLabel.textColor = .secondaryLabelColor
         keyLabel.alignment = .center
-        keyLabel.setContentHuggingPriority(.defaultHigh, for: .horizontal)
-        
-        // Title label
-        titleLabel.isEditable = false
-        titleLabel.isBordered = false
-        titleLabel.backgroundColor = .clear
+        keyLabel.lineBreakMode = .byTruncatingTail
+        keyLabel.wantsLayer = true
+        keyLabel.layer?.cornerRadius = 4
+        keyLabel.layer?.borderWidth = 1
+        keyLabel.translatesAutoresizingMaskIntoConstraints = false
+
+        // Title
         titleLabel.font = .systemFont(ofSize: 13)
         titleLabel.lineBreakMode = .byTruncatingTail
         titleLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-        
-        // Stack view
+
+        // Flags: sticky, batch, notify, hidden as small symbols after the title.
+        flagsView.orientation = .horizontal
+        flagsView.spacing = 3
+        flagsView.setContentHuggingPriority(.required, for: .horizontal)
+
         stackView.orientation = .horizontal
         stackView.spacing = 8
         stackView.alignment = .centerY
         stackView.addArrangedSubview(iconView)
         stackView.addArrangedSubview(keyLabel)
         stackView.addArrangedSubview(titleLabel)
-        
+        stackView.addArrangedSubview(flagsView)
+
         addSubview(stackView)
         stackView.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-            stackView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 4),
-            stackView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -4),
+            iconView.widthAnchor.constraint(equalToConstant: 16),
+            iconView.heightAnchor.constraint(equalToConstant: 16),
+            keyLabel.widthAnchor.constraint(equalToConstant: Self.keyWidth),
+            stackView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 2),
+            stackView.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -6),
             stackView.centerYAnchor.constraint(equalTo: centerYAnchor)
         ])
     }
-    
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        updateKeycapColors()
+    }
+
+    private func updateKeycapColors() {
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            keyLabel.layer?.borderColor = NSColor.separatorColor.cgColor
+            keyLabel.layer?.backgroundColor = NSColor.quaternaryLabelColor.withAlphaComponent(0.08).cgColor
+        }
+    }
+
     func configure(with menuItem: MenuItem) {
         // Icon
         if let iconName = menuItem.icon {
             iconView.image = NSImage(systemSymbolName: iconName, accessibilityDescription: nil)
             iconView.contentTintColor = .labelColor
-            iconView.isHidden = false
         } else {
-            iconView.isHidden = true
+            iconView.image = nil
         }
-        
-        // Key
-        if !menuItem.key.isEmpty {
-            keyLabel.stringValue = "[\(menuItem.key)]"
-            keyLabel.isHidden = false
-        } else {
-            keyLabel.isHidden = true
-        }
-        
+
+        // Key, shown as the menu shows it: "␣" for space, "F5" for f5.
+        let key = SequenceKey.normalize(menuItem.key).map(SequenceKey.display) ?? menuItem.key
+        keyLabel.stringValue = key
+        keyLabel.isHidden = menuItem.key.isEmpty
+        keyLabel.toolTip = menuItem.key.isEmpty ? nil : "Key: \(menuItem.key)"
+        updateKeycapColors()
+
         // Title
         titleLabel.stringValue = menuItem.title
-        
-        // Visual states
-        if menuItem.hidden == true {
-            titleLabel.textColor = .tertiaryLabelColor
-        } else {
-            titleLabel.textColor = .labelColor
+        titleLabel.textColor = menuItem.hidden == true ? .tertiaryLabelColor : .labelColor
+
+        // Flags
+        flagsView.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        let flags: [(Bool?, String, String)] = [
+            (menuItem.batch, "bolt.fill", "Batch"),
+            (menuItem.sticky, "pin.fill", "Sticky"),
+            (menuItem.notify, "bell.fill", "Notify"),
+            (menuItem.hidden, "eye.slash", "Hidden"),
+        ]
+        for (isOn, symbol, name) in flags where isOn == true {
+            let image = NSImageView(image: NSImage(systemSymbolName: symbol, accessibilityDescription: name) ?? NSImage())
+            image.symbolConfiguration = NSImage.SymbolConfiguration(pointSize: 10, weight: .regular)
+            image.contentTintColor = .tertiaryLabelColor
+            image.toolTip = name
+            flagsView.addArrangedSubview(image)
         }
-        
-        // Add indicators for special items
-        var indicators: [String] = []
-        if menuItem.batch == true { indicators.append("⚡") }
-        if menuItem.sticky == true { indicators.append("📌") }
-        if menuItem.notify == true { indicators.append("🔔") }
-        
-        if !indicators.isEmpty {
-            titleLabel.stringValue = "\(menuItem.title) \(indicators.joined())"
-        }
+
+        setAccessibilityLabel([menuItem.key.isEmpty ? nil : "Key \(menuItem.key)", menuItem.title]
+            .compactMap { $0 }.joined(separator: ", "))
     }
 }
