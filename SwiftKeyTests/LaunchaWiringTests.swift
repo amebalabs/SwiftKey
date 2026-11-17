@@ -133,9 +133,11 @@ final class LaunchaWiringTests: XCTestCase {
         XCTAssertEqual(keys, 2)
     }
 
+    /// The link posts to the handler's own center: the panel of the app hosting the tests stays closed.
     func testTheLaunchaLinkAsksToOpenLauncha() async {
-        let opened = expectation(forNotification: .openLauncha, object: nil)
-        await DeepLinkHandler().handle(url: URL(string: "swiftkey://launcha")!)
+        let center = NotificationCenter()
+        let opened = expectation(forNotification: .openLauncha, object: nil, notificationCenter: center)
+        await DeepLinkHandler(notificationCenter: center).handle(url: URL(string: "swiftkey://launcha")!)
         await fulfillment(of: [opened], timeout: 2)
     }
 

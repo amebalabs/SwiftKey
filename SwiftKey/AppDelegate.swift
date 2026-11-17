@@ -118,10 +118,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             }
         }
         NotificationCenter.default
-            .addObserver(forName: .presentOverlay, object: nil, queue: nil) { [weak self] _ in
+            .addObserver(forName: .presentOverlay, object: nil, queue: nil) { [weak self] notification in
                 guard let self = self else { return }
+                let loadsDynamicMenu = notification.userInfo?[PresentOverlayKey.loadsDynamicMenu] as? Bool ?? true
                 Task {
-                    await self.presentOverlay()
+                    await self.presentOverlay(loadsDynamicMenu: loadsDynamicMenu)
                 }
             }
 
@@ -504,13 +505,14 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     /// Shows the panel. With a delay the panel takes keys at once but appears only after
-    /// `revealAfter` seconds, and never when it closes first.
+    /// `revealAfter` seconds, and never when it closes first. `loadsDynamicMenu` false shows a
+    /// lone `dynamic://` item as it is instead of running its command.
     @MainActor
-    func presentOverlay(revealAfter delay: TimeInterval = 0) {
+    func presentOverlay(revealAfter delay: TimeInterval = 0, loadsDynamicMenu: Bool = true) {
         notchContext?.close()
 
         // Check if current menu consists of a single dynamic menu item
-        if menuState.hasSingleDynamicMenuItem,
+        if loadsDynamicMenu, menuState.hasSingleDynamicMenuItem,
            let item = menuState.singleDynamicMenuItem
         {
             logger.debug("Detected single dynamic menu item: \(item.title, privacy: .public)")

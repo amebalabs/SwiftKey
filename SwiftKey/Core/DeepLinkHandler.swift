@@ -14,9 +14,11 @@ class DeepLinkHandler: DependencyInjectable {
 
     private(set) var menuState: MenuState
     private var approvalGate: ApprovalGate?
+    private let notificationCenter: NotificationCenter
 
-    init() {
+    init(notificationCenter: NotificationCenter = .default) {
         self.menuState = MenuState()
+        self.notificationCenter = notificationCenter
     }
 
     func injectDependencies(_ container: DependencyContainer) {
@@ -36,7 +38,7 @@ class DeepLinkHandler: DependencyInjectable {
 
         // swiftkey://launcha opens the search panel
         if url.host?.lowercased() == "launcha" {
-            await MainActor.run { NotificationCenter.default.post(name: .openLauncha, object: nil) }
+            await MainActor.run { notificationCenter.post(name: .openLauncha, object: nil) }
             return
         }
 
@@ -63,7 +65,9 @@ class DeepLinkHandler: DependencyInjectable {
                                    items: group.submenu ?? [])
                 }
                 menuState.hint = hint
-                NotificationCenter.default.post(name: .presentOverlay, object: nil)
+                // A link only shows the menu: a lone `dynamic://` item waits for its key like any other command.
+                notificationCenter.post(name: .presentOverlay, object: nil,
+                                        userInfo: [PresentOverlayKey.loadsDynamicMenu: false])
             }
         case let .run(item, path):
             await MainActor.run { menuState.reset() }

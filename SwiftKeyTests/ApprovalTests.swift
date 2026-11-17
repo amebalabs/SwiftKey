@@ -182,6 +182,26 @@ final class ApprovalTests: XCTestCase {
         XCTAssertEqual(DeepLinkHandler.resolve(["d"], in: menu), .navigate(groups: [menu[0]], hint: nil))
     }
 
+    /// A link to a group whose only item is `dynamic://` opens the menu without running the
+    /// command: the menu is told not to load the dynamic menu on its own.
+    @MainActor
+    func testDeepLinkNeverLoadsADynamicMenuByItself() async {
+        let center = NotificationCenter()
+        let handler = DeepLinkHandler(notificationCenter: center)
+        handler.menuState.rootMenu = [
+            MenuItem(key: "g", title: "Generated", submenu: [MenuItem(key: "p", title: "Processes", action: "dynamic://ps")]),
+        ]
+        var loads: [Bool] = []
+        let token = center.addObserver(forName: .presentOverlay, object: nil, queue: nil) { note in
+            loads.append(note.userInfo?[PresentOverlayKey.loadsDynamicMenu] as? Bool ?? true)
+        }
+        defer { center.removeObserver(token) }
+        await handler.handle(url: URL(string: "swiftkey://open?path=g")!)
+        await handler.handle(url: URL(string: "swiftkey://open?path=g,p")!)
+        XCTAssertEqual(loads, [false, false])
+        XCTAssertTrue(handler.menuState.hasSingleDynamicMenuItem, "the lone dynamic item is shown, not run")
+    }
+
     func testDeepLinkToAMissingKeyFindsNothing() {
         XCTAssertEqual(DeepLinkHandler.resolve(["x"], in: menu), .notFound)
         XCTAssertEqual(DeepLinkHandler.resolve(["d", "x"], in: menu), .notFound)

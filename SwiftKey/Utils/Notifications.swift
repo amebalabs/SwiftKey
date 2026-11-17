@@ -9,3 +9,10 @@ extension Notification.Name {
     static let resetMenuState = Notification.Name("ResetMenuState")
     static let menuIconUpdated = Notification.Name("menuIconUpdated")
 }
+
+/// Keys of the `userInfo` of `.presentOverlay`.
+enum PresentOverlayKey {
+    /// `false` when the menu must not run the command of a lone `dynamic://` item on its own,
+    /// as when a deep link opened it. Missing means `true`.
+    static let loadsDynamicMenu = "loadsDynamicMenu"
+}
