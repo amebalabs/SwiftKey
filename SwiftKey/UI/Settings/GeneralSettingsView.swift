@@ -7,6 +7,7 @@ struct GeneralSettingsView: View {
     @ObservedObject private var launchAtLogin = LaunchAtLogin.observable
     @EnvironmentObject private var sparkleUpdater: SparkleUpdater
     @Environment(AccessibilityAccess.self) private var accessibility
+    @State private var promptCopied = false
 
     var body: some View {
         Form {
@@ -68,6 +69,21 @@ struct GeneralSettingsView: View {
             .onAppear { accessibility.refresh() }
 
             Section {
+                LabeledContent("Coding agent") {
+                    HStack(spacing: 8) {
+                        Button("Copy Prompt for Agent") { copyAgentPrompt() }
+                        if promptCopied {
+                            Text(AgentPrompt.toast)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .transition(.opacity)
+                        }
+                    }
+                }
+                .help("Copies a ready text that tells a coding agent such as Claude Code how to change your menu and write micro-apps. Add your task at its end.")
+            }
+
+            Section {
                 Toggle("Automatically check for updates", isOn: $settings.automaticallyCheckForUpdates)
                 Toggle("Receive beta updates", isOn: $settings.enableBetaUpdates)
                     .help("Beta versions might contain bugs and are not recommended for production use")
@@ -99,6 +115,17 @@ struct GeneralSettingsView: View {
         }
         .padding()
         .frame(width: 420)
+    }
+
+    /// Copies the agent prompt for the config file in use and shows a short confirmation.
+    private func copyAgentPrompt() {
+        guard let config = AppPaths.current.configOverride ?? settings.configFileResolvedURL else { return }
+        AgentPromptSource.copy(AgentPromptSource.text(configURL: config), to: .general)
+        withAnimation { promptCopied = true }
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(2))
+            withAnimation { promptCopied = false }
+        }
     }
 
     private var mainHotkeyProblem: String? {
