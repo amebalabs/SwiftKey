@@ -87,15 +87,15 @@ Add `test` and `test-core` tasks to `mise.toml` next to the existing `build` tas
 
 ## Phase 3: Approvals and deep links
 
-- [ ] `Approvals` in `SwiftKeyCore`: kinds `shell`, `dynamic`, `micro`; SHA-256 of exact content; micro hash includes used libraries; encode/decode; tests
-- [ ] `ApprovalStore` file layer in `Application Support/SwiftKey/approvals.json` (or next to `SWIFTKEY_CONFIG`); missing or unreadable file approves nothing; tests with temp folders
-- [ ] Approval sheet: exact command, menu path, source (config / snippet name / outside edit); Approve and run, Cancel
-- [ ] Gate every code-running path: key press, item hotkey, batch (one sheet for all unapproved), launcha, deep link
-- [ ] Editor save approves commands typed in the property inspector; snippet import and file-watcher reloads do not
-- [ ] Items produced by an approved `dynamic://` script run without further approval
-- [ ] Remove the blocklist from `validateShellCommand`; keep unbalanced quotes as a warning
-- [ ] Deep links: navigate-and-select for `shell://`, `dynamic://`, `micro://`; unchanged for the rest; tests
-- [ ] SECURITY.md: describe the approval model and deep-link rule
+- [x] `Approvals` in `SwiftKeyCore`: kinds `shell`, `dynamic`, `micro`; SHA-256 of exact content; micro hash includes used libraries; encode/decode; tests
+- [x] `ApprovalStore` file layer in `Application Support/SwiftKey/approvals.json` (or next to `SWIFTKEY_CONFIG`); missing or unreadable file approves nothing; tests with temp folders
+- [x] Approval sheet: exact command, menu path, source (config / snippet name / outside edit); Approve and run, Cancel
+- [x] Gate every code-running path: key press, item hotkey, batch (one sheet for all unapproved), launcha, deep link (launcha uses `ApprovalGate.run` in phase 4)
+- [x] Editor save approves commands typed in the property inspector; snippet import and file-watcher reloads do not
+- [x] Items produced by an approved `dynamic://` script run without further approval
+- [x] Remove the blocklist from `validateShellCommand`; keep unbalanced quotes as a warning
+- [x] Deep links: navigate-and-select for `shell://`, `dynamic://`, `micro://`; unchanged for the rest; tests
+- [x] SECURITY.md: describe the approval model and deep-link rule
 
 ## Phase 4: launcha and calculator
 
