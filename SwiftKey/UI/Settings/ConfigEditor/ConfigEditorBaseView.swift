@@ -24,6 +24,7 @@ struct ConfigEditorBaseView: View {
                         .frame(minWidth: 420, idealWidth: 520, maxWidth: .infinity)
                         .layoutPriority(1)
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
     }
@@ -95,6 +96,7 @@ struct ConfigEditorBaseView: View {
                 onDelete: viewModel.deleteMenuItem,
                 onMove: viewModel.moveMenuItem
             )
+            .frame(maxHeight: .infinity)
         }
     }
     

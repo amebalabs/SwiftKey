@@ -95,6 +95,7 @@ private struct ConfigEditorSettingsContent: View {
                 showingImportDialog: $showingImportDialog,
                 showingValidationPanel: $showingValidationPanel
             )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             
             Divider()
             

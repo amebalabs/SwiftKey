@@ -88,6 +88,8 @@ struct PropertyInspectorView: View {
                 )
             }
         }
+        // Fill the pane whether a form or the empty state shows, so the split view keeps its height.
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .sheet(isPresented: $showingSFSymbolPicker) {
             if let item = selectedItem {
                 SFSymbolPicker(selectedSymbol: item.icon ?? "star") { symbol in
