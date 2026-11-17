@@ -3,8 +3,8 @@ import Foundation
 import SwiftKeyCore
 
 /// The end of one osascript run.
-package struct MicroAppScriptResult: Equatable, Sendable {
-    package enum End: Equatable, Sendable {
+public struct MicroAppScriptResult: Equatable, Sendable {
+    public enum End: Equatable, Sendable {
         case success
         /// osascript failed; its error text says why (such as `(-1743)`).
         case failure
@@ -13,21 +13,21 @@ package struct MicroAppScriptResult: Equatable, Sendable {
         case cancelled
     }
 
-    package var end: End
-    package var stdout: String
-    package var stderr: String
+    public var end: End
+    public var stdout: String
+    public var stderr: String
 
-    package init(end: End, stdout: String = "", stderr: String = "") {
+    public init(end: End, stdout: String = "", stderr: String = "") {
         self.end = end
         self.stdout = stdout
         self.stderr = stderr
     }
 }
 
-package enum MicroAppScript {
+public enum MicroAppScript {
     /// Runs `script` and waits at most `timeLimit` seconds. The Automation prompt of macOS, shown at
     /// the first run for an app, counts against the limit.
-    package static func run(_ script: String, timeLimit: TimeInterval = 60) async -> MicroAppScriptResult {
+    public static func run(_ script: String, timeLimit: TimeInterval = 60) async -> MicroAppScriptResult {
         let request = ChildProcessRequest(executable: "/usr/bin/osascript", arguments: ["-e", script], environment: [:],
                                           workingDirectory: "/", timeLimit: timeLimit, outputLimit: MicroAppRunRules.outputLimit)
         let outcome = await ChildProcess.run(request)

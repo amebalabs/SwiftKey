@@ -6,25 +6,25 @@ import Foundation
 import SwiftKeyCore
 
 /// What the user's login shell reports: its PATH and its whole environment.
-package struct UserShellEnvironment: Equatable, Sendable {
-    package var path: String
-    package var source: UserPATH.Source
+public struct UserShellEnvironment: Equatable, Sendable {
+    public var path: String
+    public var source: UserPATH.Source
     /// The login shell's variables; `nil` when the shell did not give them (SwiftKey's own are used then).
-    package var variables: [String: String]?
+    public var variables: [String: String]?
 }
 
 /// The PATH and environment of the user's login shell, read with one call of the shell.
-package enum UserPATH {
-    package enum Source: Equatable, Sendable {
+public enum UserPATH {
+    public enum Source: Equatable, Sendable {
         case loginShell
         case fallback
     }
 
     /// The login shell gets this long to print its PATH.
-    package static let timeLimit: TimeInterval = 5
+    public static let timeLimit: TimeInterval = 5
 
     /// The user's login shell from the user database, then `$SHELL`, then zsh.
-    package static func loginShell() -> String {
+    public static func loginShell() -> String {
         if let entry = getpwuid(getuid()), let shell = entry.pointee.pw_shell {
             let path = String(cString: shell)
             if !path.isEmpty { return path }
@@ -36,7 +36,7 @@ package enum UserPATH {
     /// Runs `shell` once as an interactive login shell and returns the PATH and the environment it
     /// prints. When the shell fails, is slow or prints no PATH, returns SwiftKey's PATH with
     /// `/opt/homebrew/bin` and `/usr/local/bin`, and no variables.
-    package static func read(shell: String = loginShell(),
+    public static func read(shell: String = loginShell(),
                      environment: [String: String] = ProcessInfo.processInfo.environment,
                      home: String = NSHomeDirectory(),
                      timeLimit: TimeInterval = timeLimit) async -> UserShellEnvironment {
@@ -54,18 +54,18 @@ package enum UserPATH {
     }
 
     /// The user's PATH: the last read that `refresh` started, or a first read now.
-    package static func shared() async -> String {
+    public static func shared() async -> String {
         await sharedEnvironment().path
     }
 
     /// The user's login-shell environment, from the same read as `shared`.
-    package static func sharedEnvironment() async -> UserShellEnvironment {
+    public static func sharedEnvironment() async -> UserShellEnvironment {
         await userShellCache.value()
     }
 
     /// Reads the PATH from the login shell again, in the background: at SwiftKey's start and on each
     /// load of the micro-apps folder. A run that asks after the new read began waits for it.
-    package static func refresh() {
+    public static func refresh() {
         Task { await userShellCache.refresh() }
     }
 }
@@ -203,46 +203,46 @@ struct MicroAppStepError: Error, Sendable {
 }
 
 /// An HTTP response with its body as it comes.
-package struct MicroAppHTTPResponse: Sendable {
-    package var status: Int
-    package var body: AsyncThrowingStream<Data, Error>
+public struct MicroAppHTTPResponse: Sendable {
+    public var status: Int
+    public var body: AsyncThrowingStream<Data, Error>
 }
 
-package struct MicroAppRunner: Sendable {
-    package init() {}
+public struct MicroAppRunner: Sendable {
+    public init() {}
 
     /// Gives the PATH for the steps and the `tools` check.
-    package var path: @Sendable () async -> String = { await UserPATH.shared() }
+    public var path: @Sendable () async -> String = { await UserPATH.shared() }
     /// The base environment of the steps and the `${NAME}` variables; `nil` uses the login shell's,
     /// or SwiftKey's own when the shell gave none.
-    package var environment: [String: String]?
-    package var workingDirectory: String = NSHomeDirectory()
+    public var environment: [String: String]?
+    public var workingDirectory: String = NSHomeDirectory()
     /// Overrides the time limit of every micro-app (for tests); `nil` uses the file's `timeout`.
-    package var timeLimit: TimeInterval?
-    package var outputLimit: Int = MicroAppRunRules.outputLimit
+    public var timeLimit: TimeInterval?
+    public var outputLimit: Int = MicroAppRunRules.outputLimit
     /// Runs a command step as `shell -c command`.
-    package var shell = "/bin/sh"
+    public var shell = "/bin/sh"
     /// Reads `${keychain.SERVICE}`.
-    package var keychain: @Sendable (String) throws -> String = { try MicroAppKeychain.password(service: $0) }
+    public var keychain: @Sendable (String) throws -> String = { try MicroAppKeychain.password(service: $0) }
     /// Sends the request of a `url` or `ai` step.
-    package var http: @Sendable (MicroAppHTTPRequest) async throws -> MicroAppHTTPResponse = { try await MicroAppHTTP.send($0) }
+    public var http: @Sendable (MicroAppHTTPRequest) async throws -> MicroAppHTTPResponse = { try await MicroAppHTTP.send($0) }
     /// Shows the notification of a `notify` step.
-    package var notify: @Sendable (_ title: String, _ message: String) async throws -> Void = { try await MicroAppNotifier.post(title: $0, message: $1) }
+    public var notify: @Sendable (_ title: String, _ message: String) async throws -> Void = { try await MicroAppNotifier.post(title: $0, message: $1) }
     /// Opens the URL or file of an `open` step (with an app name, or `nil`).
-    package var open: (@Sendable (_ target: String, _ app: String?) async throws -> Void)?
+    public var open: (@Sendable (_ target: String, _ app: String?) async throws -> Void)?
     /// Sends the key presses of a `keys` step and the text of a `paste` step to the app where the
     /// micro-app started. `nil`: such a step fails, because only SwiftKey can send them.
-    package var keyboard: (@Sendable (MicroAppKeyboardAction) async throws -> Void)?
+    public var keyboard: (@Sendable (MicroAppKeyboardAction) async throws -> Void)?
     /// `true` when `/usr/bin/python3` is a real Python, not the stub that asks for the Command Line Tools.
-    package var commandLineToolsInstalled: @Sendable () async -> Bool = { await MicroAppRunner.hasCommandLineTools() }
+    public var commandLineToolsInstalled: @Sendable () async -> Bool = { await MicroAppRunner.hasCommandLineTools() }
 
     /// The time limit of `app` for this runner.
-    package func timeLimit(for app: MicroApp) -> TimeInterval { timeLimit ?? app.timeLimit }
+    public func timeLimit(for app: MicroApp) -> TimeInterval { timeLimit ?? app.timeLimit }
 
     /// Runs `app` with parameter values by name and an optional stdin text. `progress` hears which
     /// step runs and, once the last step runs and the result goes to the panel, its output so far.
     /// Cancelling the task stops the running step (and its program) and gives `.cancelled`.
-    package func run(_ app: MicroApp, values: [String: String] = [:], stdin: String? = nil, context: MicroAppContext = MicroAppContext(),
+    public func run(_ app: MicroApp, values: [String: String] = [:], stdin: String? = nil, context: MicroAppContext = MicroAppContext(),
              progress: (@Sendable (MicroAppRunProgress) -> Void)? = nil) async -> MicroAppRunResult {
         let path = await self.path()
         let base: [String: String]
@@ -267,7 +267,7 @@ package struct MicroAppRunner: Sendable {
     }
 
     /// The result of a `command` file as before steps: exit codes and timeouts without a step note.
-    package static func commandResult(_ result: MicroAppRunResult, shell: String) -> MicroAppRunResult {
+    public static func commandResult(_ result: MicroAppRunResult, shell: String) -> MicroAppRunResult {
         guard case .stepFailed(let failure) = result else { return result }
         if failure.note.hasPrefix("exit "), let code = Int32(failure.note.dropFirst(5)) {
             return .failure(exitCode: code, failure.output)
@@ -277,7 +277,7 @@ package struct MicroAppRunner: Sendable {
     }
 
     /// The first executable file named `tool` in the PATH directories, or `nil`.
-    package static func find(_ tool: String, inPATH path: String) -> String? {
+    public static func find(_ tool: String, inPATH path: String) -> String? {
         guard !tool.isEmpty, !tool.contains("/") else { return nil }
         for directory in MicroAppRunRules.directories(ofPATH: path) {
             let candidate = (directory as NSString).appendingPathComponent(tool)
@@ -290,7 +290,7 @@ package struct MicroAppRunner: Sendable {
     }
 
     /// `xcode-select -p` succeeds only when Xcode or the Command Line Tools are installed.
-    package static func hasCommandLineTools() async -> Bool {
+    public static func hasCommandLineTools() async -> Bool {
         let request = ChildProcessRequest(executable: "/usr/bin/xcode-select", arguments: ["-p"], environment: [:],
                                           workingDirectory: "/", timeLimit: 5)
         return await ChildProcess.run(request).end == .exited(0)

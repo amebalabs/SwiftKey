@@ -17,7 +17,7 @@ final class MicroAppCLITests: XCTestCase {
     }
 
     private func file(_ code: String) throws -> URL {
-        let directory = FileManager.default.temporaryDirectory.appendingPathComponent("ting-cli-" + UUID().uuidString)
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent("swiftkey-cli-" + UUID().uuidString)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         addTeardownBlock { try? FileManager.default.removeItem(at: directory) }
         let url = directory.appendingPathComponent("test.yaml")
