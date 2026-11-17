@@ -104,6 +104,8 @@ final class LaunchaController: NSObject, NSWindowDelegate {
     let chrome = LaunchaChrome()
     /// Runs a menu item by its key path, the way its keys do in the menu.
     var onRunMenu: ((_ path: [String]) -> Void)?
+    /// Starts a micro-app (or shows a broken file's errors) and says how its flow ended.
+    var onStartMicro: ((LaunchaMicroStart) async -> MicroAppOutcome)?
     /// Reports a short, user-facing error.
     var onError: ((String) -> Void)?
     private var panel: LaunchaPanel?
@@ -184,6 +186,10 @@ final class LaunchaController: NSObject, NSWindowDelegate {
         switch choice {
         case let .runMenu(path, _):
             onRunMenu?(path)
+        case let .startMicro(start, candidateID):
+            // Counted only when it ran: not when it was declined, broken or failed.
+            guard let outcome = await onStartMicro?(start), outcome.succeeded else { return }
+            await model.record(.opened, id: candidateID)
         case let .openApp(url, name, candidateID):
             let outcome = await openApp(at: url, name: name)
             await model.record(outcome, id: candidateID)

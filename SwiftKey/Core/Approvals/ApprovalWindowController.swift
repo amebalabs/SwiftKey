@@ -30,7 +30,7 @@ final class ApprovalWindowController: NSObject, ApprovalPrompt, NSWindowDelegate
         }
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 560, height: 360),
                               styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
-        window.title = pending.count == 1 ? "Run Command?" : "Run Commands?"
+        window.title = ApprovalView.windowTitle(pending)
         window.contentView = NSHostingView(rootView: view)
         window.isReleasedWhenClosed = false
         window.level = .floating
@@ -67,11 +67,23 @@ struct ApprovalView: View {
     let pending: [PendingCode]
     let decide: (Bool) -> Void
 
+    static func windowTitle(_ pending: [PendingCode]) -> String {
+        if pending.count == 1, case .microApp = pending[0].subject { return "Run Micro-app?" }
+        return pending.count == 1 ? "Run Command?" : "Run Commands?"
+    }
+
+    private var headline: String {
+        if pending.count == 1, case .microApp = pending[0].subject {
+            return "This micro-app is new or changed. SwiftKey runs it with your full rights only after you approve every line."
+        }
+        return pending.count == 1
+            ? "SwiftKey runs this command only after you approve its exact text."
+            : "SwiftKey runs these \(pending.count) commands only after you approve their exact text."
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(pending.count == 1
-                ? "SwiftKey runs this command only after you approve its exact text."
-                : "SwiftKey runs these \(pending.count) commands only after you approve their exact text.")
+            Text(headline)
                 .font(.headline)
                 .fixedSize(horizontal: false, vertical: true)
 
@@ -84,7 +96,7 @@ struct ApprovalView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
 
-            Text("Approval is remembered until the command changes.")
+            Text("Approval is remembered until the text changes.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
@@ -114,7 +126,21 @@ private struct PendingCodeView: View {
             Text(kindLabel + " from " + code.origin)
                 .font(.caption)
                 .foregroundStyle(.secondary)
-            Text(code.request.content)
+            if case .microApp(let app) = code.subject {
+                Grid(alignment: .leading, horizontalSpacing: 10, verticalSpacing: 3) {
+                    ForEach(app.facts, id: \.self) { fact in
+                        GridRow {
+                            Text(fact.label)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Text(fact.value)
+                                .font(.caption)
+                                .textSelection(.enabled)
+                        }
+                    }
+                }
+            }
+            Text(code.text)
                 .font(.system(.body, design: .monospaced))
                 .textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -126,9 +152,13 @@ private struct PendingCodeView: View {
     }
 
     private var kindLabel: String {
-        switch code.request.kind {
-        case .shell: return "Shell command"
-        case .dynamic: return "Dynamic menu command"
+        switch code.subject {
+        case .command(let request):
+            switch request.kind {
+            case .shell: return "Shell command"
+            case .dynamic: return "Dynamic menu command"
+            }
+        case .microApp: return "Micro-app"
         }
     }
 }

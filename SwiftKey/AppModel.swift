@@ -180,6 +180,14 @@ struct MenuItem: Identifiable, Codable, Equatable {
         return nil
     }
     
+    /// The micro-app id of a `micro://<id>` item; nil for every other action. A micro-app runs
+    /// through the micro-app flow, not through `actionClosure`.
+    var microAppID: String? {
+        guard let action, action.hasPrefix("micro://") else { return nil }
+        let id = String(action.dropFirst("micro://".count)).trimmingCharacters(in: .whitespaces)
+        return id.isEmpty ? nil : id
+    }
+
     var isExternalURL: Bool {
         guard let action = action else { return false }
         return action.hasPrefix("open://")

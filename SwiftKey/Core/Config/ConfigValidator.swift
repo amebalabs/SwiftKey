@@ -7,7 +7,15 @@ final class ConfigValidator {
     /// The message for a key that is neither one character nor a named key.
     static let invalidKeyMessage = "Key must be one character, space, return or f1…f20"
 
-    init() {}
+    /// The loaded micro-apps, so a `micro://` item can be checked; nil checks only the id's form.
+    private let microApps: MicroAppCatalog?
+    /// The micro-apps folder as the person sees it, for the messages.
+    private let microFolder: String
+
+    init(microApps: MicroAppCatalog? = nil, microFolder: String = "the micro-apps folder") {
+        self.microApps = microApps
+        self.microFolder = microFolder
+    }
 
     /// Validates a single menu item
     func validate(_ item: MenuItem, path: [String] = []) -> [ValidationIssue] {
@@ -235,9 +243,11 @@ final class ConfigValidator {
             }
         } else if action.hasPrefix("dynamic://") {
             // Dynamic menus are valid
+        } else if action.hasPrefix("micro://") {
+            issues.append(contentsOf: validateMicroApp(String(action.dropFirst("micro://".count)), itemId: itemId, path: path))
         } else if !action.isEmpty {
             // Unknown action type
-            let knownPrefixes = ["launch://", "open://", "shortcut://", "shell://", "dynamic://"]
+            let knownPrefixes = ["launch://", "open://", "shortcut://", "shell://", "dynamic://", "micro://"]
             if !knownPrefixes.contains(where: { action.hasPrefix($0) }) {
                 issues.append(ValidationIssue(
                     type: .missingAction,
@@ -250,6 +260,20 @@ final class ConfigValidator {
         }
 
         return issues
+    }
+
+    /// An empty id is an error. A micro-app that is not in the folder, or whose file has errors, is a
+    /// warning: the item shows as not working until the file is fixed.
+    private func validateMicroApp(_ rawID: String, itemId: UUID, path: [String]) -> [ValidationIssue] {
+        let id = rawID.trimmingCharacters(in: .whitespaces)
+        guard !id.isEmpty else {
+            return [ValidationIssue(type: .missingAction, severity: .error, message: "Micro-app id cannot be empty",
+                                    itemId: itemId, path: path)]
+        }
+        guard let microApps else { return [] }
+        let resolution = microApps.resolve(id)
+        guard let problem = resolution.problem(id: id, folder: microFolder) else { return [] }
+        return [ValidationIssue(type: .missingAction, severity: .warning, message: problem, itemId: itemId, path: path)]
     }
 
     private func validateHotkey(_ hotkey: String, itemId: UUID, path: [String]) -> [ValidationIssue] {

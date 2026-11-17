@@ -36,6 +36,18 @@ final class ApprovalStore {
         try save()
     }
 
+    /// True when the micro-app `id` was approved with exactly this content hash.
+    func isMicroApproved(id: String, hash: String) -> Bool {
+        approvals.micro.isApproved(id: id, hash: hash)
+    }
+
+    /// Approves the micro-app `id` with this content hash and saves. Throws when the file cannot
+    /// be written; the approval then holds for this run only.
+    func approveMicro(id: String, hash: String) throws {
+        approvals.micro.approve(id: id, hash: hash)
+        try save()
+    }
+
     /// Records where code came from, such as an imported snippet, and saves.
     func recordOrigin(_ origin: String, for requests: [CodeRequest]) throws {
         guard !requests.isEmpty else { return }

@@ -2,17 +2,106 @@ import Foundation
 import os
 import SwiftKeyCore
 
-/// One command waiting for approval, with what the approval window shows about it.
+/// A micro-app waiting for approval: its whole text and what it reads, needs and sends.
+struct PendingMicroApp: Equatable {
+    var id: String
+    /// The combined hash of the file and the libraries it uses.
+    var hash: String
+    /// The micro-app's file as the person sees it, such as `~/.config/swiftkey/micro/x.yaml`.
+    var file: String
+    /// The command of a `command` file or the whole text of a `steps` file, then every library it uses.
+    var text: String
+    /// Short facts for the approval window, such as ("tools", "dig, whois").
+    var facts: [Fact]
+
+    struct Fact: Equatable, Hashable {
+        var label: String
+        var value: String
+    }
+
+    init(app: MicroApp, hash: String, file: String) {
+        id = app.id
+        self.hash = hash
+        self.file = file
+        text = app.approvalText
+        var facts = [Fact(label: "file", value: file)]
+        if !app.requiredTools.isEmpty { facts.append(Fact(label: "tools", value: app.requiredTools.joined(separator: ", "))) }
+        if !app.requiredContext.isEmpty {
+            facts.append(Fact(label: "reads", value: app.requiredContext.map(\.summary).joined(separator: ", ")))
+        }
+        if app.sendsInput { facts.append(Fact(label: "sends", value: "key presses and text to the app in front")) }
+        self.facts = facts
+    }
+}
+
+/// One piece of code waiting for approval, with what the approval window shows about it.
 struct PendingCode: Equatable, Identifiable {
-    var request: CodeRequest
-    /// The menu item's title.
+    enum Subject: Equatable {
+        /// A `shell://` or `dynamic://` command.
+        case command(CodeRequest)
+        /// A micro-app file with its libraries.
+        case microApp(PendingMicroApp)
+    }
+
+    var subject: Subject
+    /// The menu item's title, or the micro-app's name.
     var title: String
     /// The menu path to the item, such as "Developer › Git".
     var path: String
-    /// Where the command came from, in words.
+    /// Where the code came from, in words.
     var origin: String
 
-    var id: String { request.kind.rawValue + ":" + request.hash }
+    init(request: CodeRequest, title: String, path: String, origin: String) {
+        self.init(subject: .command(request), title: title, path: path, origin: origin)
+    }
+
+    init(subject: Subject, title: String, path: String, origin: String) {
+        self.subject = subject
+        self.title = title
+        self.path = path
+        self.origin = origin
+    }
+
+    /// The command of a `shell://` or `dynamic://` item; nil for a micro-app.
+    var request: CodeRequest? {
+        if case .command(let request) = subject { return request }
+        return nil
+    }
+
+    /// The exact text the person approves.
+    var text: String {
+        switch subject {
+        case .command(let request): request.content
+        case .microApp(let app): app.text
+        }
+    }
+
+    var id: String {
+        switch subject {
+        case .command(let request): request.kind.rawValue + ":" + request.hash
+        case .microApp(let app): "micro:" + app.id + ":" + app.hash
+        }
+    }
+}
+
+/// Starts micro-apps. The flow asks `ApprovalGate.authorizeMicroApp` before anything runs.
+@MainActor
+protocol MicroAppRunning: AnyObject {
+    /// Starts the micro-app `id` and returns when its flow has ended.
+    func run(id: String, path: [String]) async -> MicroAppOutcome
+    /// Starts the micro-app file `file` of the folder, as launcha starts a broken file, and
+    /// returns when its flow has ended.
+    func run(file: String) async -> MicroAppOutcome
+}
+
+/// How a micro-app start ended.
+enum MicroAppOutcome: Equatable {
+    /// It never ran: missing or broken, not approved, or closed before it ran.
+    case notRun
+    /// It ran and finished; `succeeded` is false when a step failed, timed out or was stopped.
+    case ran(succeeded: Bool)
+
+    var succeeded: Bool { self == .ran(succeeded: true) }
 }
 
 /// Asks the person to approve commands.
@@ -22,8 +111,9 @@ protocol ApprovalPrompt {
 }
 
 /// The one way SwiftKey runs code from the config. A `shell://` or `dynamic://` command runs only
-/// after the person approved its exact text; every key press, item hotkey, batch, deep link,
-/// launcha start and dynamic menu goes through here.
+/// after the person approved its exact text, and a micro-app only after the person approved its
+/// file and libraries; every key press, item hotkey, batch, deep link, launcha start and dynamic
+/// menu goes through here.
 final class ApprovalGate: ObservableObject {
     /// Where code came from when nothing else is known: everything typed in SwiftKey's editor is
     /// approved on save, so code that still needs approval was written outside the editor.
@@ -31,6 +121,8 @@ final class ApprovalGate: ObservableObject {
 
     let store: ApprovalStore
     private let prompt: ApprovalPrompt
+    /// Starts micro-apps; set once the micro-app flow exists.
+    @MainActor weak var microApps: MicroAppRunning?
     private let logger = AppLogger.core
 
     init(store: ApprovalStore = ApprovalStore(), prompt: ApprovalPrompt = ApprovalWindowController()) {
@@ -71,7 +163,7 @@ final class ApprovalGate: ObservableObject {
             return false
         }
         do {
-            try store.approve(pending.map(\.request))
+            try store.approve(pending.compactMap(\.request))
         } catch {
             logger.error("Cannot save approvals to \(self.store.url.path, privacy: .public): \(error.localizedDescription, privacy: .public)")
             notifyUser(title: "Approval not saved",
@@ -80,20 +172,71 @@ final class ApprovalGate: ObservableObject {
         return true
     }
 
-    /// Runs an item's action once its code is approved.
+    /// True when the micro-app may run: this exact file and its libraries were approved before,
+    /// or the person approves them now.
     @MainActor
-    func run(_ item: MenuItem, path: [String]) async {
-        guard let action = item.actionClosure, await authorize([item], path: path) else { return }
-        action()
+    func authorizeMicroApp(_ app: MicroApp, hash: String, file: String, path: [String]) async -> Bool {
+        guard !store.isMicroApproved(id: app.id, hash: hash) else { return true }
+        let pending = PendingCode(subject: .microApp(PendingMicroApp(app: app, hash: hash, file: file)),
+                                  title: app.shownName, path: path.joined(separator: " › "),
+                                  origin: "the micro-app file \(file)")
+        guard await prompt.ask([pending]) else {
+            logger.info("Micro-app approval declined for \(app.id, privacy: .public)")
+            return false
+        }
+        do {
+            try store.approveMicro(id: app.id, hash: hash)
+        } catch {
+            logger.error("Cannot save approvals to \(self.store.url.path, privacy: .public): \(error.localizedDescription, privacy: .public)")
+            notifyUser(title: "Approval not saved",
+                       message: "SwiftKey will ask again next time: \(error.localizedDescription)")
+        }
+        return true
     }
 
-    /// Runs every action of a batch once all their code is approved, with one approval for all.
+    /// Runs an item's action once its code is approved. A micro-app runs through its flow, which
+    /// asks for its own approval. True when the action ran: false when it was declined, a
+    /// micro-app could not start, or a micro-app's run failed.
+    @discardableResult
     @MainActor
-    func runBatch(_ items: [MenuItem], path: [String]) async {
-        guard await authorize(items, path: path) else { return }
-        for item in items {
-            item.actionClosure?()
+    func run(_ item: MenuItem, path: [String]) async -> Bool {
+        if let id = item.microAppID {
+            return await runMicroApp(id: id, item: item, path: path)
         }
+        guard let action = item.actionClosure, await authorize([item], path: path) else { return false }
+        action()
+        return true
+    }
+
+    /// Runs every action of a batch once all their commands are approved, with one approval for
+    /// all of them. Micro-apps run after that, one after another, each with its own flow.
+    @discardableResult
+    @MainActor
+    func runBatch(_ items: [MenuItem], path: [String]) async -> Bool {
+        guard await authorize(items, path: path) else { return false }
+        var ran = false
+        for item in items {
+            if let id = item.microAppID {
+                if await runMicroApp(id: id, item: item, path: path) { ran = true }
+            } else if let action = item.actionClosure {
+                action()
+                ran = true
+            }
+        }
+        return ran
+    }
+
+    @MainActor
+    private func runMicroApp(id: String, item: MenuItem, path: [String]) async -> Bool {
+        guard let microApps else {
+            logger.error("Micro-app \(id, privacy: .public) not started: micro-apps are not ready")
+            return false
+        }
+        let outcome = await microApps.run(id: id, path: path)
+        if item.notify == true, case .ran(let succeeded) = outcome {
+            notifyUser(title: item.title, message: succeeded ? "Micro-app finished" : "Micro-app failed")
+        }
+        return outcome.succeeded
     }
 
     /// Approves commands the person typed in SwiftKey's editor, once the config was saved.

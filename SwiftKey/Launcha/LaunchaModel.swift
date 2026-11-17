@@ -1,4 +1,4 @@
-// State and logic of the launcha panel: name search over the menu items and the app index, the
+// State and logic of the launcha panel: name search over the menu items, the micro-apps and the app index, the
 // value of a calculation, a Spotlight file search only when nothing else matches, protected-folder
 // consent and launch history.
 // No AppKit windows here, and nothing is opened here: choosing a row returns a `LaunchaChoice`
@@ -12,6 +12,8 @@ struct LaunchaRow: Identifiable, Equatable {
     enum Kind: Equatable {
         /// An item of the menu. `candidateID` is the launch-history identity.
         case menu(candidateID: String, path: [String], kind: LaunchaMenuCandidate.Kind, itemID: String?)
+        /// A micro-app or a broken micro-app file. A start goes to the micro-app flow.
+        case micro(candidateID: String, start: LaunchaMicroStart, isWorking: Bool)
         /// An indexed app. `candidateID` is the launch-history identity.
         case app(candidateID: String)
         case file
@@ -24,15 +26,26 @@ struct LaunchaRow: Identifiable, Equatable {
     var id: String
     var kind: Kind
     var name: String
-    /// The retained app bundle URL, the file URL, or the config file of a menu item.
+    /// The retained app bundle URL, the file URL, the micro-app file, or the config file of a menu item.
     var url: URL
-    /// Secondary text: the groups above a menu item, or the folder of a file with `~` for the
-    /// home folder.
+    /// Secondary text: the groups above a menu item, the description of a micro-app or why its file
+    /// does not work, or the folder of a file with `~` for the home folder.
     var detail: String
 
     var isMenu: Bool {
         if case .menu = kind { return true }
         return false
+    }
+
+    var isMicro: Bool {
+        if case .micro = kind { return true }
+        return false
+    }
+
+    /// False only for a broken micro-app file.
+    var isWorking: Bool {
+        if case .micro(_, _, let working) = kind { return working }
+        return true
     }
 
     var isApp: Bool {
@@ -50,6 +63,8 @@ struct LaunchaRow: Identifiable, Equatable {
 enum LaunchaChoice: Equatable {
     /// Run a menu item the way its keys do in the menu. `candidateID` is counted when it runs.
     case runMenu(path: [String], candidateID: String)
+    /// Start a micro-app, or show a broken file's errors. `candidateID` is counted when it ran.
+    case startMicro(LaunchaMicroStart, candidateID: String)
     /// Open the app at this retained bundle URL, or bring it to the front.
     case openApp(URL, name: String, candidateID: String)
     /// Open a file or folder with its usual app.
@@ -114,6 +129,8 @@ final class LaunchaModel {
     @ObservationIgnored private let refreshInterval: Duration
     @ObservationIgnored private var apps: [IndexedLaunchaApp] = []
     @ObservationIgnored private var menuItems: [LaunchaMenuCandidate] = []
+    @ObservationIgnored private var microApps: [LaunchaMicroCandidate] = []
+    @ObservationIgnored private var microFolder: URL?
     @ObservationIgnored private var configFile: URL?
     @ObservationIgnored private var history = LaunchHistory()
     @ObservationIgnored private var spotlightQuery: String?
@@ -194,6 +211,14 @@ final class LaunchaModel {
         if isOpen { recompute(keepSelection: true) }
     }
 
+    /// The micro-apps to list, with the folder their files are in. Redraws an open list.
+    func setMicroApps(_ candidates: [LaunchaMicroCandidate], folder: URL?) {
+        guard candidates != microApps || folder != microFolder else { return }
+        microApps = candidates
+        microFolder = folder
+        if isOpen { recompute(keepSelection: true) }
+    }
+
     // MARK: Selection and actions
 
     var selectedRow: LaunchaRow? { rows.indices.contains(selection) ? rows[selection] : nil }
@@ -208,7 +233,8 @@ final class LaunchaModel {
     }
 
     /// Closes the panel and says what the selected row asks for: Return opens it, ⌘Return shows
-    /// it in Finder (a menu item shows its config file). A calculation is copied either way.
+    /// it in Finder (a menu item shows its config file, a micro-app its file). A calculation is
+    /// copied either way.
     func activateSelection(reveal: Bool = false) -> LaunchaChoice? {
         guard isOpen, let row = selectedRow else { return nil }
         onRequestClose?()
@@ -218,6 +244,8 @@ final class LaunchaModel {
         switch row.kind {
         case .menu(let candidateID, let path, _, _):
             return .runMenu(path: path, candidateID: candidateID)
+        case .micro(let candidateID, let start, _):
+            return .startMicro(start, candidateID: candidateID)
         case .app(let candidateID):
             return .openApp(row.url, name: row.name, candidateID: candidateID)
         case .file:
@@ -335,8 +363,10 @@ final class LaunchaModel {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         let appsByID = Dictionary(apps.map { ($0.candidate.id, $0) }, uniquingKeysWith: { first, _ in first })
         let menuByID = Dictionary(menuItems.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        let microByID = Dictionary(microApps.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         let config = configFile ?? home
-        let candidates = menuItems.map(\.candidate) + apps.map(\.candidate)
+        let folder = microFolder ?? home
+        let candidates = menuItems.map(\.candidate) + microApps.map(\.candidate) + apps.map(\.candidate)
         let matches = LaunchaSearch.results(for: trimmed, in: candidates, history: history, now: Date())
         let listed = matches.compactMap { match -> LaunchaRow? in
             if let item = menuByID[match.candidate.id] {
@@ -344,6 +374,12 @@ final class LaunchaModel {
                                   kind: .menu(candidateID: item.id, path: item.path, kind: item.kind, itemID: item.itemID),
                                   name: match.candidate.name, url: config,
                                   detail: item.breadcrumb.joined(separator: " › "))
+            }
+            if let micro = microByID[match.candidate.id] {
+                return LaunchaRow(id: micro.id,
+                                  kind: .micro(candidateID: micro.id, start: micro.start, isWorking: micro.isWorking),
+                                  name: match.candidate.name, url: folder.appendingPathComponent(micro.file),
+                                  detail: micro.problem.map { "Not working: \($0)" } ?? micro.description)
             }
             guard let app = appsByID[match.candidate.id] else { return nil }
             return LaunchaRow(id: match.candidate.id, kind: .app(candidateID: match.candidate.id),

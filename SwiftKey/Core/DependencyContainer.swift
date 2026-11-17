@@ -25,6 +25,13 @@ class DependencyContainer {
     @MainActor private(set) lazy var launchaModel = LaunchaModel(historyStore: LaunchaHistoryStore(),
                                                                  consent: LaunchaConsentStore())
 
+    /// The micro-app flow. `approvalGate` starts micro-apps through it.
+    @MainActor private(set) lazy var microAppFlow: MicroAppFlowController = {
+        let flow = MicroAppFlowController(gate: approvalGate)
+        approvalGate.microApps = flow
+        return flow
+    }()
+
     // Track active subscriptions
     private var cancellables = Set<AnyCancellable>()
 

@@ -3,6 +3,7 @@ import Carbon.HIToolbox
 import Combine
 import os
 import SwiftKeyCore
+import SwiftKeyRuntime
 import SwiftUI
 
 class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
@@ -61,6 +62,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private(set) var launcha: LaunchaController?
     var launchaMenuSubscription: AnyCancellable?
     var launchaOpenSubscription: AnyCancellable?
+    /// The micro-apps folder of the current config, loaded and watched.
+    private(set) var microAppStore: MicroAppStore?
+    /// The config file `microAppStore` belongs to.
+    private var microAppConfig: URL?
     /// Tells a second press of the main key apart from a first one.
     private var doubleTap = LeaderDoubleTap()
     // Gallery window management
@@ -89,6 +94,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         _ = SparkleUpdater.shared
 
         setupLauncha()
+        setupMicroApps()
         setupHotkeys()
 
         if settings.needsOnboarding {
@@ -239,6 +245,59 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private func updateLauncha(menu: [MenuItem]) {
         let config = AppPaths.current.configOverride ?? settings.configFileResolvedURL
         launcha?.model.setMenu(LaunchaMenuCandidate.from(MenuItemTree.build(menu).items), configFile: config)
+        // The config may have moved, and binding labels name micro-apps in launcha.
+        loadMicroAppsIfNeeded()
+        if let catalog = microAppStore?.catalog { applyMicroApps(catalog) }
+    }
+
+    // MARK: - Micro-apps
+
+    /// Connects the micro-app flow to launcha and notifications, then loads the micro-apps folder.
+    @MainActor
+    private func setupMicroApps() {
+        let flow = container.microAppFlow
+        flow.onToast = { message in
+            notifyUser(title: "SwiftKey", message: message)
+        }
+        flow.onAccessibilityNeeded = {
+            notifyUser(title: "Accessibility needed", message: MicroAppContextScripts.accessibilityMessage)
+        }
+        flow.folderDisplay = { [weak self] in
+            self?.microAppStore?.displayPath ?? "the micro-apps folder"
+        }
+        launcha?.onStartMicro = { [weak flow] start in
+            guard let flow else { return .notRun }
+            switch start {
+            case .id(let id): return await flow.run(id: id)
+            case .file(let file): return await flow.run(file: file)
+            }
+        }
+        loadMicroAppsIfNeeded()
+    }
+
+    /// Loads and watches the micro-apps folder of the current config; again when the config moved.
+    @MainActor
+    private func loadMicroAppsIfNeeded() {
+        guard let config = AppPaths.current.configOverride ?? settings.configFileResolvedURL,
+              config != microAppConfig else { return }
+        microAppStore?.stopWatching()
+        let store = MicroAppStore(configURL: config)
+        // A change in the folder also reads the login shell's PATH and variables again.
+        store.onLoad = { UserPATH.refresh() }
+        microAppStore = store
+        microAppConfig = config
+        applyMicroApps(store.load())
+        store.watch { [weak self] _, current in
+            self?.applyMicroApps(current)
+        }
+        logger.info("Micro-apps loaded from \(store.displayPath, privacy: .public)")
+    }
+
+    @MainActor
+    private func applyMicroApps(_ catalog: MicroAppCatalog) {
+        container.microAppFlow.setCatalog(catalog)
+        let bindings = MenuItemTree.build(menuState.rootMenu).items
+        launcha?.model.setMicroApps(catalog.launchaCandidates(bindings: bindings), folder: microAppStore?.folderURL)
     }
 
     /// Runs a menu item chosen in launcha. A group, a dynamic menu or a sticky action shows the menu.

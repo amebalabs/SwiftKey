@@ -1,5 +1,5 @@
 // The launcha panel in SwiftKey's style: a thin-material card with a search field and a list of
-// menu items, apps (or files when nothing else matches) and calculations, with their icons.
+// menu items, micro-apps, apps (or files when nothing else matches) and calculations, with their icons.
 import AppKit
 import SwiftKeyCore
 import SwiftUI
@@ -252,6 +252,9 @@ private struct ResultRow: View {
             } else {
                 Image(systemName: Self.symbol(for: kind)).font(.system(size: 16))
             }
+        case .micro(_, _, let isWorking):
+            Image(systemName: isWorking ? "puzzlepiece.extension" : "exclamationmark.triangle")
+                .font(.system(size: 16))
         case .app, .file:
             RowIcon(url: row.url, icons: chrome.icons)
         }
@@ -272,6 +275,8 @@ private struct ResultRow: View {
         case .menu(_, _, .group, _), .menu(_, _, .dynamic, _): "Menu"
         case .menu(_, _, .batch, _): "Batch"
         case .menu: "Action"
+        case .micro(_, _, true): "Micro-app"
+        case .micro: "Errors"
         case .app: "App"
         case .file: nil
         case .calculation: "Copy"
@@ -281,6 +286,7 @@ private struct ResultRow: View {
     private var help: String {
         switch row.kind {
         case .menu: row.detail.isEmpty ? row.name : "\(row.detail) › \(row.name)"
+        case .micro: row.detail.isEmpty ? row.name : "\(row.name): \(row.detail)"
         case .app, .calculation: row.name
         case .file: row.url.path
         }
@@ -291,6 +297,8 @@ private struct ResultRow: View {
         case .menu(_, _, .group, _), .menu(_, _, .dynamic, _): "\(row.name), menu"
         case .menu(_, _, .batch, _): "\(row.name), batch"
         case .menu: row.detail.isEmpty ? "\(row.name), action" : "\(row.name), action in \(row.detail)"
+        case .micro(_, _, true): "\(row.name), micro-app"
+        case .micro: "\(row.name), micro-app that does not work: \(row.detail)"
         case .app: "\(row.name), app"
         case .file: "\(row.name), file in \(row.detail)"
         case .calculation(let value): "Result \(value)"
@@ -302,6 +310,8 @@ private struct ResultRow: View {
         case .menu(_, _, .group, _), .menu(_, _, .dynamic, _): "Opens the menu there"
         case .menu(_, _, .batch, _): "Runs every action of the group"
         case .menu: "Runs the action"
+        case .micro(_, _, true): "Starts the micro-app"
+        case .micro: "Shows the errors of the file"
         case .app: "Opens the app"
         case .file: "Opens the file with its usual app"
         case .calculation: "Copies the result"

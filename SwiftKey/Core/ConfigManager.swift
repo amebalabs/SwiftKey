@@ -151,7 +151,7 @@ class ConfigManager: DependencyInjectable, ObservableObject {
                             logger.debug("Menu item: '\(item.title)' with key '\(item.key)'")
                             if let action = item.action {
                                 logger.debug(" - Action: '\(action)'")
-                                if item.actionClosure == nil {
+                                if item.actionClosure == nil, item.microAppID == nil {
                                     logger.error(" - No action closure generated for action: '\(action)'")
                                 } else {
                                     logger.debug(" - Action closure successfully generated")
@@ -751,6 +751,11 @@ class ConfigManager: DependencyInjectable, ObservableObject {
             case .failure:
                 return false
             }
+        }
+
+        if action.hasPrefix("micro://") {
+            // The id must not be empty; a missing or broken micro-app is a validation warning, not a load error.
+            return !action.dropFirst("micro://".count).trimmingCharacters(in: .whitespaces).isEmpty
         }
 
         let validPrefixes = ["launch://", "open://", "shortcut://", "dynamic://"]

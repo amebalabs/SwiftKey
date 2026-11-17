@@ -182,21 +182,22 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
         case .reject(let rejected, _):
             return .error(key: rejected)
         case .run(let node), .runAndStay(let node):
-            guard let item = await MainActor.run(body: { menuItem(for: node) }), item.actionClosure != nil else {
+            guard let item = await MainActor.run(body: { menuItem(for: node) }),
+                  item.actionClosure != nil || item.microAppID != nil else {
                 return .none
             }
             let path = await MainActor.run { menuState.breadcrumbs }
             let launch = await MainActor.run { launchID(forKey: key) }
-            onLaunch?(launch)
-            // The menu closes at once; an action whose code needs approval asks after that.
-            let run = { [approvalGate] in
-                Task { @MainActor in
-                    await approvalGate?.run(item, path: path)
-                }
+            // The menu closes at once; an action whose code needs approval asks after that. It is
+            // counted as a launch only when it ran: not when its approval was declined or a
+            // micro-app could not start or failed.
+            Task { @MainActor [approvalGate, weak self] in
+                if await approvalGate?.run(item, path: path) == true { self?.onLaunch?(launch) }
             }
-            _ = run()
             await MainActor.run {
-                menuState.lastExecutedAction = { _ = run() }
+                menuState.lastExecutedAction = { [approvalGate] in
+                    Task { @MainActor in await approvalGate?.run(item, path: path) }
+                }
                 menuState.lastActionTime = Date()
             }
             if case .runAndStay = effect {
@@ -206,10 +207,10 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
         case .runBatch(let groupNode, let actions):
             if let group = await MainActor.run(body: { menuItem(for: groupNode) }) {
                 let launch = await MainActor.run { launchID(forKey: key) }
-                onLaunch?(launch)
                 let ids = Set(actions.compactMap(\.id))
                 let path = await MainActor.run { menuState.breadcrumbs + [group.title] }
-                await executeBatchActions(in: (group.submenu ?? []).filter { ids.contains($0.id.uuidString) }, path: path)
+                await executeBatchActions(in: (group.submenu ?? []).filter { ids.contains($0.id.uuidString) }, path: path,
+                                          launch: launch)
             }
             return .actionExecuted(sticky: false)
         case .loadDynamic(let node):
@@ -242,10 +243,11 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
 
     // MARK: - Batch Actions
 
-    /// Runs the actions of a batch, with one approval for all the code they run.
-    private func executeBatchActions(in submenu: [MenuItem], path: [String]) async {
-        Task { @MainActor [approvalGate] in
-            await approvalGate?.runBatch(submenu, path: path)
+    /// Runs the actions of a batch, with one approval for all the code they run. The batch counts
+    /// as a launch of `launch` only when something in it ran.
+    private func executeBatchActions(in submenu: [MenuItem], path: [String], launch: String) async {
+        Task { @MainActor [approvalGate, weak self] in
+            if await approvalGate?.runBatch(submenu, path: path) == true { self?.onLaunch?(launch) }
         }
     }
 

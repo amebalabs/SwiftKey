@@ -1,5 +1,6 @@
 import Testing
 import Foundation
+import SwiftKeyCore
 @testable import SwiftKey
 
 @Suite("Configuration Validation")
@@ -370,5 +371,47 @@ struct ConfigValidatorTests {
         ]
 
         #expect(!validator.isValid(items))
+    }
+}
+
+@Suite("Micro-app action validation")
+struct MicroAppActionValidationTests {
+    private let catalog = MicroAppCatalog.load([
+        ("upper.yaml", "format: ting.microapp/2\ndescription: Upper.\ninput: clipboard\ncommand: tr a-z A-Z\n"),
+        ("bad.yaml", "format: nope\n"),
+    ])
+
+    private func issues(_ action: String) -> [ValidationIssue] {
+        ConfigValidator(microApps: catalog, microFolder: "~/micro")
+            .validate(MenuItem(key: "m", title: "Micro", action: action))
+    }
+
+    @Test("A loaded micro-app is valid")
+    func working() {
+        #expect(issues("micro://upper").isEmpty)
+    }
+
+    @Test("An empty id is an error")
+    func emptyID() {
+        #expect(issues("micro:// ").map(\.severity) == [.error])
+    }
+
+    @Test("A micro-app that is not in the folder is a warning naming the id and the folder")
+    func missing() {
+        let found = issues("micro://nothing")
+        #expect(found.map(\.severity) == [.warning])
+        #expect(found.first?.message == "Micro-app `nothing` not found in ~/micro")
+    }
+
+    @Test("A broken file is a warning with its first error")
+    func broken() {
+        let found = issues("micro://bad")
+        #expect(found.map(\.severity) == [.warning])
+        #expect(found.first?.message.hasPrefix("Micro-app bad.yaml, line 1:") == true)
+    }
+
+    @Test("Without a catalog only the id's form is checked")
+    func withoutCatalog() {
+        #expect(ConfigValidator().validate(MenuItem(key: "m", title: "Micro", action: "micro://nothing")).isEmpty)
     }
 }
