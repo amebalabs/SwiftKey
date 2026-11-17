@@ -126,6 +126,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             }
 
         NotificationCenter.default
+            .addObserver(forName: .showAccessibilityHelp, object: nil, queue: nil) { [weak self] _ in
+                Task { @MainActor in self?.container.accessibilityWindow.show() }
+            }
+
+        NotificationCenter.default
             .addObserver(forName: .presentGalleryWindow, object: nil, queue: nil) { [weak self] notification in
                 guard let self = self else { return }
                 let snippetId = notification.userInfo?["snippetId"] as? String
@@ -259,8 +264,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         flow.onToast = { message in
             notifyUser(title: "SwiftKey", message: message)
         }
-        flow.onAccessibilityNeeded = {
-            notifyUser(title: "Accessibility needed", message: MicroAppContextScripts.accessibilityMessage)
+        flow.onAccessibilityNeeded = { [weak self] in
+            self?.container.accessibilityWindow.show()
         }
         flow.folderDisplay = { [weak self] in
             self?.microAppStore?.displayPath ?? "the micro-apps folder"

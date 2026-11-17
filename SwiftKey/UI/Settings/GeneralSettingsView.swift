@@ -6,6 +6,7 @@ struct GeneralSettingsView: View {
     @EnvironmentObject private var hotkeys: HotkeyCenter
     @ObservedObject private var launchAtLogin = LaunchAtLogin.observable
     @EnvironmentObject private var sparkleUpdater: SparkleUpdater
+    @Environment(AccessibilityAccess.self) private var accessibility
 
     var body: some View {
         Form {
@@ -43,6 +44,28 @@ struct GeneralSettingsView: View {
             }
             .help("Keys typed faster than this work without the menu ever showing. 0 shows it at once.")
             Divider()
+
+            Section {
+                LabeledContent("Accessibility") {
+                    HStack(spacing: 8) {
+                        if accessibility.isTrusted {
+                            Label("On", systemImage: "checkmark.circle.fill")
+                                .foregroundStyle(.green)
+                        } else {
+                            Label("Off", systemImage: "exclamationmark.circle")
+                                .foregroundStyle(.secondary)
+                            Button("Allow…") {
+                                NotificationCenter.default.post(name: .showAccessibilityHelp, object: nil)
+                            }
+                        }
+                    }
+                }
+                .help("Micro-apps need Accessibility to read the selected text or the front window, and to press keys or paste.")
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+                accessibility.refresh()
+            }
+            .onAppear { accessibility.refresh() }
 
             Section {
                 Toggle("Automatically check for updates", isOn: $settings.automaticallyCheckForUpdates)
@@ -99,4 +122,5 @@ struct GeneralSettingsView: View {
     GeneralSettingsView()
         .environmentObject(SettingsStore())
         .environmentObject(HotkeyCenter())
+        .environment(AccessibilityAccess())
 }
