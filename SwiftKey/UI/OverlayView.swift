@@ -115,7 +115,7 @@ struct OverlayView: View {
                         .foregroundColor(.red)
                         .padding(.bottom, 8)
                 } else {
-                    Text(state.breadcrumbText)
+                    Text(state.hint ?? state.breadcrumbText)
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .padding(.bottom, 8)

@@ -5,6 +5,7 @@ struct PropertyInspectorView: View {
     @Binding var selectedItem: MenuItem?
     @EnvironmentObject private var hotkeys: HotkeyCenter
     @EnvironmentObject private var settings: SettingsStore
+    @EnvironmentObject private var approvalGate: ApprovalGate
     let onUpdate: (MenuItem) -> Void
     let validationErrors: [ConfigEditorViewModel.ValidationError]
     
@@ -449,8 +450,11 @@ struct PropertyInspectorView: View {
         validationErrors.contains { $0.field == field }
     }
     
+    /// Runs the item as it is now, through the same approval as a key press: the field may hold
+    /// a command that was not typed here.
     private func testAction(_ item: MenuItem) {
-        guard let closure = item.actionClosure else { return }
-        closure()
+        Task { @MainActor in
+            await approvalGate.run(item, path: [])
+        }
     }
 }

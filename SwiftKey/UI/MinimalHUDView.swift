@@ -13,7 +13,11 @@ struct MinimalHUDView: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            if !state.breadcrumbs.isEmpty {
+            if let hint = state.hint {
+                Text(hint)
+                    .font(.caption)
+                    .foregroundColor(.gray)
+            } else if !state.breadcrumbs.isEmpty {
                 Text(state.breadcrumbs.joined(separator: " > "))
                     .font(.caption)
                     .foregroundColor(.gray)

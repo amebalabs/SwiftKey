@@ -35,16 +35,19 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
     private(set) var settingsStore: SettingsStore!
     private(set) var configManager: ConfigManager!
     private(set) var dynamicMenuLoader: DynamicMenuLoader!
+    /// Every action that runs code goes through it.
+    private(set) var approvalGate: ApprovalGate!
 
     private let lastActionRepeatWindow: TimeInterval = 30
     
     // Default initialization for container creation
-    init() {
+    init(approvalGate: ApprovalGate = ApprovalGate()) {
         // Default initialization - will be properly set in injectDependencies
         self.menuState = MenuState()
         self.settingsStore = SettingsStore()
         self.configManager = ConfigManager.create()
-        self.dynamicMenuLoader = DynamicMenuLoader.create()
+        self.dynamicMenuLoader = DynamicMenuLoader(approvalGate: approvalGate)
+        self.approvalGate = approvalGate
     }
 
     func injectDependencies(_ container: DependencyContainer) {
@@ -53,6 +56,7 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
         self.settingsStore = container.settingsStore
         self.configManager = container.configManager
         self.dynamicMenuLoader = container.dynamicMenuLoader
+        self.approvalGate = container.approvalGate
 
         logger.debug("Dependencies injected successfully")
     }
@@ -70,6 +74,7 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
         // Update UI state on main actor
         await MainActor.run {
             menuState.currentKey = key
+            menuState.hint = nil
         }
 
         if key == "." {
@@ -139,14 +144,19 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
         case .reject(let rejected, _):
             return .error(key: rejected)
         case .run(let node), .runAndStay(let node):
-            guard let item = await MainActor.run(body: { menuItem(for: node) }), let action = item.actionClosure else {
+            guard let item = await MainActor.run(body: { menuItem(for: node) }), item.actionClosure != nil else {
                 return .none
             }
-            Task(priority: .userInitiated) {
-                action()
+            let path = await MainActor.run { menuState.breadcrumbs }
+            // The menu closes at once; an action whose code needs approval asks after that.
+            let run = { [approvalGate] in
+                Task { @MainActor in
+                    await approvalGate?.run(item, path: path)
+                }
             }
+            _ = run()
             await MainActor.run {
-                menuState.lastExecutedAction = action
+                menuState.lastExecutedAction = { _ = run() }
                 menuState.lastActionTime = Date()
             }
             if case .runAndStay = effect {
@@ -156,7 +166,8 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
         case .runBatch(let groupNode, let actions):
             if let group = await MainActor.run(body: { menuItem(for: groupNode) }) {
                 let ids = Set(actions.compactMap(\.id))
-                await executeBatchActions(in: (group.submenu ?? []).filter { ids.contains($0.id.uuidString) })
+                let path = await MainActor.run { menuState.breadcrumbs + [group.title] }
+                await executeBatchActions(in: (group.submenu ?? []).filter { ids.contains($0.id.uuidString) }, path: path)
             }
             return .actionExecuted(sticky: false)
         case .loadDynamic(let node):
@@ -175,7 +186,8 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
         }
 
         // Use the injected instance rather than the shared singleton
-        if let submenu = await dynamicMenuLoader.loadDynamicMenu(for: item) {
+        let path = await MainActor.run { menuState.breadcrumbs }
+        if let submenu = await dynamicMenuLoader.loadDynamicMenu(for: item, path: path) {
             // Update the UI state on the main actor
             await MainActor.run {
                 menuState.push(key: key, title: item.title, items: submenu)
@@ -188,11 +200,10 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
 
     // MARK: - Batch Actions
 
-    private func executeBatchActions(in submenu: [MenuItem]) async {
-        Task(priority: .userInitiated) {
-            for menu in submenu {
-                menu.actionClosure?()
-            }
+    /// Runs the actions of a batch, with one approval for all the code they run.
+    private func executeBatchActions(in submenu: [MenuItem], path: [String]) async {
+        Task { @MainActor [approvalGate] in
+            await approvalGate?.runBatch(submenu, path: path)
         }
     }
 
@@ -214,10 +225,9 @@ class KeyboardManager: DependencyInjectable, ObservableObject {
             NotificationCenter.default.post(name: .presentOverlay, object: nil)
         case .run:
             // Hotkeys cannot see the Option key, so they always use the default sticky behaviour.
-            if let action = item.actionClosure {
-                Task(priority: .userInitiated) {
-                    action()
-                }
+            let titles = path.dropLast().map(\.title)
+            Task { @MainActor [approvalGate] in
+                await approvalGate?.run(item, path: Array(titles))
             }
         default:
             break

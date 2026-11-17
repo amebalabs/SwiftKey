@@ -63,8 +63,12 @@ class SnippetsStore: ObservableObject, DependencyInjectable {
     func injectDependencies(_ container: DependencyContainer) {
         self.settingsStore = container.settingsStore
         self.configManager = container.configManager
+        self.approvalGate = container.approvalGate
         logger.debug("Dependencies injected successfully")
     }
+
+    /// Records where imported commands came from; they still need approval before they run.
+    private var approvalGate: ApprovalGate?
 
     private let baseURL = URL(string: "https://swiftkey.app/snippets")!
     private let cacheFileName = "snippets-cache.json"
@@ -154,6 +158,9 @@ class SnippetsStore: ObservableObject, DependencyInjectable {
             throw SnippetError.invalidYamlFormat
         }
 
+        // The approval window names the snippet a command came with. Recording comes first, so
+        // a command never shows up without its origin.
+        try approvalGate?.recordSnippet(named: snippet.name, items: menuItems)
         try await configManager.importSnippet(menuItems: menuItems, strategy: mergeStrategy)
     }
 

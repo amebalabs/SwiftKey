@@ -13,6 +13,7 @@ class DeepLinkHandler: DependencyInjectable {
     private let logger = AppLogger.core
 
     private(set) var menuState: MenuState
+    private var approvalGate: ApprovalGate?
 
     init() {
         self.menuState = MenuState()
@@ -20,6 +21,7 @@ class DeepLinkHandler: DependencyInjectable {
 
     func injectDependencies(_ container: DependencyContainer) {
         self.menuState = container.menuState
+        self.approvalGate = container.approvalGate
         logger.debug("DeepLinkHandler: Dependencies injected")
     }
 
@@ -43,39 +45,56 @@ class DeepLinkHandler: DependencyInjectable {
         }
         let pathKeys = pathQuery.components(separatedBy: ",")
 
-        await MainActor.run {
-            menuState.reset()
-            var currentMenu = menuState.rootMenu
-            var lastFound: MenuItem?
-            for key in pathKeys {
-                if let found = currentMenu.first(where: { $0.key == key }) {
-                    lastFound = found
-                    if let submenu = found.submenu {
-                        menuState.push(key: SequenceKey.normalize(found.key) ?? found.key, title: found.title, items: submenu)
-                        currentMenu = submenu
-                    } else {
-                        break
-                    }
-                } else {
-                    lastFound = nil
-                    break
+        let outcome = await MainActor.run { Self.resolve(pathKeys, in: menuState.rootMenu) }
+        switch outcome {
+        case .notFound:
+            logger.error("Menu item not found for path \(pathKeys)")
+        case let .navigate(groups, hint):
+            await MainActor.run {
+                menuState.reset()
+                for group in groups {
+                    menuState.push(key: SequenceKey.normalize(group.key) ?? group.key, title: group.title,
+                                   items: group.submenu ?? [])
                 }
+                menuState.hint = hint
+                NotificationCenter.default.post(name: .presentOverlay, object: nil)
             }
-            guard let item = lastFound else {
-                logger.error("Menu item not found for path \(pathKeys)")
-                return
-            }
-
-            Task {
-                if item.submenu == nil, let action = item.actionClosure {
-                    Task { @MainActor in
-                        action()
-                    }
-                } else {
-                    NotificationCenter.default.post(name: .presentOverlay, object: nil)
-                }
-            }
+        case let .run(item, path):
+            await MainActor.run { menuState.reset() }
+            await approvalGate?.run(item, path: path)
         }
+    }
+
+    /// What a deep link does.
+    enum Outcome: Equatable {
+        /// Open the menu inside these groups, with an optional hint in place of the breadcrumbs.
+        case navigate(groups: [MenuItem], hint: String?)
+        /// Run the item's action; `path` holds the titles of its groups.
+        case run(MenuItem, path: [String])
+        case notFound
+    }
+
+    /// Follows the keys from the top of the menu. A group opens the menu there. An action that
+    /// only opens something (`launch://`, `open://`, `shortcut://`) runs. An action that runs code
+    /// from the config (`shell://`, `dynamic://`, `micro://`) only opens the menu at its group:
+    /// any web page or app can open a link, so running code always needs a key press.
+    static func resolve(_ keys: [String], in root: [MenuItem]) -> Outcome {
+        var current = root
+        var groups: [MenuItem] = []
+        for key in keys {
+            guard let found = current.first(where: { $0.key == key }) else { return .notFound }
+            if let submenu = found.submenu {
+                groups.append(found)
+                current = submenu
+                continue
+            }
+            let action = found.action.flatMap(MenuItemTree.action(for:))
+            if action?.runsCode == true {
+                return .navigate(groups: groups, hint: "Press \(found.key) to run \(found.title)")
+            }
+            return .run(found, path: groups.map(\.title))
+        }
+        return groups.isEmpty ? .notFound : .navigate(groups: groups, hint: nil)
     }
 
     private func handleSnippetImport(url: URL) {

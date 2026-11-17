@@ -9,11 +9,15 @@ final class MenuState: ObservableObject {
     @Published var currentKey: String?
     @Published var lastExecutedAction: (() -> Void)? = nil
     @Published var lastActionTime: Date? = nil
+    /// A short note shown in place of the breadcrumbs until the next key, such as
+    /// "Press g to run Git Pull" after a deep link.
+    @Published var hint: String?
 
     func reset() {
         menuStack = []
         breadcrumbs = []
         keyPath = []
+        hint = nil
     }
 
     /// Enters a group: its key, the title shown in the breadcrumbs, and its items.

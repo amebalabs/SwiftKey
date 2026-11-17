@@ -5,6 +5,7 @@ import UniformTypeIdentifiers
 struct ConfigEditorSettingsView: View {
     @EnvironmentObject var configManager: ConfigManager
     @EnvironmentObject var settings: SettingsStore
+    @EnvironmentObject var approvalGate: ApprovalGate
     @State private var showingImportDialog = false
     @State private var showingValidationPanel = false
     
@@ -12,6 +13,7 @@ struct ConfigEditorSettingsView: View {
         ConfigEditorSettingsContent(
             configManager: configManager,
             settings: settings,
+            approvalGate: approvalGate,
             showingImportDialog: $showingImportDialog,
             showingValidationPanel: $showingValidationPanel
         )
@@ -26,12 +28,13 @@ private struct ConfigEditorSettingsContent: View {
     @Binding var showingValidationPanel: Bool
     @StateObject private var viewModel: ConfigEditorViewModel
     
-    init(configManager: ConfigManager, settings: SettingsStore, showingImportDialog: Binding<Bool>, showingValidationPanel: Binding<Bool>) {
+    init(configManager: ConfigManager, settings: SettingsStore, approvalGate: ApprovalGate, showingImportDialog: Binding<Bool>,
+         showingValidationPanel: Binding<Bool>) {
         self.configManager = configManager
         self.settings = settings
         self._showingImportDialog = showingImportDialog
         self._showingValidationPanel = showingValidationPanel
-        self._viewModel = StateObject(wrappedValue: ConfigEditorViewModel(configManager: configManager))
+        self._viewModel = StateObject(wrappedValue: ConfigEditorViewModel(configManager: configManager, approvalGate: approvalGate))
     }
     
     var body: some View {

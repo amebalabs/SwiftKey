@@ -36,8 +36,12 @@ final class KeyboardNavigationTests: XCTestCase {
         XCTFail("files \(names) were not made", file: file, line: line)
     }
 
+    /// A manager whose approval store lives in the test folder with every command of `menu`
+    /// approved, so no approval window opens during the tests.
     private func manager(_ menu: [MenuItem]) -> KeyboardManager {
-        let manager = KeyboardManager()
+        let store = ApprovalStore(url: folder.appendingPathComponent("approvals.json"))
+        XCTAssertNoThrow(try store.approve(ApprovalGate.allRequests(in: menu)))
+        let manager = KeyboardManager(approvalGate: ApprovalGate(store: store))
         manager.settingsStore.overlayStyle = .panel
         manager.menuState.rootMenu = menu
         return manager

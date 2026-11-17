@@ -17,6 +17,17 @@ struct MenuItem: Identifiable, Codable, Equatable {
     var hidden: Bool? // Hidden items aren't shown in UI but can be activated
     var submenu: [MenuItem]? // Optional nested submenu
     var hotkey: String? // Hotkey for the menu item
+    /// Made by an approved `dynamic://` script at run time, not read from the config file.
+    /// Never encoded, so it can't be set from YAML.
+    var isGenerated = false
+
+    /// This item and its submenu, marked as made by a dynamic script.
+    func markedGenerated() -> MenuItem {
+        var item = self
+        item.isGenerated = true
+        item.submenu = submenu?.map { $0.markedGenerated() }
+        return item
+    }
 
     var urlOpenConfiguration: NSWorkspace.OpenConfiguration {
         let config = NSWorkspace.OpenConfiguration()

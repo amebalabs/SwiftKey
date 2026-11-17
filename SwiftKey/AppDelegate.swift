@@ -351,7 +351,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
             Task {
                 // Don't show the UI yet - first load the dynamic menu
-                if let submenu = await dynamicMenuLoader.loadDynamicMenu(for: item) {
+                let path = await MainActor.run { self.menuState.breadcrumbs }
+                if let submenu = await dynamicMenuLoader.loadDynamicMenu(for: item, path: path) {
                     // Update the menu state with the loaded submenu on the main actor
                     await MainActor.run {
                         self.menuState.push(key: SequenceKey.normalize(item.key) ?? item.key, title: item.title,

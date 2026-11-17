@@ -67,11 +67,17 @@ struct ToastMenuItemView: View {
 /// Shows the navigation breadcrumbs and a close button.
 struct ToastHeaderView: View {
     let breadcrumbs: [String]
+    var hint: String? = nil
     let onClose: () -> Void
     
     var body: some View {
         HStack {
-            if !breadcrumbs.isEmpty {
+            if let hint {
+                Text(hint)
+                    .font(.caption)
+                    .foregroundColor(.white.opacity(0.8))
+                    .lineLimit(1)
+            } else if !breadcrumbs.isEmpty {
                 Text(breadcrumbs.joined(separator: " › "))
                     .font(.caption)
                     .foregroundColor(.white.opacity(0.6))
@@ -275,6 +281,7 @@ struct CornerToastView: View {
             // Header
             ToastHeaderView(
                 breadcrumbs: state.breadcrumbs,
+                hint: state.hint,
                 onClose: { toastState.isExpanded = false }
             )
             

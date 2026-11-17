@@ -20,6 +20,7 @@ class DependencyContainer {
     let snippetsStore: SnippetsStore
     let dynamicMenuLoader: DynamicMenuLoader
     let hotkeyCenter: HotkeyCenter
+    let approvalGate: ApprovalGate
 
     // Track active subscriptions
     private var cancellables = Set<AnyCancellable>()
@@ -33,7 +34,8 @@ class DependencyContainer {
         deepLinkHandler: DeepLinkHandler? = nil,
         keyboardManager: KeyboardManager? = nil,
         snippetsStore: SnippetsStore? = nil,
-        dynamicMenuLoader: DynamicMenuLoader? = nil
+        dynamicMenuLoader: DynamicMenuLoader? = nil,
+        approvalGate: ApprovalGate? = nil
     ) {
         self.sparkleUpdater = sparkleUpdater ?? SparkleUpdater.shared
 
@@ -46,6 +48,7 @@ class DependencyContainer {
         self.snippetsStore = snippetsStore ?? SnippetsStore()
         self.dynamicMenuLoader = dynamicMenuLoader ?? DynamicMenuLoader.create()
         self.hotkeyCenter = HotkeyCenter()
+        self.approvalGate = approvalGate ?? ApprovalGate()
 
         // Inject dependencies into components in the correct order
         // First inject into services that don't depend on others
