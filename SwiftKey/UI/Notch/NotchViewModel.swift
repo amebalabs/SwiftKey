@@ -77,9 +77,18 @@ class NotchViewModel: NSObject, ObservableObject {
     }
 
     @Published private(set) var status: Status = .closed
+    /// An opened HUD takes keys; it is drawn expanded only once revealed.
+    @Published private(set) var revealed = true
 
-    func open() {
+    /// Opens the HUD. With `revealed` false it takes keys but stays collapsed until `reveal()`.
+    func open(revealed: Bool = true) {
+        self.revealed = revealed
         status = .opened
+    }
+
+    /// Shows an HUD that was opened unrevealed, with the open animation.
+    func reveal() {
+        revealed = true
     }
 
     func close() {

@@ -9,6 +9,8 @@ class CornerToastWindowController: NSWindowController {
     private var hostingController: NSHostingController<AnyView>?
     private var sizeObserver: AnyCancellable?
     private var resetHandler: (() -> Void)?
+    /// Shows the toast after the "Show menu after" delay.
+    private let reveal = DelayedReveal()
     
     init(contentView: some View, resetHandler: @escaping () -> Void = {}) {
         self.resetHandler = resetHandler
@@ -51,8 +53,10 @@ class CornerToastWindowController: NSWindowController {
     }
     
     /// Shows the corner toast window.
-    /// Resets the view state, positions the window, and makes it visible.
-    func show() {
+    /// Resets the view state, positions the window, and makes it visible. It takes keys at once;
+    /// with `revealAfter` it appears only after that many seconds.
+    @MainActor
+    func show(revealAfter delay: TimeInterval = 0) {
         guard let window = window else { return }
         
         // Call reset handler to reset view state
@@ -61,9 +65,12 @@ class CornerToastWindowController: NSWindowController {
         // Reset window to initial size before showing
         window.setFrame(NSRect(x: 0, y: 0, width: 100, height: 50), display: false)
         
-        // Reset window state
-        window.alphaValue = 1.0
+        // Reset window state: key at once, visible only after the delay.
+        window.alphaValue = delay > 0 ? 0 : 1.0
         window.makeKeyAndOrderFront(nil)
+        reveal.start(after: delay) { [weak window] in
+            window?.alphaValue = 1.0
+        }
         NSApp.activate(ignoringOtherApps: true)
         
         // Position immediately after reset
@@ -76,7 +83,9 @@ class CornerToastWindowController: NSWindowController {
     
     /// Hides the corner toast window without closing it.
     /// The window remains in memory for quick re-display.
+    @MainActor
     func hide() {
+        reveal.cancel()
         window?.orderOut(nil)
         // Don't close the window, just hide it so it can be shown again
     }

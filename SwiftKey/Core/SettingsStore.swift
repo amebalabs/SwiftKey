@@ -59,6 +59,11 @@ class SettingsStore: ObservableObject, DependencyInjectable, SettingsStoring {
     @AppStorage(SettingsStore.mainHotkeyKey, store: AppPaths.defaults) var mainHotkey: String = "" {
         didSet { settingsChangedSubject.send() }
     }
+    /// Seconds before the panel, HUD or corner toast becomes visible. Keys typed before then work
+    /// without the menu ever showing; 0 shows it at once.
+    @AppStorage("ShowMenuDelay", store: AppPaths.defaults) var showMenuDelay: Double = 0.25 {
+        didSet { settingsChangedSubject.send() }
+    }
     @AppStorage("NeedsOnboarding", store: AppPaths.defaults) var needsOnboarding: Bool = true {
         didSet { settingsChangedSubject.send() }
     }
@@ -87,6 +92,8 @@ class SettingsStore: ObservableObject, DependencyInjectable, SettingsStoring {
     }
 
     static let mainHotkeyKey = "MainHotkey"
+    /// The allowed range of `showMenuDelay`, in seconds.
+    static let showMenuDelayRange: ClosedRange<Double> = 0...1
 
     /// The main hotkey, when one is set and parses.
     var mainHotkeyValue: Hotkey? {

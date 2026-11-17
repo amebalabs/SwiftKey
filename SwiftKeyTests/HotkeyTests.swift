@@ -177,3 +177,35 @@ final class HotkeyRecordingGateTests: XCTestCase {
         XCTAssertFalse(gate.isActive)
     }
 }
+
+@MainActor
+final class DelayedRevealTests: XCTestCase {
+    func testNoDelayRevealsAtOnce() {
+        let reveal = DelayedReveal()
+        var shown = false
+        reveal.start(after: 0) { shown = true }
+        XCTAssertTrue(shown)
+        XCTAssertFalse(reveal.isPending)
+    }
+
+    func testRevealsAfterTheDelay() {
+        let reveal = DelayedReveal()
+        let shown = expectation(description: "revealed")
+        reveal.start(after: 0.05) { shown.fulfill() }
+        XCTAssertTrue(reveal.isPending)
+        wait(for: [shown], timeout: 2)
+        XCTAssertFalse(reveal.isPending)
+    }
+
+    func testAMenuThatClosesFirstIsNeverShown() {
+        let reveal = DelayedReveal()
+        var shown = false
+        reveal.start(after: 0.05) { shown = true }
+        reveal.cancel()
+        let waited = expectation(description: "waited past the delay")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { waited.fulfill() }
+        wait(for: [waited], timeout: 2)
+        XCTAssertFalse(shown)
+        XCTAssertFalse(reveal.isPending)
+    }
+}

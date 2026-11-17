@@ -55,6 +55,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     var facelessMenuController: FacelessMenuController?
     var defaultsObserver: AnyCancellable?
     var hotkeySubscription: AnyCancellable?
+    /// Shows the panel after the "Show menu after" delay.
+    private let overlayReveal = DelayedReveal()
     // Gallery window management
     private static var activeGalleryWindow: NSWindow?
 
@@ -212,7 +214,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
         case .hud:
             setupNotchContextIfNeeded()
-            notchContext?.open()
+            notchContext?.open(revealAfter: settings.showMenuDelay)
 
         case .panel:
             if settings.menuStateResetDelay == 0 {
@@ -222,11 +224,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             {
                 menuState.reset()
             }
-            presentOverlay()
+            presentOverlay(revealAfter: settings.showMenuDelay)
             
         case .cornerToast:
             setupCornerToastIfNeeded()
-            cornerToastController?.show()
+            cornerToastController?.show(revealAfter: settings.showMenuDelay)
         }
     }
 
@@ -284,6 +286,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         }
 
         logger.debug("hideWindow: hiding \(self.settings.overlayStyle.rawValue) overlay")
+        overlayReveal.cancel()
 
         // Perform style-specific cleanup
         switch settings.overlayStyle {
@@ -334,8 +337,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         }
     }
 
+    /// Shows the panel. With a delay the panel takes keys at once but appears only after
+    /// `revealAfter` seconds, and never when it closes first.
     @MainActor
-    func presentOverlay() {
+    func presentOverlay(revealAfter delay: TimeInterval = 0) {
         notchContext?.close()
 
         // Check if current menu consists of a single dynamic menu item
@@ -353,13 +358,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                                             items: submenu)
 
                         // Now that the menu is loaded, present the UI
-                        self.showOverlayWindow()
+                        self.showOverlayWindow(revealAfter: delay)
                     }
                 } else {
                     // Handle failure
                     await MainActor.run {
                         self.logger.error("Failed to load dynamic menu for: \(item.title, privacy: .public)")
-                        self.showOverlayWindow()
+                        self.showOverlayWindow(revealAfter: delay)
                     }
                 }
             }
@@ -367,12 +372,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         }
 
         // Regular case - show the window directly
-        showOverlayWindow()
+        showOverlayWindow(revealAfter: delay)
     }
 
     /// Shows the overlay window positioned appropriately on screen
     @MainActor
-    private func showOverlayWindow() {
+    private func showOverlayWindow(revealAfter delay: TimeInterval = 0) {
         guard let window = overlayWindow, let screen = chosenScreen() else { return }
         let frame = window.frame
         let screenFrame = screen.visibleFrame
@@ -383,7 +388,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             y: screenFrame.origin.y + (screenFrame.height - frame.height) / 2 + verticalAdjustment
         )
         window.setFrameOrigin(newOrigin)
+        // Key at once, visible only after the delay: fast typing never shows the panel.
+        window.alphaValue = delay > 0 ? 0 : 1
         window.makeKeyAndOrderFront(nil)
+        overlayReveal.start(after: delay) { [weak window] in
+            window?.alphaValue = 1
+        }
     }
 
     @MainActor

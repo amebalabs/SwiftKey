@@ -8,7 +8,7 @@ struct NotchView: View {
         case .closed:
             .zero
         case .opened:
-            vm.notchOpenedSize
+            vm.revealed ? vm.notchOpenedSize : .zero
         }
     }
 
@@ -25,6 +25,9 @@ struct NotchView: View {
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                     }
                     .frame(maxWidth: vm.notchOpenedSize.width, maxHeight: vm.notchOpenedSize.height)
+                    // Takes keys while unrevealed, but is drawn only once revealed.
+                    .opacity(vm.revealed ? 1 : 0)
+                    .scaleEffect(vm.revealed ? 1 : 0.5, anchor: .top)
                     .zIndex(1)
                 }
             }
@@ -37,6 +40,7 @@ struct NotchView: View {
             )
         }
         .animation(vm.animation, value: vm.status)
+        .animation(vm.animation, value: vm.revealed)
         .preferredColorScheme(.dark)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }

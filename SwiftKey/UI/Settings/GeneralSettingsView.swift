@@ -36,6 +36,12 @@ struct GeneralSettingsView: View {
                                     placeholder: "Not set", problem: mainHotkeyProblem)
             }
             Toggle("Trigger hold mode", isOn: settings.$triggerKeyHoldMode)
+            HStack {
+                Text("Show menu after")
+                Slider(value: settings.$showMenuDelay, in: SettingsStore.showMenuDelayRange, step: 0.05)
+                Text("\(settings.showMenuDelay, specifier: "%.2f") s")
+            }
+            .help("Keys typed faster than this work without the menu ever showing. 0 shows it at once.")
             Divider()
 
             Section {
