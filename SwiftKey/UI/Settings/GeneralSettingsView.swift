@@ -12,17 +12,17 @@ struct GeneralSettingsView: View {
     var body: some View {
         Form {
             LaunchAtLogin.Toggle()
-            Picker("Overlay Style", selection: settings.$overlayStyle) {
+            Picker("Overlay Style", selection: $settings.overlayStyle) {
                 ForEach(SettingsStore.OverlayStyle.allCases, id: \.self) { style in
                     Text(style.rawValue).tag(style)
                 }
             }
 
             if settings.overlayStyle == .panel {
-                Toggle("Horizontal Layout", isOn: settings.$useHorizontalOverlayLayout)
+                Toggle("Horizontal Layout", isOn: $settings.useHorizontalOverlayLayout)
             }
 
-            Picker("Show SwiftKey on", selection: settings.$overlayScreenOption) {
+            Picker("Show SwiftKey on", selection: $settings.overlayScreenOption) {
                 ForEach(SettingsStore.OverlayScreenOption.allCases, id: \.self) { option in
                     Text(option.rawValue).tag(option)
                 }
@@ -30,17 +30,17 @@ struct GeneralSettingsView: View {
             Divider()
             HStack {
                 Text("Menu Reset Delay")
-                Slider(value: settings.$menuStateResetDelay, in: 0 ... 10, step: 0.5)
+                Slider(value: $settings.menuStateResetDelay, in: 0 ... 10, step: 0.5)
                 Text("\(settings.menuStateResetDelay, specifier: "%.1f")")
             }
             LabeledContent("Hot key") {
-                HotkeyRecorderField(hotkey: settings.$mainHotkey, gate: hotkeys.recordingGate,
+                HotkeyRecorderField(hotkey: $settings.mainHotkey, gate: hotkeys.recordingGate,
                                     placeholder: "Not set", problem: mainHotkeyProblem)
             }
-            Toggle("Trigger hold mode", isOn: settings.$triggerKeyHoldMode)
+            Toggle("Trigger hold mode", isOn: $settings.triggerKeyHoldMode)
             HStack {
                 Text("Show menu after")
-                Slider(value: settings.$showMenuDelay, in: SettingsStore.showMenuDelayRange, step: 0.05)
+                Slider(value: $settings.showMenuDelay, in: SettingsStore.showMenuDelayRange, step: 0.05)
                 Text("\(settings.showMenuDelay, specifier: "%.2f") s")
             }
             .help("Keys typed faster than this work without the menu ever showing. 0 shows it at once.")

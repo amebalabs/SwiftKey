@@ -456,20 +456,26 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         overlayReveal.cancel()
         doubleTap.reset()
 
-        // Perform style-specific cleanup
-        switch settings.overlayStyle {
-        case .hud:
-            overlayWindow?.orderOut(nil)
+        // Perform style-specific cleanup for every overlay that is showing, not only the current
+        // style's: the style may have changed in Settings while an overlay was open.
+        let style = settings.overlayStyle
+        let panelShown = overlayWindow?.isVisible == true || style == .panel
+        let hudShown = notchContext?.presented == true || style == .hud
+        let toastShown = cornerToastController?.window?.isVisible == true || style == .cornerToast
+        let facelessShown = facelessMenuController?.sessionActive == true || style == .faceless
+
+        overlayWindow?.orderOut(nil)
+        if panelShown {
+            lastHideTime = Date()
+        }
+        if hudShown {
             menuState.reset()
             notchContext?.close()
-        case .panel:
-            overlayWindow?.orderOut(nil)
-            lastHideTime = Date()
-        case .faceless:
-            overlayWindow?.orderOut(nil)
+        }
+        if facelessShown {
             facelessMenuController?.endSession()
-        case .cornerToast:
-            overlayWindow?.orderOut(nil)
+        }
+        if toastShown {
             cornerToastController?.hide()
             menuState.reset()
         }

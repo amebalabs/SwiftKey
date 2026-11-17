@@ -11,11 +11,11 @@ struct LaunchaSettingsView: View {
         Form {
             Section {
                 LabeledContent("Hot key") {
-                    HotkeyRecorderField(hotkey: settings.$launchaHotkey, gate: hotkeys.recordingGate,
+                    HotkeyRecorderField(hotkey: $settings.launchaHotkey, gate: hotkeys.recordingGate,
                                         placeholder: "Not set", problem: hotkeyProblem,
                                         conflict: conflict)
                 }
-                Toggle("Open with a double press of the main hot key", isOn: settings.$launchaDoubleTap)
+                Toggle("Open with a double press of the main hot key", isOn: $settings.launchaDoubleTap)
                     .disabled(settings.triggerKeyHoldMode)
                     .help(settings.triggerKeyHoldMode
                           ? "Not available in hold mode, where the main hot key is held down."
@@ -23,7 +23,7 @@ struct LaunchaSettingsView: View {
                 if settings.launchaDoubleTap && !settings.triggerKeyHoldMode {
                     HStack {
                         Text("Double press within")
-                        Slider(value: settings.$launchaDoubleTapWindow, in: LaunchaSettings.doubleTapWindowRange, step: 0.05)
+                        Slider(value: $settings.launchaDoubleTapWindow, in: LaunchaSettings.doubleTapWindowRange, step: 0.05)
                         Text("\(settings.launchaDoubleTapWindow, specifier: "%.2f") s")
                     }
                 }
@@ -34,7 +34,7 @@ struct LaunchaSettingsView: View {
             }
 
             Section {
-                Toggle("Calculate in launcha", isOn: settings.$launchaCalculator)
+                Toggle("Calculate in launcha", isOn: $settings.launchaCalculator)
                     .help("A query such as 2*(3+4) shows its value first; Return copies it.")
             }
 
