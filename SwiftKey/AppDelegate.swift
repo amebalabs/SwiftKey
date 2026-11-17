@@ -81,6 +81,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     func applicationDidFinishLaunching(_: Notification) {
+        WorkingApp.shared.start()
         logger.notice("SwiftKey application starting")
 
         let contentView = OverlayView(state: menuState)

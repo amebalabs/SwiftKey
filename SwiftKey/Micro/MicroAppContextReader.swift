@@ -6,8 +6,8 @@ import CoreServices
 import SwiftKeyCore
 import SwiftKeyRuntime
 
-/// The app that was in front when a micro-app started. SwiftKey's own panels never activate SwiftKey, so
-/// this is the app the person worked in.
+/// The app the person worked in when a micro-app started: the front app, or, when SwiftKey's HUD,
+/// corner toast or menu-bar session made SwiftKey the front app, the app that was active before.
 struct MicroAppTarget: Equatable, Sendable {
     var pid: pid_t
     var bundleID: String?
@@ -15,7 +15,7 @@ struct MicroAppTarget: Equatable, Sendable {
     var path: String?
 
     @MainActor static func frontmost() -> MicroAppTarget? {
-        guard let app = NSWorkspace.shared.frontmostApplication else { return nil }
+        guard let app = WorkingApp.shared.current else { return nil }
         return MicroAppTarget(pid: app.processIdentifier, bundleID: app.bundleIdentifier,
                               name: app.localizedName ?? app.bundleIdentifier ?? "the app", path: app.bundleURL?.path)
     }

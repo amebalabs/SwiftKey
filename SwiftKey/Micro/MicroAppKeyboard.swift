@@ -85,7 +85,11 @@ final class MicroAppKeyboard: MicroAppKeyboardSending {
         if IsSecureEventInputEnabled() {
             throw MicroAppInputError(message: "A password field holds the keyboard (secure input), so SwiftKey sent nothing.")
         }
-        // SwiftKey's panels never activate SwiftKey: once they are closed, the keyboard is back with the app.
+        // The panel style never activates SwiftKey: once it is closed, the keyboard is back with the app.
+        // The HUD, corner toast and menu-bar styles do, so the app is brought back to the front.
+        if NSWorkspace.shared.frontmostApplication?.processIdentifier != target.pid {
+            NSRunningApplication(processIdentifier: target.pid)?.activate()
+        }
         let deadline = Date().addingTimeInterval(1)
         while Date() < deadline {
             if NSApp.keyWindow == nil, NSWorkspace.shared.frontmostApplication?.processIdentifier == target.pid { return }

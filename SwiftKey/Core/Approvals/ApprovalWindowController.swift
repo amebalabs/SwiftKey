@@ -28,8 +28,7 @@ final class ApprovalWindowController: NSObject, ApprovalPrompt, NSWindowDelegate
 
     @MainActor
     private func show(_ pending: [PendingCode]) {
-        let front = NSWorkspace.shared.frontmostApplication
-        previousApp = front?.processIdentifier == ProcessInfo.processInfo.processIdentifier ? nil : front
+        previousApp = WorkingApp.shared.current
 
         let view = ApprovalView(pending: pending) { [weak self] approved in
             self?.finish(approved)
