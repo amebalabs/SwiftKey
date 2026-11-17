@@ -36,25 +36,34 @@ final class LiveModelServer: @unchecked Sendable {
             throw Failure("`fm available` says the on-device model cannot be used (\(available.output.trimmingCharacters(in: .whitespacesAndNewlines))). "
                 + "Turn on Apple Intelligence in System Settings and let the model download, then run the tests again.")
         }
-        let port = try freePort()
-        let process = Process()
-        process.executableURL = fm
-        process.arguments = ["serve", "--host", "127.0.0.1", "--port", String(port)]
-        process.standardInput = FileHandle.nullDevice
-        process.standardOutput = FileHandle.nullDevice
-        process.standardError = FileHandle.nullDevice
-        try process.run()
-        let server = LiveModelServer(port: port, process: process)
-        let health = URL(string: "\(server.baseURL)/health")!
-        let deadline = Date().addingTimeInterval(20)
-        while Date() < deadline {
-            if let (_, response) = try? await URLSession.shared.data(from: health),
-               (response as? HTTPURLResponse)?.statusCode == 200 { return server }
-            guard process.isRunning else { break }
-            try await Task.sleep(nanoseconds: 100_000_000)
+        // The free port is closed before `fm serve` binds it, so another program can take it in
+        // between; a server that exits before it answers then gets another port.
+        var tried: [Int] = []
+        for _ in 1...5 {
+            let port = try freePort()
+            tried.append(port)
+            let process = Process()
+            process.executableURL = fm
+            process.arguments = ["serve", "--host", "127.0.0.1", "--port", String(port)]
+            process.standardInput = FileHandle.nullDevice
+            process.standardOutput = FileHandle.nullDevice
+            process.standardError = FileHandle.nullDevice
+            try process.run()
+            let server = LiveModelServer(port: port, process: process)
+            let health = URL(string: "\(server.baseURL)/health")!
+            let deadline = Date().addingTimeInterval(20)
+            while Date() < deadline, process.isRunning {
+                if let (_, response) = try? await URLSession.shared.data(from: health),
+                   (response as? HTTPURLResponse)?.statusCode == 200 { return server }
+                try await Task.sleep(nanoseconds: 100_000_000)
+            }
+            let exited = !process.isRunning
+            server.stop()
+            guard exited else {
+                throw Failure("`fm serve` did not answer GET /health on port \(port) within 20 seconds.")
+            }
         }
-        server.stop()
-        throw Failure("`fm serve` did not answer GET /health on port \(port) within 20 seconds.")
+        throw Failure("`fm serve` exited before answering on each of the ports \(tried).")
     }
 
     struct Failure: Error, CustomStringConvertible {

@@ -350,16 +350,21 @@ struct MicroAppPipeline: Sendable {
             progress?(MicroAppRunProgress(index: first, count: steps.count, kind: steps[first].kind))
             let channels = group.map { _ in MicroAppByteChannel(limit: runner.outputLimit) }
             for k in 1..<max(1, group.count) { channels[k - 1].attachReader() }
+            // Delivers the live output held back by the throttle before the run returns, so the
+            // last live piece is the whole output and nothing arrives after the result.
+            var finishLive: (() -> Void)?
             if group.last == steps.count - 1, showsLive, let progress {
                 let index = group.last!
                 let kind = steps[index].kind
                 let throttle = MicroAppThrottle(interval: 0.08)
-                channels[channels.count - 1].observe { data in
-                    throttle.submit(data) { latest in
-                        progress(MicroAppRunProgress(index: first, count: steps.count, kind: kind,
-                                                     liveOutput: MicroAppRunRules.text(latest, cut: true)))
-                    }
+                let deliver: @Sendable (Data) -> Void = { latest in
+                    progress(MicroAppRunProgress(index: first, count: steps.count, kind: kind,
+                                                 liveOutput: MicroAppRunRules.text(latest, cut: true)))
                 }
+                channels[channels.count - 1].observe { data in
+                    throttle.submit(data, deliver: deliver)
+                }
+                finishLive = { throttle.finish(deliver: deliver) }
             }
             let snapshot = self
             let groupInput = input
@@ -382,6 +387,7 @@ struct MicroAppPipeline: Sendable {
                 for await (index, error) in tasks { if let error { errors[index] = error } }
                 return errors
             }
+            finishLive?()
             if let index = errors.keys.min(), let error = errors[index] {
                 return failure(error, index: index)
             }
@@ -773,10 +779,16 @@ struct MicroAppPipeline: Sendable {
 /// delivered when the interval has passed, unless a newer one replaced it.
 final class MicroAppThrottle: @unchecked Sendable {
     private let lock = NSLock()
+    /// Held while a value is delivered, so deliveries never overlap or arrive out of order.
+    private let deliveryLock = NSLock()
     private let interval: TimeInterval
     private var last = Date.distantPast
-    private var pending: Data?
+    private var pending: (value: Data, number: Int)?
     private var scheduled = false
+    private var finished = false
+    /// The number of the last value submitted, and of the last one delivered.
+    private var submitted = 0
+    private var delivered = 0
 
     init(interval: TimeInterval) {
         self.interval = interval
@@ -784,25 +796,47 @@ final class MicroAppThrottle: @unchecked Sendable {
 
     func submit(_ value: Data, deliver: @escaping @Sendable (Data) -> Void) {
         lock.lock()
+        guard !finished else { lock.unlock(); return }
+        submitted += 1
+        let number = submitted
         let wait = interval - Date().timeIntervalSince(last)
         if wait <= 0 && !scheduled {
             last = Date()
             lock.unlock()
-            deliver(value)
+            send(value, number: number, deliver: deliver)
             return
         }
-        pending = value
+        pending = (value, number)
         guard !scheduled else { lock.unlock(); return }
         scheduled = true
         lock.unlock()
         DispatchQueue.global().asyncAfter(deadline: .now() + max(0, wait)) { [self] in
             lock.lock()
-            let value = pending
+            let held = pending
             pending = nil
             scheduled = false
             last = Date()
             lock.unlock()
-            if let value { deliver(value) }
+            if let held { send(held.value, number: held.number, deliver: deliver) }
         }
+    }
+
+    /// Delivers the value still held back, at once; nothing submitted after arrives, and nothing
+    /// older than what was delivered arrives later.
+    func finish(deliver: @Sendable (Data) -> Void) {
+        lock.lock()
+        let held = finished ? nil : pending
+        pending = nil
+        finished = true
+        lock.unlock()
+        if let held { send(held.value, number: held.number, deliver: deliver) }
+    }
+
+    private func send(_ value: Data, number: Int, deliver: (Data) -> Void) {
+        deliveryLock.lock()
+        defer { deliveryLock.unlock() }
+        guard number > delivered else { return }
+        delivered = number
+        deliver(value)
     }
 }
