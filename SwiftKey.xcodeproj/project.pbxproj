@@ -119,6 +119,7 @@
 				FA3044AE2D43F59400BA98E2 /* Frameworks */,
 				FA3044AF2D43F59400BA98E2 /* Resources */,
 				5A1C0D0100000000000000B1 /* Embed swiftkey-micro */,
+				5A1C0D0100000000000000B2 /* Bundle micro-app docs */,
 			);
 			buildRules = (
 			);
@@ -241,6 +242,27 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/bash;
 			shellScript = "# Builds the swiftkey-micro console tool from Packages/SwiftKeyCore and puts it next to the app's\n# executable, signed like the app. swift build is incremental, so an unchanged tool costs little;\n# the copy and the signature happen only when the tool changed.\nset -euo pipefail\nPACKAGE=\"$SRCROOT/Packages/SwiftKeyCore\"\nSCRATCH=\"$OBJROOT/swiftkey-micro\"\nDEST=\"$TARGET_BUILD_DIR/$EXECUTABLE_FOLDER_PATH/swiftkey-micro\"\nif [ \"$CONFIGURATION\" = \"Release\" ]; then\n  ARGS=(-c release --arch arm64 --arch x86_64)\nelse\n  ARGS=(-c debug)\nfi\n# Xcode's build variables point SwiftPM at the wrong SDK and toolchain settings; build in a clean environment.\nbuild() {\n  env -i PATH=\"/usr/bin:/bin:/usr/sbin:/sbin\" HOME=\"$HOME\" DEVELOPER_DIR=\"$DEVELOPER_DIR\" TMPDIR=\"${TMPDIR:-/tmp}\" \\\n    xcrun swift build --package-path \"$PACKAGE\" --scratch-path \"$SCRATCH\" \"${ARGS[@]}\" --product swiftkey-micro \"$@\"\n}\nbuild\nBIN=\"$(build --show-bin-path)/swiftkey-micro\"\nmkdir -p \"$(dirname \"$DEST\")\"\nif [ -f \"$DEST\" ] && [ \"$DEST\" -nt \"$BIN\" ]; then\n  exit 0\nfi\ncp -f \"$BIN\" \"$DEST\"\nIDENTITY=\"${EXPANDED_CODE_SIGN_IDENTITY:-}\"\nif [ -n \"$IDENTITY\" ]; then\n  TIMESTAMP=\"--timestamp=none\"\n  if [ \"$CONFIGURATION\" = \"Release\" ] && [ \"$IDENTITY\" != \"-\" ]; then TIMESTAMP=\"--timestamp\"; fi\n  codesign --force --options runtime \"$TIMESTAMP\" --identifier \"$PRODUCT_BUNDLE_IDENTIFIER.swiftkey-micro\" --sign \"$IDENTITY\" \"$DEST\"\nfi\n";
+		};
+		5A1C0D0100000000000000B2 /* Bundle micro-app docs */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Bundle micro-app docs";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/CONFIGURING.md",
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/FORMAT.md",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/bash;
+			shellScript = "# Copies the agent guide, the micro-app format and its examples from Packages/SwiftKeyCore/docs\n# into the app's Resources, so an agent reads the version that matches the installed SwiftKey.\nset -euo pipefail\nDOCS=\"$SRCROOT/Packages/SwiftKeyCore/docs\"\nDEST=\"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"\nmkdir -p \"$DEST/micro-apps\"\ncp -f \"$DOCS/CONFIGURING.md\" \"$DOCS/micro-apps/FORMAT.md\" \"$DEST/\"\nrsync -a --delete \"$DOCS/micro-apps/examples/\" \"$DEST/micro-apps/examples/\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
