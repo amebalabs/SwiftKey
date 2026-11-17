@@ -135,6 +135,8 @@ final class MicroAppFlowController: NSObject, NSWindowDelegate, MicroAppRunning 
     private var task: Task<Void, Never>?
     /// Bumped by every start and close, so a late result of a stopped flow is dropped.
     private var generation = 0
+    /// The approval window of a start is open.
+    private var isAuthorizing = false
     /// How the open flow went so far; handed to `finish` when the flow ends.
     private var outcome = MicroAppOutcome.notRun
     /// Resumed once when the open flow ends.
@@ -196,6 +198,9 @@ final class MicroAppFlowController: NSObject, NSWindowDelegate, MicroAppRunning 
 
     private func start(path: [String], title: String,
                        resolve: (MicroAppCatalog) -> Result<(MicroApp, MicroAppEntry), MicroAppStartProblem>) async -> MicroAppOutcome {
+        // One approval at a time: a start while the approval window is open does not end the flow
+        // waiting for it, or approving it would run nothing.
+        guard !isAuthorizing else { return .notRun }
         close()
         target = frontmost()
         let started = generation
@@ -204,8 +209,10 @@ final class MicroAppFlowController: NSObject, NSWindowDelegate, MicroAppRunning 
             present(MicroAppResultPlan.error(title: title, message: problem.message))
         case .success(let (app, entry)):
             let file = (folderDisplay() as NSString).appendingPathComponent(entry.file)
-            guard await gate.authorizeMicroApp(app, hash: entry.contentHash, file: file, path: path),
-                  generation == started else { return .notRun }
+            isAuthorizing = true
+            let approved = await gate.authorizeMicroApp(app, hash: entry.contentHash, file: file, path: path)
+            isAuthorizing = false
+            guard approved, generation == started else { return .notRun }
             prepare(app)
         }
         guard isOpen || task != nil else { return outcome }
