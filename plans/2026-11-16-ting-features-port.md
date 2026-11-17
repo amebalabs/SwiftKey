@@ -75,15 +75,15 @@ Add `test` and `test-core` tasks to `mise.toml` next to the existing `build` tas
 
 ## Phase 2: Hotkeys, navigation, fast typing
 
-- [ ] Port `HotkeyService` with slots `.main`, `.launcha`, `.item(UUID)`; status reporting per slot (in use by another app, duplicate, invalid)
-- [ ] Per-item `hotkey:` strings parsed with `Hotkey(string:)`; `ConfigValidator` uses it; conflicts surface in `ValidationIssuesView`
-- [ ] Migrate the stored `KeyboardShortcuts_toggleApp` value (verify its exact UserDefaults format in the library source first) to the new setting; test with a real UserDefaults suite
-- [ ] Port `LeaderField` and `HotkeyRecordingGate`; replace `KeyboardShortcuts.Recorder` in onboarding, General settings and the property inspector; global hotkeys pause while recording
-- [ ] Remove the `KeyboardShortcuts` package
-- [ ] Extend `LeaderMachine` with effects for sticky, ⌥-inverted sticky, batch, ⌥ batch, dynamic loading and open-at-path; tests for each
-- [ ] Reduce `KeyboardManager.handleKey` to applying `LeaderMachine` effects; trace every caller (overlay, HUD, toast, faceless menu, item hotkeys, deep links) and verify each path
-- [ ] Hold mode on Carbon release; port `LeaderDoubleTap` (enabled only outside hold mode); tests
-- [ ] "Show menu after" setting; panel, HUD and toast become key at alpha 0 and reveal after the delay; HUD animation starts at reveal; fast sequences never show a window
+- [x] Port `HotkeyService` with slots `.main`, `.launcha`, `.item(UUID)`; status reporting per slot (in use by another app, duplicate, invalid)
+- [x] Per-item `hotkey:` strings parsed with `Hotkey(string:)`; `ConfigValidator` uses it; conflicts surface in `ValidationIssuesView`
+- [x] Migrate the stored `KeyboardShortcuts_toggleApp` value (verify its exact UserDefaults format in the library source first) to the new setting; test with a real UserDefaults suite
+- [x] Port `LeaderField` and `HotkeyRecordingGate`; replace `KeyboardShortcuts.Recorder` in onboarding, General settings and the property inspector; global hotkeys pause while recording
+- [x] Remove the `KeyboardShortcuts` package
+- [x] Extend `LeaderMachine` with effects for sticky, ⌥-inverted sticky, batch, ⌥ batch, dynamic loading and open-at-path; tests for each
+- [x] Reduce `KeyboardManager.handleKey` to applying `LeaderMachine` effects; trace every caller (overlay, HUD, toast, faceless menu, item hotkeys, deep links) and verify each path
+- [x] Hold mode on Carbon release (double tap → launcha moved to Phase 4, where launcha exists)
+- [x] "Show menu after" setting; panel, HUD and toast become key at alpha 0 and reveal after the delay; HUD animation starts at reveal; fast sequences never show a window
 
 ## Phase 3: Approvals and deep links
 
@@ -106,6 +106,7 @@ Add `test` and `test-core` tasks to `mise.toml` next to the existing `build` tas
 - [ ] `LaunchaPanel` with native search field, in SwiftKey's style; ↑ ↓, Return, ⌘Return, Esc; closes on outside click and Space change
 - [ ] Choosing a menu item uses the same run path as a key press (approvals, notify); a group opens the overlay at that path
 - [ ] Open via double tap, launcha hotkey, menu bar menu, `swiftkey://launcha`
+- [ ] Port `LeaderDoubleTap` for the main key, enabled only outside hold mode; tests
 - [ ] Settings: launcha hotkey, double-tap window, calculator on/off, folder consent
 
 ## Phase 5: Micro-apps
