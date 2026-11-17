@@ -47,9 +47,34 @@ final class AppPathsTests: XCTestCase {
         XCTAssertNotEqual(one.defaultsSuiteName, "com.ameba.SwiftKey")
     }
 
-    /// The test scheme sets the override, so hosted tests never touch the person's files or settings.
-    func testHostedTestsRunWithTheOverride() {
-        XCTAssertEqual(AppPaths.current.configOverride?.path, "/tmp/swiftkey-tests/config.yaml")
+    /// Hosted tests get a config of their own in a new temporary folder, with their settings next
+    /// to it, so they never touch the person's files or preferences, whatever the scheme sets.
+    func testHostedTestsRunWithAConfigOfTheirOwn() throws {
+        let config = try XCTUnwrap(AppPaths.current.configOverride)
+        XCTAssertTrue(config.path.hasPrefix(FileManager.default.temporaryDirectory.path), config.path)
+        XCTAssertTrue(config.path.contains("swiftkey-tests-\(ProcessInfo.processInfo.processIdentifier)-"))
         XCTAssertNotEqual(AppPaths.defaults, UserDefaults.standard)
+        XCTAssertEqual(AppPaths.current.defaultsSuiteName, config.path + ".settings")
+    }
+
+    func testEveryTestRunHasItsOwnConfig() {
+        let environment = [AppPaths.testEnvironmentKey: "/tmp/x.xctestconfiguration"]
+        XCTAssertNotEqual(AppPaths(environment: environment).configOverride, AppPaths(environment: environment).configOverride)
+    }
+
+    /// A release build ignores the variable, so a config named from outside cannot bring its own approvals.
+    func testReleaseBuildsIgnoreTheOverride() {
+        let paths = AppPaths(environment: ["SWIFTKEY_CONFIG": "/tmp/x/config.yaml"], home: home, isDebugBuild: false)
+        XCTAssertNil(paths.configOverride)
+        XCTAssertTrue(paths.ignoredOverride)
+        XCTAssertEqual(paths.url(for: "approvals.json").path, home.path + "/Library/Application Support/SwiftKey/approvals.json")
+        XCTAssertNil(paths.defaultsSuiteName)
+    }
+
+    func testTestRunsFollowTheOverrideInAnyBuild() {
+        let environment = ["SWIFTKEY_CONFIG": "/tmp/x/config.yaml", AppPaths.testEnvironmentKey: "/tmp/x.xctestconfiguration"]
+        let paths = AppPaths(environment: environment, home: home, isDebugBuild: false)
+        XCTAssertEqual(paths.configOverride?.path, "/tmp/x/config.yaml")
+        XCTAssertFalse(paths.ignoredOverride)
     }
 }
